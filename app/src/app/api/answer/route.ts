@@ -2,6 +2,7 @@ import { requireMutationProof } from "../../../server/identity/identity";
 import { submitAnswer } from "../../../server/learning/learning";
 import {
   projectLearningSignal,
+  recallLearningContext,
   writeLearningSignal,
 } from "../../../server/memory/engram-memory";
 
@@ -28,7 +29,8 @@ export async function POST(request: Request): Promise<Response> {
         progressState: result.level >= 5 ? "proficient" : "practicing",
       }),
     );
-    return Response.json({ ...result, memoryWritten });
+    const memoryRecalled = await recallLearningContext(childId);
+    return Response.json({ ...result, memoryWritten, memoryRecalled });
   } catch {
     return Response.json({ error: "Unable to save answer" }, { status: 400 });
   }

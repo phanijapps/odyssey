@@ -202,25 +202,48 @@ export async function writeLearningSignal(
   } | null;
   if (!transport?.write) return false;
   const observedAt = new Date().toISOString();
-  await transport.write({
-    content: {
-      format: "json",
-      text: JSON.stringify(signal),
-      structured: signal,
-      summary: "Derived math learning progress signal",
-    },
-    idempotencyKey: `${childId}:${signal.topicId}:${signal.acceptedLevel}:${signal.correct}`,
-    kind: "observation",
-    policy: { retention: "durable", visibility: "private" },
-    provenance: {
-      actor: { id: "odyssey-learning", kind: "service" },
-      observedAt,
-      source: "odyssey-learning",
-    },
-    requester: { actor: { id: "odyssey-learning", kind: "service" } },
-    scope: { tenant: "odyssey", subject: childId, workspace: "learning" },
-  });
-  return true;
+  try {
+    await transport.write({
+      content: {
+        format: "json",
+        text: JSON.stringify(signal),
+        structured: signal,
+        summary: "Derived math learning progress signal",
+      },
+      idempotencyKey: `${childId}:${signal.topicId}:${signal.acceptedLevel}:${signal.correct}`,
+      kind: "observation",
+      policy: { retention: "durable", visibility: "private" },
+      provenance: {
+        actor: { id: "odyssey-learning", kind: "service" },
+        observedAt,
+        source: "odyssey-learning",
+      },
+      requester: { actor: { id: "odyssey-learning", kind: "service" } },
+      scope: { tenant: "odyssey", subject: childId, workspace: "learning" },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Retrieves bounded child-scoped context for the next agent decision. */
+export async function recallLearningContext(childId: string): Promise<boolean> {
+  const transport = loadConfiguredEngramTransport() as {
+    recall?: (request: unknown) => Promise<unknown>;
+  } | null;
+  if (!transport?.recall) return false;
+  try {
+    await transport.recall({
+      query: "math learning progress",
+      requester: { actor: { id: "odyssey-learning", kind: "service" } },
+      scope: { tenant: "odyssey", subject: childId, workspace: "learning" },
+      limit: 5,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Rejects profile reads whose requested child differs from the session child. */
