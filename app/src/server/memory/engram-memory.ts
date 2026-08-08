@@ -210,7 +210,7 @@ export async function writeLearningSignal(
     },
     idempotencyKey: `${childId}:${signal.topicId}:${signal.acceptedLevel}:${signal.correct}`,
     kind: "observation",
-    policy: { retention: "standard" },
+    policy: { retention: "durable" },
     provenance: { source: "odyssey-learning", version: "v1" },
     requester: { actor: { id: "odyssey-learning", type: "service" } },
     scope: { tenant: "odyssey", subject: childId, workspace: "learning" },
