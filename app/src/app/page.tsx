@@ -339,47 +339,65 @@ export default function HomePage() {
                 </p>
               )}
             </div>
-            <div className="diagram-card" aria-label="Labeled ratio diagram">
+            <div className="diagram-card" aria-label="Labeled math diagram">
               <svg
                 viewBox="0 0 240 150"
                 role="img"
                 aria-labelledby="diagram-title diagram-desc"
               >
-                <title id="diagram-title">Water to flour ratio</title>
+                <title id="diagram-title">
+                  {topicId === "linear"
+                    ? "Linear relationship"
+                    : "Water to flour ratio"}
+                </title>
                 <desc id="diagram-desc">
-                  One blue block labeled water beside two gold blocks labeled
-                  flour.
+                  {topicId === "linear"
+                    ? "A line rising two units for every one unit across."
+                    : "One blue block labeled water beside two gold blocks labeled flour."}
                 </desc>
-                <rect
-                  x="20"
-                  y="45"
-                  width="60"
-                  height="60"
-                  rx="12"
-                  className="water"
-                />
-                <rect
-                  x="95"
-                  y="45"
-                  width="60"
-                  height="60"
-                  rx="12"
-                  className="flour"
-                />
-                <rect
-                  x="170"
-                  y="45"
-                  width="50"
-                  height="60"
-                  rx="12"
-                  className="flour"
-                />
-                <text x="50" y="130">
-                  water
-                </text>
-                <text x="150" y="130">
-                  flour
-                </text>
+                {topicId === "linear" ? (
+                  <>
+                    <line x1="30" y1="120" x2="210" y2="120" className="axis" />
+                    <line x1="50" y1="135" x2="50" y2="20" className="axis" />
+                    <line x1="50" y1="110" x2="140" y2="30" className="water" />
+                    <text x="145" y="35">
+                      y = 2x
+                    </text>
+                  </>
+                ) : (
+                  <>
+                    <rect
+                      x="20"
+                      y="45"
+                      width="60"
+                      height="60"
+                      rx="12"
+                      className="water"
+                    />
+                    <rect
+                      x="95"
+                      y="45"
+                      width="60"
+                      height="60"
+                      rx="12"
+                      className="flour"
+                    />
+                    <rect
+                      x="170"
+                      y="45"
+                      width="50"
+                      height="60"
+                      rx="12"
+                      className="flour"
+                    />
+                    <text x="50" y="130">
+                      water
+                    </text>
+                    <text x="150" y="130">
+                      flour
+                    </text>
+                  </>
+                )}
               </svg>
             </div>
           </div>
