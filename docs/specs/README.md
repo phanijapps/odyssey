@@ -19,7 +19,7 @@ docs/specs/<feature>/
 
 | Spec | Status | Constrained by | Notes |
 | --- | --- | --- | --- |
-<!-- no specs yet -->
+| [child-math-practice](child-math-practice/spec.md) | Draft | ADR-0001, ADR-0002, RFC-0001 | Local child-math walking skeleton |
 
 ## Shipped specs (archived)
 
