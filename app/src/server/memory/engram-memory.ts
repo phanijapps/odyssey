@@ -118,6 +118,35 @@ export function getProfileMemoryState(_artifactAvailable: boolean): {
   return { kind: _artifactAvailable ? "ready" : "unavailable" };
 }
 
+/** Reads the server-only artifact contract from environment configuration. */
+export function getConfiguredEngramArtifact(): {
+  approvedRoot: string;
+  sourceRoot: string;
+  addonPath: string;
+  expectedRevision: string;
+  expectedContractSha256: string;
+  expectedAddonSha256: string;
+} | null {
+  const values = {
+    approvedRoot: process.env.ENGRAM_APPROVED_ROOT,
+    sourceRoot: process.env.ENGRAM_SOURCE_ROOT,
+    addonPath: process.env.ENGRAM_ADDON_PATH,
+    expectedRevision: process.env.ENGRAM_EXPECTED_REVISION,
+    expectedContractSha256: process.env.ENGRAM_EXPECTED_CONTRACT_SHA256,
+    expectedAddonSha256: process.env.ENGRAM_EXPECTED_ADDON_SHA256,
+  };
+  return Object.values(values).every((value) => value?.trim())
+    ? (values as {
+        approvedRoot: string;
+        sourceRoot: string;
+        addonPath: string;
+        expectedRevision: string;
+        expectedContractSha256: string;
+        expectedAddonSha256: string;
+      })
+    : null;
+}
+
 /** Rejects profile reads whose requested child differs from the session child. */
 export async function retrieveProfileMemory(_input: {
   sessionChildId: string;
