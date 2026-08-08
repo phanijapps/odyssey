@@ -27,6 +27,9 @@ export default function HomePage() {
   const [feedback, setFeedback] = useState("");
   const [level, setLevel] = useState(1);
   const [correctCount, setCorrectCount] = useState(0);
+  const [memoryState, setMemoryState] = useState<"ready" | "unavailable">(
+    "unavailable",
+  );
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,6 +41,8 @@ export default function HomePage() {
     if (response.ok) {
       setSignedIn(true);
       setError("");
+      const memory = await fetch("/api/memory", { cache: "no-store" });
+      if (memory.ok) setMemoryState((await memory.json()).kind);
     } else {
       setError("We could not sign you in. Check your details and try again.");
     }
@@ -142,7 +147,7 @@ export default function HomePage() {
             </div>
           </div>
           <p className="memory-state">
-            <span className="status-dot" /> Profile memory ready
+            <span className="status-dot" /> Profile memory {memoryState}
           </p>
         </aside>
         <section className="practice-panel">
