@@ -1,3 +1,4 @@
+import "server-only";
 import { DatabaseSync } from "node:sqlite";
 
 export const learningDb = new DatabaseSync(
