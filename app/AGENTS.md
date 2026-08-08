@@ -3,6 +3,8 @@
 - `next`, `react`, and `react-dom` provide the single local web application.
 - `@earendil-works/pi-agent-core` is the approved server-only agent runtime;
   do not expose it to browser code.
+- `server-only` enforces that agent and native-memory modules cannot be imported
+  into client components.
 - `vitest` runs deterministic contract tests and `typescript` checks the app
   boundary. The local Engram artifact is configured outside Git and is not an
   npm dependency.
