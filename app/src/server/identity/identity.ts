@@ -5,7 +5,10 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 
-const sessions = new Map<string, { childId: string; createdAt: number }>();
+const sessions = new Map<
+  string,
+  { childId: string; createdAt: number; lastSeen: number }
+>();
 const failedLogins = new Map<string, { count: number; firstAt: number }>();
 const sessionKey = (token: string) =>
   createHash("sha256").update(token).digest("hex");
@@ -70,6 +73,7 @@ export async function authenticateChild(_credentials: {
   sessions.set(sessionKey(sessionToken), {
     childId: "child-1",
     createdAt: Date.now(),
+    lastSeen: Date.now(),
   });
   return { childId: "child-1", sessionToken };
 }
@@ -120,7 +124,7 @@ export function requireMutationProof(_request: Request): { childId: string } {
   const token = cookie?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
   const session =
     token === "valid" && process.env.NODE_ENV === "test"
-      ? { childId: "child-1", createdAt: Date.now() }
+      ? { childId: "child-1", createdAt: Date.now(), lastSeen: Date.now() }
       : token
         ? sessions.get(sessionKey(token))
         : undefined;
@@ -136,10 +140,12 @@ export function requireMutationProof(_request: Request): { childId: string } {
     !origin ||
     !sameSiteOrigin ||
     !session ||
-    Date.now() - session.createdAt > getIdentityPolicy().absoluteTimeoutMs
+    Date.now() - session.createdAt > getIdentityPolicy().absoluteTimeoutMs ||
+    Date.now() - session.lastSeen > getIdentityPolicy().idleTimeoutMs
   ) {
     throw new Error("Mutation proof required");
   }
+  session.lastSeen = Date.now();
   return { childId: session.childId };
 }
 
@@ -147,9 +153,13 @@ export function resolveSession(token: string): { childId: string } | undefined {
   const session = sessions.get(sessionKey(token));
   if (
     !session ||
-    Date.now() - session.createdAt > getIdentityPolicy().absoluteTimeoutMs
-  )
+    Date.now() - session.createdAt > getIdentityPolicy().absoluteTimeoutMs ||
+    Date.now() - session.lastSeen > getIdentityPolicy().idleTimeoutMs
+  ) {
+    if (session) sessions.delete(sessionKey(token));
     return undefined;
+  }
+  session.lastSeen = Date.now();
   return { childId: session.childId };
 }
 
