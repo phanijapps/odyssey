@@ -160,7 +160,28 @@ export function loadConfiguredEngramTransport(): unknown | null {
     ) => unknown;
     const nodePackage = loadModule(packagePath || packageName) as {
       createNativeMemoryTransport?: (options: { dbPath?: string }) => unknown;
+      createNativeProviderTransport?: (options: {
+        configJson: string;
+      }) => unknown;
     };
+    if (typeof nodePackage.createNativeProviderTransport === "function") {
+      const configJson =
+        process.env.ENGRAM_CONFIG_JSON ??
+        JSON.stringify({
+          storage_path: process.env.ENGRAM_DB_PATH,
+          trusted_root: artifact.approvedRoot,
+          scope_policy: "Strict",
+          embedding_provider: {
+            provider_type: "none",
+            model: "none",
+            dimensions: 384,
+            prompt_profile: "query",
+          },
+          migration_mode: "Apply",
+          capability_policy: "FailClosed",
+        });
+      return nodePackage.createNativeProviderTransport({ configJson });
+    }
     if (typeof nodePackage.createNativeMemoryTransport !== "function")
       return null;
     return nodePackage.createNativeMemoryTransport({
