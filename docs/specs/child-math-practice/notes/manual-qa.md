@@ -12,6 +12,7 @@ local filesystem path here.
 - Engram state: unavailable (no local native artifact configured)
 - Engram build prerequisite: Cargo and Rust 1.85+ when compiling the native package
 - Optional native integration: `ENGRAM_INTEGRATION=1 pnpm test`
+- Optional Ollama integration: `OLLAMA_INTEGRATION=1 PI_PROVIDER=ollama PI_MODEL=minimax-m2.7:cloud pnpm --filter child-math-app test -- --run src/server/agent/ollama.integration.test.ts`
 
 ## Child learning flow
 
