@@ -201,6 +201,7 @@ export async function writeLearningSignal(
     write?: (request: unknown) => Promise<unknown>;
   } | null;
   if (!transport?.write) return false;
+  const observedAt = new Date().toISOString();
   await transport.write({
     content: {
       format: "json",
@@ -210,9 +211,13 @@ export async function writeLearningSignal(
     },
     idempotencyKey: `${childId}:${signal.topicId}:${signal.acceptedLevel}:${signal.correct}`,
     kind: "observation",
-    policy: { retention: "durable" },
-    provenance: { source: "odyssey-learning", version: "v1" },
-    requester: { actor: { id: "odyssey-learning", type: "service" } },
+    policy: { retention: "durable", visibility: "private" },
+    provenance: {
+      actor: { id: "odyssey-learning", kind: "service" },
+      observedAt,
+      source: "odyssey-learning",
+    },
+    requester: { actor: { id: "odyssey-learning", kind: "service" } },
     scope: { tenant: "odyssey", subject: childId, workspace: "learning" },
   });
   return true;
