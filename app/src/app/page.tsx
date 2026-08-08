@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 const fallbackTopics = [
   {
@@ -45,6 +45,13 @@ export default function HomePage() {
     topics: Array<{ topicId: string; level: number; attempts: number }>;
     totalAttempts: number;
   } | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const response = await fetch("/api/session", { cache: "no-store" });
+      if (response.ok) setSignedIn(true);
+    })();
+  }, []);
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
