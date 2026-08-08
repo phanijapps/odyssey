@@ -63,6 +63,8 @@
   override. The current package declares `@engram/contracts` as a workspace
   dependency, so Git installation should use a checked-out Engram workspace or
   a published compatible package until that upstream contract changes.
+  Building the native package also requires Cargo and Rust `1.85+`; the
+  application runtime must not attempt compilation during a request.
 
 ## Crosscutting standards
 

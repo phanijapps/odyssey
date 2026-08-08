@@ -10,6 +10,7 @@ local filesystem path here.
 - App revision: working tree (pre-commit smoke)
 - Node version: 24.19.0
 - Engram state: unavailable (no local native artifact configured)
+- Engram build prerequisite: Cargo and Rust 1.85+ when compiling the native package
 
 ## Child learning flow
 
