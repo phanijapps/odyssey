@@ -33,6 +33,9 @@ export default function HomePage() {
   const [memoryState, setMemoryState] = useState<"ready" | "unavailable">(
     "unavailable",
   );
+  const [parentOpen, setParentOpen] = useState(false);
+  const [parentMessage, setParentMessage] = useState("");
+  const [parentReply, setParentReply] = useState("");
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -144,7 +147,60 @@ export default function HomePage() {
         <div className="profile-chip">
           <span className="avatar">C</span> Child learner
         </div>
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => setParentOpen((open) => !open)}
+        >
+          Parent view
+        </button>
       </header>
+      {parentOpen && (
+        <section className="parent-panel" aria-label="Parent progress chat">
+          <p className="eyebrow">PARENT VIEW</p>
+          <h2>Ask about progress</h2>
+          <form
+            className="answer-row"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const response = await fetch("/api/parent/chat", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ message: parentMessage }),
+              });
+              const payload = (await response.json()) as {
+                reply?: string;
+                error?: string;
+              };
+              setParentReply(
+                payload.reply ??
+                  payload.error ??
+                  "Unable to answer that message",
+              );
+            }}
+          >
+            <label className="sr-only" htmlFor="parent-message">
+              Message
+            </label>
+            <input
+              id="parent-message"
+              value={parentMessage}
+              onChange={(event) => setParentMessage(event.target.value)}
+              placeholder="How is practice going?"
+              maxLength={500}
+              required
+            />
+            <button className="primary-button" type="submit">
+              Ask
+            </button>
+          </form>
+          {parentReply && (
+            <p className="success" role="status">
+              {parentReply}
+            </p>
+          )}
+        </section>
+      )}
       <section className="portal-grid">
         <aside className="sidebar" aria-label="Learning navigation">
           <p className="eyebrow">YOUR PRACTICE</p>
