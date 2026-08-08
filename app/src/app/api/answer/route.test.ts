@@ -24,6 +24,11 @@ test("accepts only the allowlisted answer-submission shape", async () => {
   );
   expect(rejected.status).toBe(400);
 
+  const unknownTopic = await POST(
+    await authenticatedRequest({ topicId: "unreviewed", answer: "2" }),
+  );
+  expect(unknownTopic.status).toBe(400);
+
   const accepted = await POST(
     await authenticatedRequest({ topicId: "ratio", answer: "2" }),
   );

@@ -1,6 +1,7 @@
 import { requireMutationProof } from "../../../server/identity/identity";
 import { submitAnswer } from "../../../server/learning/learning";
 import { requestLearningFixture } from "../../../server/agent/agent";
+import { getSeedCurriculumCatalog } from "../../../../../packages/curriculum/src/catalog";
 import { validateLearningPayload } from "../../../server/validation/payloads";
 import {
   projectLearningSignal,
@@ -27,6 +28,12 @@ export async function POST(request: Request): Promise<Response> {
       body.answer.length > 100
     )
       throw new Error("Invalid answer submission");
+    if (
+      !getSeedCurriculumCatalog().topics.some(
+        (topic) => topic.id === body.topicId,
+      )
+    )
+      throw new Error("Unknown topic");
     const result = await submitAnswer({
       childId,
       topicId: body.topicId,
