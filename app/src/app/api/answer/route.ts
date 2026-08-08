@@ -11,30 +11,41 @@ import {
 export async function POST(request: Request): Promise<Response> {
   try {
     const { childId } = requireMutationProof(request);
-    const body = (await request.json()) as {
-      topicId?: string;
-      answer?: string;
-      nextLevel?: number;
-    };
+    const body = await request.json();
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body) ||
+      !Object.keys(body).every(
+        (key) => key === "topicId" || key === "answer",
+      ) ||
+      typeof body.topicId !== "string" ||
+      typeof body.answer !== "string" ||
+      body.topicId.length === 0 ||
+      body.topicId.length > 100 ||
+      body.answer.length === 0 ||
+      body.answer.length > 100
+    )
+      throw new Error("Invalid answer submission");
     const result = await submitAnswer({
       childId,
-      topicId: body.topicId ?? "",
-      answer: body.answer ?? "",
+      topicId: body.topicId,
+      answer: body.answer,
       nextLevel: 1,
     });
     const memoryWritten = await writeLearningSignal(
       childId,
       projectLearningSignal({
-        topicId: body.topicId ?? "",
+        topicId: body.topicId,
         acceptedLevel: result.level,
-        correct: body.answer === "2",
+        correct: result.correct,
         progressState: result.level >= 5 ? "proficient" : "practicing",
       }),
     );
     const memoryRecalled = await recallLearningContext(childId);
     const nextQuestion = await requestLearningFixture({
       childId,
-      topicId: body.topicId ?? "",
+      topicId: body.topicId,
       level: result.level,
     });
     validateLearningPayload({

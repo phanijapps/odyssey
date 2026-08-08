@@ -25,7 +25,7 @@ export async function submitAnswer(_input: {
   topicId: string;
   answer: string;
   nextLevel: number;
-}): Promise<{ questionId: string; level: number }> {
+}): Promise<{ questionId: string; level: number; correct: boolean }> {
   if (!_input.childId || !_input.topicId || !_input.answer)
     throw new Error("Invalid answer");
   return withLearningTransaction(() => {
@@ -43,8 +43,8 @@ export async function submitAnswer(_input: {
         ? _input.nextLevel
         : 1;
     const level = current?.level ?? requestedLevel;
-    const streak =
-      _input.answer === "2" ? (current?.correct_streak ?? 0) + 1 : 0;
+    const correct = _input.answer === "2";
+    const streak = correct ? (current?.correct_streak ?? 0) + 1 : 0;
     const nextLevel = recommendNextLevel({
       currentLevel: level,
       correctStreak: streak,
@@ -60,7 +60,7 @@ export async function submitAnswer(_input: {
         _input.childId,
         _input.topicId,
         _input.answer,
-        _input.answer === "2" ? 1 : 0,
+        correct ? 1 : 0,
         level,
         nextLevel,
         new Date().toISOString(),
@@ -77,7 +77,7 @@ export async function submitAnswer(_input: {
         nextLevel > level ? 0 : streak,
         new Date().toISOString(),
       );
-    return { questionId: `question-${Date.now()}`, level: nextLevel };
+    return { questionId: `question-${Date.now()}`, level: nextLevel, correct };
   });
 }
 

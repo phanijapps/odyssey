@@ -16,7 +16,11 @@ test("STUB: AC4 persists the accepted recommendation and next question", async (
       answer: "2",
       nextLevel: 2,
     }),
-  ).resolves.toEqual({ questionId: expect.any(String), level: 2 });
+  ).resolves.toEqual({
+    questionId: expect.any(String),
+    level: 2,
+    correct: true,
+  });
 });
 
 test("records attempts and advances after two correct answers", async () => {

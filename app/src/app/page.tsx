@@ -89,17 +89,6 @@ export default function HomePage() {
 
   async function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const correct = answer.trim() === "2";
-    const nextCorrect = correct ? correctCount + 1 : correctCount;
-    setCorrectCount(nextCorrect);
-    setLevel(
-      correct && nextCorrect % 2 === 0 ? Math.min(level + 1, 13) : level,
-    );
-    setFeedback(
-      correct
-        ? "Nice work — your next question is ready."
-        : "Not quite yet. Try the ratio again.",
-    );
     const response = await fetch("/api/answer", {
       method: "POST",
       headers: {
@@ -109,18 +98,27 @@ export default function HomePage() {
       body: JSON.stringify({
         topicId,
         answer,
-        nextLevel:
-          correct && nextCorrect % 2 === 0 ? Math.min(level + 1, 13) : level,
       }),
     });
     if (response.ok) {
       const payload = (await response.json()) as {
+        level: number;
+        correct: boolean;
         nextQuestion?: { question?: string };
       };
+      setLevel(payload.level);
+      if (payload.correct) setCorrectCount((count) => count + 1);
+      setFeedback(
+        payload.correct
+          ? "Nice work — your next question is ready."
+          : "Not quite yet. Try the ratio again.",
+      );
       if (payload.nextQuestion?.question)
         setQuestion(payload.nextQuestion.question);
+      setAnswer("");
+    } else {
+      setFeedback("We could not save that answer. Please try again.");
     }
-    setAnswer("");
   }
 
   if (!signedIn) {
