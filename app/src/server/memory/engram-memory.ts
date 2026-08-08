@@ -152,13 +152,12 @@ export function getConfiguredEngramArtifact(): {
 export function loadConfiguredEngramTransport(): unknown | null {
   const artifact = getConfiguredEngramArtifact();
   const packagePath = process.env.ENGRAM_NODE_PACKAGE_PATH;
-  const packageName = process.env.ENGRAM_NODE_PACKAGE ?? "@engram/node";
-  if (!artifact) return null;
+  if (!artifact || !packagePath) return null;
   try {
     const loadModule = createRequire(import.meta.url) as unknown as (
       moduleId: string,
     ) => unknown;
-    const nodePackage = loadModule(packagePath || packageName) as {
+    const nodePackage = loadModule(packagePath) as {
       createNativeMemoryTransport?: (options: { dbPath?: string }) => unknown;
       createNativeProviderTransport?: (options: {
         configJson: string;
