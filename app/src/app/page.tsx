@@ -27,6 +27,9 @@ export default function HomePage() {
   const [feedback, setFeedback] = useState("");
   const [level, setLevel] = useState(1);
   const [correctCount, setCorrectCount] = useState(0);
+  const [question, setQuestion] = useState(
+    "A recipe uses 1 cup of water for every 2 cups of flour. What is the ratio of water to flour?",
+  );
   const [memoryState, setMemoryState] = useState<"ready" | "unavailable">(
     "unavailable",
   );
@@ -61,7 +64,7 @@ export default function HomePage() {
         ? "Nice work — your next question is ready."
         : "Not quite yet. Try the ratio again.",
     );
-    await fetch("/api/answer", {
+    const response = await fetch("/api/answer", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -74,6 +77,13 @@ export default function HomePage() {
           correct && nextCorrect % 2 === 0 ? Math.min(level + 1, 13) : level,
       }),
     });
+    if (response.ok) {
+      const payload = (await response.json()) as {
+        nextQuestion?: { question?: string };
+      };
+      if (payload.nextQuestion?.question)
+        setQuestion(payload.nextQuestion.question);
+    }
     setAnswer("");
   }
 
@@ -176,10 +186,7 @@ export default function HomePage() {
               <span className="question-tag">
                 {topic.standard} · {topic.grade}
               </span>
-              <h2>
-                A recipe uses 1 cup of water for every 2 cups of flour. What is
-                the ratio of water to flour?
-              </h2>
+              <h2>{question}</h2>
               <form onSubmit={submitAnswer} className="answer-row">
                 <label className="sr-only" htmlFor="answer">
                   Your answer

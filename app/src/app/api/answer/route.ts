@@ -1,5 +1,7 @@
 import { requireMutationProof } from "../../../server/identity/identity";
 import { submitAnswer } from "../../../server/learning/learning";
+import { requestLearningFixture } from "../../../server/agent/agent";
+import { validateLearningPayload } from "../../../server/validation/payloads";
 import {
   projectLearningSignal,
   recallLearningContext,
@@ -30,7 +32,21 @@ export async function POST(request: Request): Promise<Response> {
       }),
     );
     const memoryRecalled = await recallLearningContext(childId);
-    return Response.json({ ...result, memoryWritten, memoryRecalled });
+    const nextQuestion = await requestLearningFixture({
+      childId,
+      topicId: body.topicId ?? "",
+      level: result.level,
+    });
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg: nextQuestion.diagramSvg,
+    });
+    return Response.json({
+      ...result,
+      memoryWritten,
+      memoryRecalled,
+      nextQuestion,
+    });
   } catch {
     return Response.json({ error: "Unable to save answer" }, { status: 400 });
   }
