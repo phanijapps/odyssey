@@ -110,6 +110,29 @@ export function getLearningProgress(
   };
 }
 
+/** Returns aggregate progress suitable for a parent-facing summary. */
+export function getParentProgressSummary(childId: string): {
+  topics: Array<{ topicId: string; level: number; attempts: number }>;
+  totalAttempts: number;
+} {
+  const topics = learningDb
+    .prepare(
+      `SELECT p.topic_id AS topicId, p.level AS level, COUNT(a.id) AS attempts
+      FROM learning_progress p LEFT JOIN learning_attempts a
+      ON a.child_id = p.child_id AND a.topic_id = p.topic_id
+      WHERE p.child_id = ? GROUP BY p.topic_id, p.level`,
+    )
+    .all(childId) as Array<{
+    topicId: string;
+    level: number;
+    attempts: number;
+  }>;
+  return {
+    topics,
+    totalAttempts: topics.reduce((sum, topic) => sum + topic.attempts, 0),
+  };
+}
+
 /** Builds the bound values for an answer insert without interpolating child input. */
 export function createAnswerWrite(_input: {
   childId: string;
