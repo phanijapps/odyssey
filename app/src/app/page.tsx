@@ -17,6 +17,12 @@ const fallbackTopics = [
   },
 ];
 
+const topicQuestions: Record<string, string> = {
+  ratio:
+    "A recipe uses 1 cup of water for every 2 cups of flour. What is the ratio of water to flour?",
+  linear: "For y = 2x, what is the coefficient of x?",
+};
+
 export default function HomePage() {
   const [signedIn, setSignedIn] = useState(false);
   const [username, setUsername] = useState("");
@@ -28,9 +34,7 @@ export default function HomePage() {
   const [feedback, setFeedback] = useState("");
   const [level, setLevel] = useState(1);
   const [correctCount, setCorrectCount] = useState(0);
-  const [question, setQuestion] = useState(
-    "A recipe uses 1 cup of water for every 2 cups of flour. What is the ratio of water to flour?",
-  );
+  const [question, setQuestion] = useState(topicQuestions.ratio);
   const [memoryState, setMemoryState] = useState<"ready" | "unavailable">(
     "unavailable",
   );
@@ -53,7 +57,22 @@ export default function HomePage() {
       setSignedIn(true);
       setError("");
       const topicResponse = await fetch("/api/topics", { cache: "no-store" });
-      if (topicResponse.ok) setTopics(await topicResponse.json());
+      if (topicResponse.ok) {
+        const catalogTopics = (await topicResponse.json()) as Array<{
+          id: string;
+          title: string;
+          gradeOrCourse: string;
+          standardId: string;
+        }>;
+        setTopics(
+          catalogTopics.map((topic) => ({
+            id: topic.id,
+            label: topic.title,
+            grade: topic.gradeOrCourse,
+            standard: topic.standardId,
+          })),
+        );
+      }
       const memory = await fetch("/api/memory", { cache: "no-store" });
       if (memory.ok) setMemoryState((await memory.json()).kind);
     } else {
@@ -276,7 +295,11 @@ export default function HomePage() {
             Topic
             <select
               value={topicId}
-              onChange={(event) => setTopicId(event.target.value)}
+              onChange={(event) => {
+                const nextTopic = event.target.value;
+                setTopicId(nextTopic);
+                setQuestion(topicQuestions[nextTopic] ?? topicQuestions.ratio);
+              }}
             >
               {topics.map((item) => (
                 <option value={item.id} key={item.id}>
