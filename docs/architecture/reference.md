@@ -53,7 +53,9 @@
 - **Agent adapter.** Wraps Pi Mono, supplies narrow context, invokes only
   registered tools, and validates structured outputs. Provider, model, and API
   credentials are server-only environment configuration; no credential is
-  required for the reviewed fixture path.
+  required for the reviewed fixture path. The planned integration-test target
+  is Ollama with the `minimax-m2.7:cloud` model, enabled only when the local
+  Ollama service is available.
 - **A2UI catalog renderer.** Maps validated declarative component descriptions
   to application-owned React components.
 - **SQLite repository.** Encapsulates persistence behind application services.
