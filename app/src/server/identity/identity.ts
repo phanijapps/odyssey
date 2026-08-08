@@ -106,11 +106,17 @@ export function requireMutationProof(_request: Request): { childId: string } {
       : token
         ? sessions.get(sessionKey(token))
         : undefined;
+  let sameSiteOrigin = false;
+  try {
+    sameSiteOrigin = new URL(origin ?? "").hostname === "localhost";
+  } catch {
+    sameSiteOrigin = false;
+  }
   if (
     _request.method !== "POST" ||
     !cookie ||
     !origin ||
-    !origin.endsWith("localhost") ||
+    !sameSiteOrigin ||
     !session ||
     Date.now() - session.createdAt > getIdentityPolicy().absoluteTimeoutMs
   ) {
