@@ -1,4 +1,5 @@
 import { realpathSync } from "node:fs";
+import { createRequire } from "node:module";
 import { isAbsolute, relative } from "node:path";
 
 const seededVocabulary = new Set<string>();
@@ -145,6 +146,26 @@ export function getConfiguredEngramArtifact(): {
         expectedAddonSha256: string;
       })
     : null;
+}
+
+/** Loads the optional local transport only on the server after configuration. */
+export function loadConfiguredEngramTransport(): unknown | null {
+  const artifact = getConfiguredEngramArtifact();
+  const packagePath = process.env.ENGRAM_NODE_PACKAGE_PATH;
+  if (!artifact || !packagePath) return null;
+  try {
+    const require = createRequire(import.meta.url);
+    const nodePackage = require(packagePath) as {
+      createNativeMemoryTransport?: (options: { dbPath?: string }) => unknown;
+    };
+    if (typeof nodePackage.createNativeMemoryTransport !== "function")
+      return null;
+    return nodePackage.createNativeMemoryTransport({
+      dbPath: process.env.ENGRAM_DB_PATH,
+    });
+  } catch {
+    return null;
+  }
 }
 
 /** Rejects profile reads whose requested child differs from the session child. */
