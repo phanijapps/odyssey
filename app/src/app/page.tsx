@@ -36,6 +36,10 @@ export default function HomePage() {
   const [parentOpen, setParentOpen] = useState(false);
   const [parentMessage, setParentMessage] = useState("");
   const [parentReply, setParentReply] = useState("");
+  const [parentSummary, setParentSummary] = useState<{
+    topics: Array<{ topicId: string; level: number; attempts: number }>;
+    totalAttempts: number;
+  } | null>(null);
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -150,7 +154,16 @@ export default function HomePage() {
         <button
           className="secondary-button"
           type="button"
-          onClick={() => setParentOpen((open) => !open)}
+          onClick={async () => {
+            const nextOpen = !parentOpen;
+            setParentOpen(nextOpen);
+            if (nextOpen) {
+              const response = await fetch("/api/parent/summary", {
+                cache: "no-store",
+              });
+              if (response.ok) setParentSummary(await response.json());
+            }
+          }}
         >
           Parent view
         </button>
@@ -159,6 +172,13 @@ export default function HomePage() {
         <section className="parent-panel" aria-label="Parent progress chat">
           <p className="eyebrow">PARENT VIEW</p>
           <h2>Ask about progress</h2>
+          {parentSummary && (
+            <p className="lede">
+              {parentSummary.totalAttempts} attempts across{" "}
+              {parentSummary.topics.length} topic
+              {parentSummary.topics.length === 1 ? "" : "s"}.
+            </p>
+          )}
           <form
             className="answer-row"
             onSubmit={async (event) => {
