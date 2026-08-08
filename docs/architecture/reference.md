@@ -51,7 +51,9 @@
 - **Identity service.** Owns password verification, sessions, and the child
   account boundary; it never exposes password material to the agent.
 - **Agent adapter.** Wraps Pi Mono, supplies narrow context, invokes only
-  registered tools, and validates structured outputs.
+  registered tools, and validates structured outputs. Provider, model, and API
+  credentials are server-only environment configuration; no credential is
+  required for the reviewed fixture path.
 - **A2UI catalog renderer.** Maps validated declarative component descriptions
   to application-owned React components.
 - **SQLite repository.** Encapsulates persistence behind application services.
