@@ -57,7 +57,12 @@
 - **SQLite repository.** Encapsulates persistence behind application services.
 - **Profile-memory adapter.** Wraps a verified local Engram native artifact,
   projects only derived child-scoped signals, and seeds an application-owned
-  ontology and taxonomy. It is not a browser surface or agent tool.
+  ontology and taxonomy. It is not a browser surface or agent tool. The
+  preferred future source is the installed `@engram/node` package from the
+  Engram Git `main` branch; `ENGRAM_NODE_PACKAGE_PATH` remains a local artifact
+  override. The current package declares `@engram/contracts` as a workspace
+  dependency, so Git installation should use a checked-out Engram workspace or
+  a published compatible package until that upstream contract changes.
 
 ## Crosscutting standards
 
