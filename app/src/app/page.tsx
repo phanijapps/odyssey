@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
-const topics = [
+const fallbackTopics = [
   {
     id: "ratio",
     label: "Ratios & rates",
@@ -23,6 +23,7 @@ export default function HomePage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [topicId, setTopicId] = useState("ratio");
+  const [topics, setTopics] = useState(fallbackTopics);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState("");
   const [level, setLevel] = useState(1);
@@ -51,6 +52,8 @@ export default function HomePage() {
     if (response.ok) {
       setSignedIn(true);
       setError("");
+      const topicResponse = await fetch("/api/topics", { cache: "no-store" });
+      if (topicResponse.ok) setTopics(await topicResponse.json());
       const memory = await fetch("/api/memory", { cache: "no-store" });
       if (memory.ok) setMemoryState((await memory.json()).kind);
     } else {
