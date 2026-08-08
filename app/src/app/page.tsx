@@ -167,6 +167,17 @@ export default function HomePage() {
         >
           Parent view
         </button>
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={async () => {
+            await fetch("/api/session", { method: "DELETE" });
+            setSignedIn(false);
+            setParentOpen(false);
+          }}
+        >
+          Sign out
+        </button>
       </header>
       {parentOpen && (
         <section className="parent-panel" aria-label="Parent progress chat">
