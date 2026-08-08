@@ -110,6 +110,20 @@ test("logout invalidates the issued session token", async () => {
   expect(resolveSession(session.sessionToken)).toBeUndefined();
 });
 
+test("throttles repeated failed logins", async () => {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await expect(
+      authenticateChild({ username: "throttle-user", password: "wrong" }),
+    ).rejects.toThrow("Invalid credentials");
+  }
+  await expect(
+    authenticateChild({
+      username: "throttle-user",
+      password: "development-password",
+    }),
+  ).rejects.toThrow("Invalid credentials");
+});
+
 test("STUB: AC6 rejects a cookie-authenticated POST with no Origin or CSRF token before state access", async () => {
   let mutationRan = false;
 

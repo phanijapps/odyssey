@@ -6,6 +6,7 @@ import {
 } from "node:crypto";
 
 const sessions = new Map<string, { childId: string; createdAt: number }>();
+const failedLogins = new Map<string, { count: number; firstAt: number }>();
 const sessionKey = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 const seedPasswordSalt = randomBytes(16);
@@ -33,6 +34,15 @@ export async function authenticateChild(_credentials: {
   environment?: "development" | "production";
 }): Promise<{ childId: string; sessionToken: string }> {
   const environment = _credentials.environment ?? "development";
+  const throttleKey = _credentials.username || "unknown";
+  const now = Date.now();
+  const failed = failedLogins.get(throttleKey);
+  if (
+    failed &&
+    now - failed.firstAt < getIdentityPolicy().throttleWindowMs &&
+    failed.count >= getIdentityPolicy().maxFailedLogins
+  )
+    throw new Error("Invalid credentials");
   const expected = await seedHash();
   const supplied = await new Promise<Buffer>((resolve, reject) => {
     deriveKey(_credentials.password, seedPasswordSalt, 32, (error, key) => {
@@ -46,8 +56,16 @@ export async function authenticateChild(_credentials: {
     supplied.length !== expected.length ||
     !timingSafeEqual(supplied, expected)
   ) {
+    const current = failedLogins.get(throttleKey);
+    failedLogins.set(
+      throttleKey,
+      current && now - current.firstAt < getIdentityPolicy().throttleWindowMs
+        ? { count: current.count + 1, firstAt: current.firstAt }
+        : { count: 1, firstAt: now },
+    );
     throw new Error("Invalid credentials");
   }
+  failedLogins.delete(throttleKey);
   const sessionToken = randomBytes(32).toString("base64url");
   sessions.set(sessionKey(sessionToken), {
     childId: "child-1",
