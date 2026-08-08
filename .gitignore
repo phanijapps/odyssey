@@ -23,6 +23,9 @@ CLAUDE.local.md
 .claude/settings.local.json
 AGENTS.local.md
 .env.local
+node_modules/
+.next/
+*.tsbuildinfo
 
 # OS / editor noise.
 .DS_Store

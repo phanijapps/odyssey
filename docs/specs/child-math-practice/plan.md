@@ -125,6 +125,7 @@ integrations are deliberately unconfigured. Traces to: AC 4–6, 13–14.
 docs/architecture/overview.md
 
 **Tests:**
+
 - Goal-based: the workspace installs, typechecks, and starts the Next.js app on
   one configured port (AC 1).
 - Goal-based: application and package imports resolve without creating a second
@@ -134,6 +135,7 @@ docs/architecture/overview.md
   (AC 15).
 
 **Approach:**
+
 - Add the root workspace manifest, the Next.js application in `app/`, and the
   focused curriculum package with only its public entry point.
 - Set Node and package-manager constraints and document the actual install,
@@ -151,9 +153,10 @@ architecture overview maps `app/` and `packages/curriculum/`.
 
 **Depends on:** T1
 
-**Touches:** packages/curriculum/**
+**Touches:** packages/curriculum/\*\*
 
 **Tests:**
+
 - TDD: malformed catalog records and unknown source metadata are rejected
   (AC 3, 9).
 - TDD: a next-level recommendation outside the current level or adjacent level
@@ -164,6 +167,7 @@ architecture overview maps `app/` and `packages/curriculum/`.
 **stub:** true
 
 **Approach:**
+
 - Define typed catalog and progression contracts plus a small reviewed Ohio
   seed catalog.
 - Export pure parsing and progression validation functions for the app and
@@ -176,9 +180,10 @@ architecture overview maps `app/` and `packages/curriculum/`.
 **Depends on:** T1, T2
 
 **Touches:** app/src/server/identity/**, app/src/server/learning/**,
-app/src/server/sqlite/**
+app/src/server/sqlite/\*\*
 
 **Tests:**
+
 - TDD: password verification accepts only the correct seeded credential and
   produces a generic rejection otherwise (AC 2).
 - TDD: an accepted answer and validated next-level recommendation persist in one
@@ -196,6 +201,7 @@ app/src/server/sqlite/**
 **stub:** true
 
 **Approach:**
+
 - Create schema initialization, focused repositories, password hashing, and
   session handling using server-only modules, including rotation, expiry,
   logout invalidation, throttling, and session-scoped record access.
@@ -209,9 +215,10 @@ temporary SQLite database.
 **Depends on:** T1, T2, T3
 
 **Touches:** app/src/server/memory/**, app/config/learning-profile/**,
-app/scripts/**
+app/scripts/\*\*
 
 **Tests:**
+
 - TDD: missing or invalid native artifacts fail closed without changing local
   learning progress, and memory reads or writes derive scope only from the
   authenticated child; the memory state reports a child-visible recoverable
@@ -229,6 +236,7 @@ app/scripts/**
 stub for AC 12–14. **stub:** true
 
 **Approach:**
+
 - Create a server-only port and a local-source preflight that validates the
   generated contracts and native addon without committing a developer path;
   canonicalize and confine both paths, refuse dirty/untracked source, and match
@@ -252,6 +260,7 @@ seeding, and unavailable-artifact recovery.
 **Touches:** app/src/server/agent/**, app/src/server/validation/**
 
 **Tests:**
+
 - TDD: unknown tools, components, fields, unsafe SVG markup, and out-of-range
   difficulty recommendations are rejected before persistence or rendering
   (AC 4, 7, 9, 10).
@@ -269,6 +278,7 @@ seeding, and unavailable-artifact recovery.
 **stub:** true
 
 **Approach:**
+
 - Add a server-only Pi Mono adapter with three registered learning actions and
   a provider-unavailable implementation, explicit context delimiting, and
   request, retry, token, and cost bounds.
@@ -284,6 +294,7 @@ and the reviewed fixture supplies the diagram happy path without a provider.
 **Touches:** app/src/app/**, app/src/components/**
 
 **Tests:**
+
 - Visual/manual QA: the real app completes seeded sign-in, topic selection,
   answer submission, next question, progress feedback, approved fixture-diagram
   display, and the provider-unavailable state; record it in the named QA note
@@ -295,6 +306,7 @@ and the reviewed fixture supplies the diagram happy path without a provider.
   (AC 1, 17).
 
 **Approach:**
+
 - Build the minimal sign-in, topic selection, question, diagram, answer, and
   progress surfaces with the reference architecture's restrained visual
   hierarchy.
