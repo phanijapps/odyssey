@@ -5,16 +5,26 @@ import {
   redactAgentAudit,
   requestLearningFixture,
 } from "./agent";
+import { validateLearningPayload } from "../validation/payloads";
 
 // STUB: AC7
 
 test("STUB: AC7 supplies the approved local question and diagram fixture", async () => {
-  await expect(
-    requestLearningFixture({ childId: "child-1", topicId: "ratio", level: 1 }),
-  ).resolves.toMatchObject({
-    question: expect.any(String),
-    diagramSvg: expect.any(String),
+  const fixture = await requestLearningFixture({
+    childId: "child-1",
+    topicId: "ratio",
+    level: 1,
   });
+  expect(fixture.question).toBe(
+    "Solve the ratio problem for ratio at level 1.",
+  );
+  expect(fixture.diagramSvg).toContain('aria-label="ratio diagram"');
+  expect(() =>
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg: fixture.diagramSvg,
+    }),
+  ).not.toThrow();
 });
 
 // STUB: AC12
