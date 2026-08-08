@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
   createAnswerWrite,
+  getLearningProgress,
   redactLearningAudit,
   submitAnswer,
 } from "./learning";
@@ -16,6 +17,17 @@ test("STUB: AC4 persists the accepted recommendation and next question", async (
       nextLevel: 2,
     }),
   ).resolves.toEqual({ questionId: expect.any(String), level: 2 });
+});
+
+test("records attempts and advances after two correct answers", async () => {
+  const childId = "sqlite-test-child";
+  await submitAnswer({ childId, topicId: "ratio", answer: "2", nextLevel: 1 });
+  await submitAnswer({ childId, topicId: "ratio", answer: "2", nextLevel: 1 });
+  expect(getLearningProgress(childId, "ratio")).toMatchObject({
+    level: 2,
+    correctStreak: 0,
+    attemptCount: 2,
+  });
 });
 
 // STUB: AC16
