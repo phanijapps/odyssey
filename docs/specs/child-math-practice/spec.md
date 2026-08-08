@@ -1,6 +1,6 @@
 # Spec: child math practice
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Example User
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0001, ADR-0002, ADR-0003, RFC-0001

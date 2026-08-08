@@ -1,7 +1,7 @@
 # Plan: child math practice
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 
 ## Approach
 
