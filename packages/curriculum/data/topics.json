@@ -1,0 +1,19 @@
+{
+  "revision": "ohio-math-seed-v1",
+  "topics": [
+    {
+      "id": "ratio",
+      "standardId": "6.RP.A.1",
+      "gradeOrCourse": "Grade 6",
+      "title": "Understand ratio concepts",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "linear",
+      "standardId": "7.RP.A.2",
+      "gradeOrCourse": "Grade 7",
+      "title": "Recognize proportional relationships",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    }
+  ]
+}

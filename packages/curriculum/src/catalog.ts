@@ -36,3 +36,9 @@ export function parseCurriculumCatalog(_input: unknown): CurriculumCatalog {
   });
   return { revision: input.revision, topics };
 }
+
+/** Returns the reviewed seed catalog bundled with the curriculum package. */
+export function getSeedCurriculumCatalog(): CurriculumCatalog {
+  return parseCurriculumCatalog(topics);
+}
+import topics from "../data/topics.json";
