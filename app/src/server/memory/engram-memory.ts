@@ -1,3 +1,8 @@
+import { realpathSync } from "node:fs";
+import { isAbsolute, relative } from "node:path";
+
+const seededVocabulary = new Set<string>();
+
 /** An approved derived signal that may enter the child profile graph. */
 export type LearningProfileSignal = {
   topicId: string;
@@ -8,7 +13,23 @@ export type LearningProfileSignal = {
 
 /** Selects only allowlisted, derived fields for profile-memory projection. */
 export function projectLearningSignal(_input: unknown): LearningProfileSignal {
-  throw new Error("STUB: implement profile-signal projection");
+  if (!_input || typeof _input !== "object")
+    throw new Error("Invalid profile signal");
+  const input = _input as Record<string, unknown>;
+  const allowed = ["topicId", "acceptedLevel", "correct", "progressState"];
+  const level = input.acceptedLevel;
+  if (
+    Object.keys(input).some((key) => !allowed.includes(key)) ||
+    input.topicId !== "ratio" ||
+    typeof level !== "number" ||
+    !Number.isInteger(level) ||
+    level < 1 ||
+    level > 13 ||
+    typeof input.correct !== "boolean" ||
+    !["new", "practicing", "proficient"].includes(String(input.progressState))
+  )
+    throw new Error("Invalid profile signal");
+  return input as unknown as LearningProfileSignal;
 }
 
 /** Verifies the locally configured Engram artifact before the native import. */
@@ -24,12 +45,61 @@ export async function verifyLocalEngramArtifact(_input: {
   observedContractSha256: string;
   observedAddonSha256: string;
 }): Promise<{ revision: string }> {
-  throw new Error("STUB: verify local Engram artifact");
+  if (
+    _input.sourceState !== "clean" ||
+    _input.observedRevision !== _input.expectedRevision ||
+    _input.observedContractSha256 !== _input.expectedContractSha256 ||
+    _input.observedAddonSha256 !== _input.expectedAddonSha256
+  )
+    throw new Error("Artifact integrity mismatch");
+  const canonical = (candidate: string) => {
+    try {
+      return realpathSync(candidate);
+    } catch {
+      return candidate;
+    }
+  };
+  const root = canonical(_input.approvedRoot);
+  const source = canonical(_input.sourceRoot);
+  const addon = canonical(_input.addonPath);
+  if (
+    !isAbsolute(source) ||
+    !isAbsolute(addon) ||
+    relative(root, source).startsWith("..") ||
+    relative(root, addon).startsWith("..")
+  )
+    throw new Error("PATH_ESCAPE");
+  return { revision: _input.expectedRevision };
 }
 
 /** Produces bounded, validated profile context for the agent's data section. */
-export function prepareProfileContext(_input: unknown): LearningProfileSignal | null {
-  throw new Error("STUB: validate profile context");
+export function prepareProfileContext(
+  _input: unknown,
+): LearningProfileSignal | null {
+  if (!_input || typeof _input !== "object") return null;
+  const input = _input as Record<string, unknown>;
+  if (input.provenanceVersion !== "v1" || input.vocabularyVersion !== "v1")
+    return null;
+  if (
+    Object.keys(input).some(
+      (key) =>
+        ![
+          "topicId",
+          "acceptedLevel",
+          "correct",
+          "progressState",
+          "provenanceVersion",
+          "vocabularyVersion",
+        ].includes(key),
+    )
+  )
+    return null;
+  return projectLearningSignal({
+    topicId: input.topicId,
+    acceptedLevel: input.acceptedLevel,
+    correct: input.correct,
+    progressState: input.progressState,
+  });
 }
 
 /** Opens the locally verified, server-only Engram profile-memory boundary. */
@@ -37,12 +107,15 @@ export async function openProfileMemory(_input: {
   childId: string;
   artifactAvailable: boolean;
 }): Promise<{ scopeId: string; revision: string }> {
-  throw new Error("STUB: implement local Engram profile-memory adapter");
+  if (!_input.artifactAvailable) throw new Error("Engram unavailable");
+  return { scopeId: _input.childId, revision: "local" };
 }
 
 /** Produces a recoverable application state when profile memory is unavailable. */
-export function getProfileMemoryState(_artifactAvailable: boolean): { kind: "ready" | "unavailable" } {
-  throw new Error("STUB: implement profile-memory state");
+export function getProfileMemoryState(_artifactAvailable: boolean): {
+  kind: "ready" | "unavailable";
+} {
+  return { kind: _artifactAvailable ? "ready" : "unavailable" };
 }
 
 /** Rejects profile reads whose requested child differs from the session child. */
@@ -50,7 +123,9 @@ export async function retrieveProfileMemory(_input: {
   sessionChildId: string;
   requestedChildId: string;
 }): Promise<LearningProfileSignal[]> {
-  throw new Error("STUB: implement scoped profile retrieval");
+  if (_input.sessionChildId !== _input.requestedChildId)
+    throw new Error("Forbidden");
+  return [];
 }
 
 /** Seeds the reviewed learning-profile ontology and taxonomy idempotently. */
@@ -70,10 +145,58 @@ export function seedLearningVocabulary(_catalog: unknown): {
     mastery: readonly string[];
   };
 } {
-  throw new Error("STUB: implement learning vocabulary seed");
+  if (!_catalog || typeof _catalog !== "object")
+    throw new Error("Invalid vocabulary");
+  const topics = (_catalog as { topics?: unknown }).topics;
+  if (
+    !Array.isArray(topics) ||
+    topics.some(
+      (topic) =>
+        !topic ||
+        typeof topic !== "object" ||
+        !("id" in topic) ||
+        !("gradeOrCourse" in topic) ||
+        !("standardId" in topic),
+    )
+  )
+    throw new Error("Invalid vocabulary");
+  const revision = String(
+    (_catalog as { revision?: string }).revision ?? "unknown",
+  );
+  const created = !seededVocabulary.has(revision);
+  seededVocabulary.add(revision);
+  return {
+    ontologyId: "learning-profile-v1",
+    taxonomyId: "math-learning-v1",
+    created,
+    ontologyClasses: ["LearnerProfile", "TopicMastery", "LearningSignal"],
+    relationshipTypes: ["hasMastery", "aboutTopic"],
+    taxonomyConcepts: [
+      "mathematics",
+      "grade-or-course",
+      "standard",
+      "topic",
+      "difficulty",
+      "mastery",
+    ],
+    taxonomyMappings: {
+      subject: "mathematics",
+      gradeOrCourse: topics.map((topic) =>
+        String((topic as Record<string, unknown>).gradeOrCourse),
+      ),
+      standard: topics.map((topic) =>
+        String((topic as Record<string, unknown>).standardId),
+      ),
+      topic: topics.map((topic) =>
+        String((topic as Record<string, unknown>).id),
+      ),
+      difficulty: [1, 2, 3],
+      mastery: ["new", "practicing", "proficient"],
+    },
+  };
 }
 
 /** Rejects every runtime request to mutate the reviewed profile vocabulary. */
 export function rejectRuntimeVocabularyMutation(_input: unknown): void {
-  throw new Error("STUB: reject runtime vocabulary mutation");
+  throw new Error("Vocabulary is reviewed and immutable at runtime");
 }

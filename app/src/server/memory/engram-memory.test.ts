@@ -23,7 +23,12 @@ test("STUB: AC13 projects only approved derived learning-profile signals", () =>
       correct: true,
       progressState: "practicing",
     }),
-  ).toEqual({ topicId: "ratio", acceptedLevel: 2, correct: true, progressState: "practicing" });
+  ).toEqual({
+    topicId: "ratio",
+    acceptedLevel: 2,
+    correct: true,
+    progressState: "practicing",
+  });
 });
 
 test("STUB: AC13 rejects raw answers and credentials before profile projection", () => {
@@ -127,7 +132,9 @@ test("STUB: AC13 rejects a realpath-resolved symlink escape before native loadin
 });
 
 test("STUB: AC13 opens profile memory only through the child-derived scope", async () => {
-  await expect(openProfileMemory({ childId: "child-1", artifactAvailable: true })).resolves.toEqual({
+  await expect(
+    openProfileMemory({ childId: "child-1", artifactAvailable: true }),
+  ).resolves.toEqual({
     scopeId: "child-1",
     revision: expect.any(String),
   });
@@ -135,7 +142,10 @@ test("STUB: AC13 opens profile memory only through the child-derived scope", asy
 
 test("STUB: AC13 rejects profile retrieval for a different child", async () => {
   await expect(
-    retrieveProfileMemory({ sessionChildId: "child-1", requestedChildId: "child-2" }),
+    retrieveProfileMemory({
+      sessionChildId: "child-1",
+      requestedChildId: "child-2",
+    }),
   ).rejects.toThrow();
 });
 
@@ -151,14 +161,24 @@ test("STUB: AC14 seeds a reviewed catalog-aligned ontology and taxonomy", () => 
     topics: [{ id: "ratio", gradeOrCourse: "6", standardId: "6.RP.A.1" }],
   };
 
-  expect([seedLearningVocabulary(catalog), seedLearningVocabulary(catalog)]).toEqual([
+  expect([
+    seedLearningVocabulary(catalog),
+    seedLearningVocabulary(catalog),
+  ]).toEqual([
     {
       ontologyId: "learning-profile-v1",
       taxonomyId: "math-learning-v1",
       created: true,
       ontologyClasses: ["LearnerProfile", "TopicMastery", "LearningSignal"],
       relationshipTypes: ["hasMastery", "aboutTopic"],
-      taxonomyConcepts: ["mathematics", "grade-or-course", "standard", "topic", "difficulty", "mastery"],
+      taxonomyConcepts: [
+        "mathematics",
+        "grade-or-course",
+        "standard",
+        "topic",
+        "difficulty",
+        "mastery",
+      ],
       taxonomyMappings: {
         subject: "mathematics",
         gradeOrCourse: ["6"],
@@ -174,7 +194,14 @@ test("STUB: AC14 seeds a reviewed catalog-aligned ontology and taxonomy", () => 
       created: false,
       ontologyClasses: ["LearnerProfile", "TopicMastery", "LearningSignal"],
       relationshipTypes: ["hasMastery", "aboutTopic"],
-      taxonomyConcepts: ["mathematics", "grade-or-course", "standard", "topic", "difficulty", "mastery"],
+      taxonomyConcepts: [
+        "mathematics",
+        "grade-or-course",
+        "standard",
+        "topic",
+        "difficulty",
+        "mastery",
+      ],
       taxonomyMappings: {
         subject: "mathematics",
         gradeOrCourse: ["6"],
@@ -188,14 +215,33 @@ test("STUB: AC14 seeds a reviewed catalog-aligned ontology and taxonomy", () => 
 });
 
 test("STUB: AC14 rejects invalid catalog records", () => {
-  expect(() => seedLearningVocabulary({ revision: "v1", topics: [{ id: "unknown-topic" }] })).toThrow();
-  expect(() => seedLearningVocabulary({ revision: "v1", topics: [{ id: "ratio", gradeOrCourse: "6" }] })).toThrow();
-  expect(() => seedLearningVocabulary({ revision: "v1", topics: [{ id: "ratio", standardId: "6.RP.A.1" }] })).toThrow();
+  expect(() =>
+    seedLearningVocabulary({
+      revision: "v1",
+      topics: [{ id: "unknown-topic" }],
+    }),
+  ).toThrow();
+  expect(() =>
+    seedLearningVocabulary({
+      revision: "v1",
+      topics: [{ id: "ratio", gradeOrCourse: "6" }],
+    }),
+  ).toThrow();
+  expect(() =>
+    seedLearningVocabulary({
+      revision: "v1",
+      topics: [{ id: "ratio", standardId: "6.RP.A.1" }],
+    }),
+  ).toThrow();
 });
 
 test("STUB: AC14 rejects agent and child vocabulary mutations at runtime", () => {
-  expect(() => rejectRuntimeVocabularyMutation({ actor: "agent", concept: "invented" })).toThrow();
-  expect(() => rejectRuntimeVocabularyMutation({ actor: "child", concept: "invented" })).toThrow();
+  expect(() =>
+    rejectRuntimeVocabularyMutation({ actor: "agent", concept: "invented" }),
+  ).toThrow();
+  expect(() =>
+    rejectRuntimeVocabularyMutation({ actor: "child", concept: "invented" }),
+  ).toThrow();
 });
 
 // STUB: AC12
@@ -210,12 +256,22 @@ test("STUB: AC12 accepts only bounded, versioned profile context as agent data",
       provenanceVersion: "v1",
       vocabularyVersion: "v1",
     }),
-  ).toEqual({ topicId: "ratio", acceptedLevel: 2, correct: true, progressState: "practicing" });
+  ).toEqual({
+    topicId: "ratio",
+    acceptedLevel: 2,
+    correct: true,
+    progressState: "practicing",
+  });
 });
 
 test("STUB: AC12 ignores stale, unprovenanced, unknown, or instruction-shaped profile context", () => {
   for (const context of [
-    { topicId: "ratio", acceptedLevel: 2, correct: true, progressState: "practicing" },
+    {
+      topicId: "ratio",
+      acceptedLevel: 2,
+      correct: true,
+      progressState: "practicing",
+    },
     {
       topicId: "ratio",
       acceptedLevel: 2,

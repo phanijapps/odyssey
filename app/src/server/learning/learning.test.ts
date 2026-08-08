@@ -1,17 +1,28 @@
 import { expect, test } from "vitest";
-import { createAnswerWrite, redactLearningAudit, submitAnswer } from "./learning";
+import {
+  createAnswerWrite,
+  redactLearningAudit,
+  submitAnswer,
+} from "./learning";
 
 // STUB: AC4
 
 test("STUB: AC4 persists the accepted recommendation and next question", async () => {
   await expect(
-    submitAnswer({ childId: "child-1", topicId: "ratio", answer: "2", nextLevel: 2 }),
+    submitAnswer({
+      childId: "child-1",
+      topicId: "ratio",
+      answer: "2",
+      nextLevel: 2,
+    }),
   ).resolves.toEqual({ questionId: expect.any(String), level: 2 });
 });
 
 // STUB: AC16
 test("STUB: AC16 redacts raw child answers from learning audit data", () => {
-  expect(redactLearningAudit({ event: "answer-recorded", rawAnswer: "secret" })).toEqual({
+  expect(
+    redactLearningAudit({ event: "answer-recorded", rawAnswer: "secret" }),
+  ).toEqual({
     event: "answer-recorded",
   });
 });

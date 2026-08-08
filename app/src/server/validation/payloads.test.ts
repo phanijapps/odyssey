@@ -5,7 +5,10 @@ import { serializeSafeDiagnostic, validateLearningPayload } from "./payloads";
 
 test("STUB: AC7 accepts the approved SVG and app-owned A2UI payload", () => {
   expect(() =>
-    validateLearningPayload({ component: "GeometryDiagram", diagramSvg: "<svg aria-label=\"triangle\" />" }),
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg: '<svg aria-label="triangle" />',
+    }),
   ).not.toThrow();
 });
 

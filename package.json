@@ -1,0 +1,20 @@
+{
+  "name": "odyssey-learning",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter child-math-app build",
+    "dev": "pnpm --filter child-math-app dev",
+    "format:check": "prettier --check .",
+    "lint": "pnpm format:check",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "audit:dependencies": "pnpm audit --audit-level high"
+  },
+  "devDependencies": {
+    "prettier": "3.7.4"
+  }
+}

@@ -17,10 +17,15 @@ test("STUB: AC3 parses a reviewed catalog record with its Ohio source trace", ()
         },
       ],
     }),
-  ).toMatchObject({ revision: "2026-08-08", topics: [{ standardId: "6.RP.A.1" }] });
+  ).toMatchObject({
+    revision: "2026-08-08",
+    topics: [{ standardId: "6.RP.A.1" }],
+  });
 });
 
 // STUB: AC9
 test("STUB: AC9 rejects unknown catalog fields", () => {
-  expect(() => parseCurriculumCatalog({ revision: "v1", topics: [], extra: true })).toThrow();
+  expect(() =>
+    parseCurriculumCatalog({ revision: "v1", topics: [], extra: true }),
+  ).toThrow();
 });

@@ -12,18 +12,29 @@ import {
 test("STUB: AC2 creates a rotated session for the local seeded child", async () => {
   await expect(
     authenticateChild({ username: "child", password: "development-password" }),
-  ).resolves.toEqual({ childId: expect.any(String), sessionToken: expect.any(String) });
+  ).resolves.toEqual({
+    childId: expect.any(String),
+    sessionToken: expect.any(String),
+  });
 });
 
 test("STUB: AC2 returns one generic rejection for invalid credentials", async () => {
   await expect(
-    authenticateChild({ username: "unknown", password: "wrong", environment: "development" }),
+    authenticateChild({
+      username: "unknown",
+      password: "wrong",
+      environment: "development",
+    }),
   ).rejects.toThrow("Invalid credentials");
 });
 
 test("STUB: AC2 refuses the development seed outside local development", async () => {
   await expect(
-    authenticateChild({ username: "child", password: "development-password", environment: "production" }),
+    authenticateChild({
+      username: "child",
+      password: "development-password",
+      environment: "production",
+    }),
   ).rejects.toThrow("Invalid credentials");
 });
 
@@ -51,7 +62,9 @@ test("STUB: AC5 rejects access to another child's records", () => {
 
 // STUB: AC6
 test("STUB: AC6 rejects a mutation without a same-site anti-forgery proof", () => {
-  expect(() => requireMutationProof(new Request("http://localhost/answer"))).toThrow();
+  expect(() =>
+    requireMutationProof(new Request("http://localhost/answer")),
+  ).toThrow();
 });
 
 test("STUB: AC6 permits a same-site mutation only after validation", async () => {
