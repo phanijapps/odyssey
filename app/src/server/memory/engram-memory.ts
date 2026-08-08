@@ -192,6 +192,32 @@ export function loadConfiguredEngramTransport(): unknown | null {
   }
 }
 
+/** Writes only the derived learning signal; raw answers never cross this boundary. */
+export async function writeLearningSignal(
+  childId: string,
+  signal: LearningProfileSignal,
+): Promise<boolean> {
+  const transport = loadConfiguredEngramTransport() as {
+    write?: (request: unknown) => Promise<unknown>;
+  } | null;
+  if (!transport?.write) return false;
+  await transport.write({
+    content: {
+      format: "json",
+      text: JSON.stringify(signal),
+      structured: signal,
+      summary: "Derived math learning progress signal",
+    },
+    idempotencyKey: `${childId}:${signal.topicId}:${signal.acceptedLevel}:${signal.correct}`,
+    kind: "observation",
+    policy: { retention: "standard" },
+    provenance: { source: "odyssey-learning", version: "v1" },
+    requester: { actor: { id: "odyssey-learning", type: "service" } },
+    scope: { tenant: "odyssey", subject: childId, workspace: "learning" },
+  });
+  return true;
+}
+
 /** Rejects profile reads whose requested child differs from the session child. */
 export async function retrieveProfileMemory(_input: {
   sessionChildId: string;
