@@ -11,6 +11,7 @@ local filesystem path here.
 - Node version: 24.19.0
 - Engram state: unavailable (no local native artifact configured)
 - Engram build prerequisite: Cargo and Rust 1.85+ when compiling the native package
+- Optional native integration: `ENGRAM_INTEGRATION=1 pnpm test`
 
 ## Child learning flow
 
