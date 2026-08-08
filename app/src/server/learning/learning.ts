@@ -1,4 +1,23 @@
 /** Records an allowed attempt and returns the next question for that child. */
+export function recommendNextLevel(input: {
+  currentLevel: number;
+  correctStreak: number;
+  memoryAvailable: boolean;
+}): number {
+  if (
+    !Number.isInteger(input.currentLevel) ||
+    input.currentLevel < 1 ||
+    input.currentLevel > 13
+  )
+    throw new Error("Invalid level");
+  const shouldAdvance =
+    input.correctStreak >= 2 ||
+    (input.memoryAvailable && input.correctStreak >= 3);
+  return shouldAdvance
+    ? Math.min(input.currentLevel + 1, 13)
+    : input.currentLevel;
+}
+
 export async function submitAnswer(_input: {
   childId: string;
   topicId: string;

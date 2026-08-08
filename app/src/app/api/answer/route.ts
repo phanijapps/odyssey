@@ -1,5 +1,8 @@
 import { requireMutationProof } from "../../../server/identity/identity";
-import { submitAnswer } from "../../../server/learning/learning";
+import {
+  recommendNextLevel,
+  submitAnswer,
+} from "../../../server/learning/learning";
 import { requestLearningFixture } from "../../../server/agent/agent";
 import { validateLearningPayload } from "../../../server/validation/payloads";
 import {
@@ -16,11 +19,16 @@ export async function POST(request: Request): Promise<Response> {
       answer?: string;
       nextLevel?: number;
     };
+    const recommendedLevel = recommendNextLevel({
+      currentLevel: body.nextLevel ?? 0,
+      correctStreak: body.answer === "2" ? 2 : 0,
+      memoryAvailable: false,
+    });
     const result = await submitAnswer({
       childId,
       topicId: body.topicId ?? "",
       answer: body.answer ?? "",
-      nextLevel: body.nextLevel ?? 0,
+      nextLevel: recommendedLevel,
     });
     const memoryWritten = await writeLearningSignal(
       childId,
