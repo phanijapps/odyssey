@@ -14,8 +14,9 @@
 - **Child safety.** Model output and all user input are untrusted at the server
   boundary. No generated executable code reaches the browser.
 - **Scope.** The first experience is child-facing math practice for grades
-  6–12. Parent workflows, other subjects, production deployment, and
-  engram-integration are out of the first slice.
+  6–12. Parent workflows, other subjects, and production deployment are out of
+  the first slice. ADR-0003 includes a local-only, server-side Engram profile
+  memory boundary.
 
 ## Solution strategy
 
@@ -54,6 +55,9 @@
 - **A2UI catalog renderer.** Maps validated declarative component descriptions
   to application-owned React components.
 - **SQLite repository.** Encapsulates persistence behind application services.
+- **Profile-memory adapter.** Wraps a verified local Engram native artifact,
+  projects only derived child-scoped signals, and seeds an application-owned
+  ontology and taxonomy. It is not a browser surface or agent tool.
 
 ## Crosscutting standards
 

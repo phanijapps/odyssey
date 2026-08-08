@@ -9,8 +9,8 @@ test("STUB: AC4 persists the accepted recommendation and next question", async (
   ).resolves.toEqual({ questionId: expect.any(String), level: 2 });
 });
 
-// STUB: AC14
-test("STUB: AC14 redacts raw child answers from learning audit data", () => {
+// STUB: AC16
+test("STUB: AC16 redacts raw child answers from learning audit data", () => {
   expect(redactLearningAudit({ event: "answer-recorded", rawAnswer: "secret" })).toEqual({
     event: "answer-recorded",
   });

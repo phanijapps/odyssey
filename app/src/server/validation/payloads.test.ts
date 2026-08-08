@@ -25,8 +25,8 @@ test("STUB: AC9 rejects untyped input before persistence or rendering", () => {
   }
 });
 
-// STUB: AC14
-test("STUB: AC14 redacts every forbidden value from logs, client errors, and audit records", () => {
+// STUB: AC16
+test("STUB: AC16 redacts every forbidden value from logs, client errors, and audit records", () => {
   expect(
     serializeSafeDiagnostic({
       event: "agent-request",

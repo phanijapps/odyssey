@@ -22,6 +22,7 @@ docs/specs/**/notes/implementer-*.md
 CLAUDE.local.md
 .claude/settings.local.json
 AGENTS.local.md
+.env.local
 
 # OS / editor noise.
 .DS_Store

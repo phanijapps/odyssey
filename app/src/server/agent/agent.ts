@@ -16,6 +16,11 @@ export function assertAgentRequestBudget(_budget: {
   throw new Error("STUB: implement agent request budgeting");
 }
 
+/** Encodes validated profile context as delimited data for the model request. */
+export function buildAgentProfileData(_profileContext: unknown): { content: string } {
+  throw new Error("STUB: implement profile-data prompt boundary");
+}
+
 /** Returns the minimal persisted audit representation of an agent request. */
 export function redactAgentAudit(_event: Record<string, unknown>): Record<string, unknown> {
   throw new Error("STUB: implement agent audit redaction");
