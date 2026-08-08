@@ -173,11 +173,25 @@ export default function HomePage() {
           <p className="eyebrow">PARENT VIEW</p>
           <h2>Ask about progress</h2>
           {parentSummary && (
-            <p className="lede">
-              {parentSummary.totalAttempts} attempts across{" "}
-              {parentSummary.topics.length} topic
-              {parentSummary.topics.length === 1 ? "" : "s"}.
-            </p>
+            <>
+              <p className="lede">
+                {parentSummary.totalAttempts} attempts across{" "}
+                {parentSummary.topics.length} topic
+                {parentSummary.topics.length === 1 ? "" : "s"}.
+              </p>
+              {parentSummary.topics.length > 0 && (
+                <ul className="parent-topic-list">
+                  {parentSummary.topics.map((topic) => (
+                    <li key={topic.topicId}>
+                      <span>{topic.topicId}</span>
+                      <small>
+                        Level {topic.level} · {topic.attempts} attempts
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
           <form
             className="answer-row"
