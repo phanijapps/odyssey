@@ -142,7 +142,20 @@ export function buildAgentProfileData(_profileContext: unknown): {
     "provenanceVersion",
     "vocabularyVersion",
   ];
-  if (!allowed.every((key) => key in input))
+  if (
+    Object.keys(input).some((key) => !allowed.includes(key)) ||
+    !allowed.every((key) => key in input) ||
+    !["ratio", "linear"].includes(String(input.topicId)) ||
+    !Number.isInteger(input.acceptedLevel) ||
+    Number(input.acceptedLevel) < 1 ||
+    Number(input.acceptedLevel) > 13 ||
+    typeof input.correct !== "boolean" ||
+    !["new", "practicing", "proficient"].includes(
+      String(input.progressState),
+    ) ||
+    input.provenanceVersion !== "v1" ||
+    input.vocabularyVersion !== "v1"
+  )
     throw new Error("Invalid profile context");
   const data = JSON.stringify({
     topicId: input.topicId,
