@@ -5,6 +5,8 @@ import {
   getIdentityPolicy,
   requireMutationProof,
   runProtectedMutation,
+  logoutSession,
+  resolveSession,
 } from "./identity";
 
 // STUB: AC2
@@ -96,6 +98,16 @@ test("STUB: AC6 rejects cross-site mutations before running their side effect", 
   ).rejects.toThrow();
 
   expect(mutationRan).toBe(false);
+});
+
+test("logout invalidates the issued session token", async () => {
+  const session = await authenticateChild({
+    username: "child",
+    password: "development-password",
+  });
+  expect(resolveSession(session.sessionToken)).toEqual({ childId: "child-1" });
+  logoutSession(session.sessionToken);
+  expect(resolveSession(session.sessionToken)).toBeUndefined();
 });
 
 test("STUB: AC6 rejects a cookie-authenticated POST with no Origin or CSRF token before state access", async () => {
