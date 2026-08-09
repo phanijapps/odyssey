@@ -113,6 +113,7 @@ local filesystem path here.
 - Browser persistence smoke: pass — submitted a correct ratio answer, refreshed the page, and observed the signed-in portal with the same persisted level and `1 correct in a row` streak.
 - Browser question-variation smoke: pass — after reloading the local portal, submitted two correct ratio answers and observed two distinct, topic-aligned prompts at the persisted levels.
 - Browser provider-unavailable smoke: pass — signed in with the local seed, confirmed `Try generated practice` was disabled until an answer was accepted, then selected it without provider configuration and observed the recoverable availability message while the local ratio question remained visible.
+- Ollama integration smoke: pass — `OLLAMA_INTEGRATION=1 PI_PROVIDER=ollama PI_MODEL=minimax-m2.7:cloud pnpm --filter child-math-app test -- --run src/server/agent/ollama.integration.test.ts` completed with the cloud-model probe passing.
 - Overall: pending user browser execution (M1–M6)
 - Failed case and observed result: not run in this environment
 - Follow-up issue: wire and verify a local Engram artifact before marking M5 ready.
