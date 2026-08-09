@@ -2,6 +2,10 @@ import { expect, test } from "vitest";
 import {
   assertAgentRequestBudget,
   buildAgentProfileData,
+  getOllamaOpenAIUrl,
+  getOpenAIChatCompletionContent,
+  getGeneratedOutputInstruction,
+  parseOpenAICompletionJson,
   getLearningFixtureExpectedAnswer,
   redactAgentAudit,
   requestLearningFixture,
@@ -237,6 +241,48 @@ test("rejects untyped or delimiter-bearing profile fields", () => {
       vocabularyVersion: "v1",
     }),
   ).toThrow("Invalid profile context");
+});
+
+test("uses only the local Ollama OpenAI-compatible endpoint", () => {
+  const previousUrl = process.env.OLLAMA_OPENAI_URL;
+  try {
+    delete process.env.OLLAMA_OPENAI_URL;
+    expect(getOllamaOpenAIUrl()).toBe("http://127.0.0.1:11434/v1");
+    process.env.OLLAMA_OPENAI_URL = "http://example.test/v1";
+    expect(() => getOllamaOpenAIUrl()).toThrow("Invalid Ollama OpenAI URL");
+  } finally {
+    if (previousUrl === undefined) delete process.env.OLLAMA_OPENAI_URL;
+    else process.env.OLLAMA_OPENAI_URL = previousUrl;
+  }
+});
+
+test("accepts only one bounded OpenAI-compatible assistant completion", () => {
+  expect(
+    getOpenAIChatCompletionContent({
+      choices: [{ message: { content: '{"answer":2}' } }],
+    }),
+  ).toBe('{"answer":2}');
+  expect(() => getOpenAIChatCompletionContent({ choices: [] })).toThrow(
+    "Invalid Ollama response",
+  );
+});
+
+test("parses only a complete raw JSON completion", () => {
+  expect(parseOpenAICompletionJson('{"answer":2}')).toEqual({ answer: 2 });
+  expect(() =>
+    parseOpenAICompletionJson('```json\n{"answer":2}\n```'),
+  ).toThrow();
+  expect(() => parseOpenAICompletionJson('```json\n{"answer":2}')).toThrow();
+});
+
+test("constrains generated output to the reviewed question and SVG schema", () => {
+  const instruction = getGeneratedOutputInstruction("ratio");
+  expect(instruction).toContain("exactly two keys");
+  expect(instruction).toContain("Never include an answer key");
+  expect(instruction).toContain("Do not use xmlns");
+  expect(instruction).toContain(
+    "A smoothie recipe uses 1 cup of water for every 2 cups of flour.",
+  );
 });
 
 // STUB: AC16
