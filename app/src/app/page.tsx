@@ -23,6 +23,8 @@ const topicQuestions: Record<string, string> = {
   linear: "For y = 2x, what is the coefficient of x?",
 };
 
+type PracticeFeedback = { kind: "success" | "error"; message: string };
+
 export default function HomePage() {
   const [signedIn, setSignedIn] = useState(false);
   const [username, setUsername] = useState("");
@@ -31,13 +33,21 @@ export default function HomePage() {
   const [topicId, setTopicId] = useState("ratio");
   const activeTopicRef = useRef(topicId);
   const progressRequestVersion = useRef(0);
+  const questionRequestVersion = useRef(0);
   const [topics, setTopics] = useState(fallbackTopics);
   const [answer, setAnswer] = useState("");
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
+  const [canRequestGeneratedPractice, setCanRequestGeneratedPractice] =
+    useState(false);
+  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
   const [level, setLevel] = useState(1);
   const [correctStreak, setCorrectStreak] = useState(0);
   const [question, setQuestion] = useState(topicQuestions.ratio);
   const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
+  const [generatedPreview, setGeneratedPreview] = useState<{
+    question: string;
+    diagramSvg: string;
+  } | null>(null);
   const [memoryState, setMemoryState] = useState<"ready" | "unavailable">(
     "unavailable",
   );
@@ -118,40 +128,103 @@ export default function HomePage() {
     event.preventDefault();
     const submittedTopicId = topicId;
     progressRequestVersion.current += 1;
-    const response = await fetch("/api/answer", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        origin: window.location.origin,
-      },
-      body: JSON.stringify({
-        topicId: submittedTopicId,
-        answer,
-      }),
-    });
-    if (response.ok) {
+    const requestVersion = ++questionRequestVersion.current;
+    setIsSubmittingAnswer(true);
+    try {
+      const response = await fetch("/api/answer", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: window.location.origin,
+        },
+        body: JSON.stringify({
+          topicId: submittedTopicId,
+          answer,
+        }),
+      });
+      if (!response.ok) {
+        setFeedback({
+          kind: "error",
+          message: "We could not save that answer. Please try again.",
+        });
+        return;
+      }
       const payload = (await response.json()) as {
         level: number;
         correct: boolean;
         correctStreak: number;
         nextQuestion?: { question?: string; diagramSvg?: string };
       };
-      if (activeTopicRef.current !== submittedTopicId) return;
+      if (
+        activeTopicRef.current !== submittedTopicId ||
+        questionRequestVersion.current !== requestVersion
+      )
+        return;
       progressRequestVersion.current += 1;
       setLevel(payload.level);
       setCorrectStreak(payload.correctStreak);
-      setFeedback(
-        payload.correct
+      setFeedback({
+        kind: payload.correct ? "success" : "error",
+        message: payload.correct
           ? "Nice work — your next question is ready."
           : "Not quite yet. Try the ratio again.",
-      );
+      });
+      setCanRequestGeneratedPractice(true);
+      setGeneratedPreview(null);
       if (payload.nextQuestion?.question)
         setQuestion(payload.nextQuestion.question);
       setDiagramSvg(payload.nextQuestion?.diagramSvg ?? null);
       setAnswer("");
-    } else {
-      setFeedback("We could not save that answer. Please try again.");
+    } catch {
+      setFeedback({
+        kind: "error",
+        message: "We could not save that answer. Please try again.",
+      });
+    } finally {
+      setIsSubmittingAnswer(false);
     }
+  }
+
+  async function requestGeneratedPractice() {
+    const submittedTopicId = topicId;
+    const requestVersion = ++questionRequestVersion.current;
+    setCanRequestGeneratedPractice(false);
+    setGeneratedPreview(null);
+    const response = await fetch("/api/generated-question", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: window.location.origin,
+      },
+      body: JSON.stringify({ topicId: submittedTopicId }),
+    });
+    const payload = (await response.json()) as {
+      error?: string;
+      question?: string;
+      diagramSvg?: string;
+    };
+    if (
+      activeTopicRef.current !== submittedTopicId ||
+      questionRequestVersion.current !== requestVersion
+    )
+      return;
+    if (response.ok && payload.question && payload.diagramSvg) {
+      setGeneratedPreview({
+        question: payload.question,
+        diagramSvg: payload.diagramSvg,
+      });
+      setFeedback({
+        kind: "success",
+        message: "A generated practice question is ready.",
+      });
+      return;
+    }
+    setFeedback({
+      kind: "error",
+      message:
+        payload.error ??
+        "Generated practice is unavailable. Your local practice question is still ready.",
+    });
   }
 
   if (!signedIn) {
@@ -336,9 +409,12 @@ export default function HomePage() {
               onChange={(event) => {
                 const nextTopic = event.target.value;
                 activeTopicRef.current = nextTopic;
+                questionRequestVersion.current += 1;
+                setCanRequestGeneratedPractice(false);
                 setTopicId(nextTopic);
                 setQuestion(topicQuestions[nextTopic] ?? topicQuestions.ratio);
                 setDiagramSvg(null);
+                setGeneratedPreview(null);
                 void loadProgress(nextTopic);
               }}
             >
@@ -371,13 +447,32 @@ export default function HomePage() {
                   Check answer
                 </button>
               </form>
-              {feedback && (
-                <p
-                  className={feedback.startsWith("Nice") ? "success" : "error"}
-                  role="status"
-                >
-                  {feedback}
+              <button
+                className="secondary-button generated-practice-button"
+                type="button"
+                onClick={() => void requestGeneratedPractice()}
+                disabled={!canRequestGeneratedPractice || isSubmittingAnswer}
+              >
+                Try generated practice
+              </button>
+              {feedback !== null && (
+                <p className={feedback.kind} role="status">
+                  {feedback.message}
                 </p>
+              )}
+              {generatedPreview !== null && (
+                <section
+                  className="generated-preview"
+                  aria-label="Generated practice preview"
+                >
+                  <p className="eyebrow">GENERATED PREVIEW</p>
+                  <p>{generatedPreview.question}</p>
+                  <img
+                    className="generated-diagram"
+                    src={`data:image/svg+xml,${encodeURIComponent(generatedPreview.diagramSvg)}`}
+                    alt={`${topic.label} generated preview diagram`}
+                  />
+                </section>
               )}
             </div>
             <div className="diagram-card" aria-label="Labeled math diagram">

@@ -1,4 +1,7 @@
-import { requireMutationProof } from "../../../server/identity/identity";
+import {
+  grantGeneratedPracticeAllowance,
+  requireMutationProof,
+} from "../../../server/identity/identity";
 import { submitAnswer } from "../../../server/learning/learning";
 import { requestLearningFixture } from "../../../server/agent/agent";
 import { getSeedCurriculumCatalog } from "../../../../../packages/curriculum/src/catalog";
@@ -60,6 +63,7 @@ export async function POST(request: Request): Promise<Response> {
       component: "GeometryDiagram",
       diagramSvg: nextQuestion.diagramSvg,
     });
+    grantGeneratedPracticeAllowance(request, body.topicId);
     return Response.json({
       ...result,
       memoryWritten,

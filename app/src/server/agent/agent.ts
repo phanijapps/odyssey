@@ -87,17 +87,59 @@ export async function requestOllamaLearningQuestion(input: {
   const payload = (await response.json()) as { message?: { content?: string } };
   if (typeof payload.message?.content !== "string")
     throw new Error("Invalid Ollama response");
-  const output = JSON.parse(payload.message.content) as Record<string, unknown>;
-  if (
-    typeof output.question !== "string" ||
-    typeof output.diagramSvg !== "string"
-  )
-    throw new Error("Invalid Ollama response");
+  const output = validateGeneratedLearningResponse(
+    JSON.parse(payload.message.content),
+    input.topicId,
+  );
   validateLearningPayload({
     component: "GeometryDiagram",
     diagramSvg: output.diagramSvg,
   });
+  return output;
+}
+
+/** Enforces the exact provider response schema before any child-visible sink. */
+export function validateGeneratedLearningResponse(
+  _output: unknown,
+  _topicId: string,
+): { question: string; diagramSvg: string } {
+  if (!_output || typeof _output !== "object" || Array.isArray(_output))
+    throw new Error("Invalid Ollama response");
+  const output = _output as Record<string, unknown>;
+  if (
+    !Object.keys(output).every(
+      (key) => key === "question" || key === "diagramSvg",
+    ) ||
+    Object.keys(output).length !== 2 ||
+    typeof output.question !== "string" ||
+    typeof output.diagramSvg !== "string"
+  )
+    throw new Error("Invalid Ollama response");
+  validateGeneratedQuestion(output.question, _topicId);
   return { question: output.question, diagramSvg: output.diagramSvg };
+}
+
+/** Rejects provider question text that is unsafe or unrelated to the approved topic. */
+export function validateGeneratedQuestion(
+  _question: string,
+  _topicId: string,
+): void {
+  const question = _question.trim();
+  if (
+    question.length < 20 ||
+    question.length > 400 ||
+    /[<>]|\b(ignore|instruction|system message|assistant|prompt)\b/i.test(
+      question,
+    )
+  )
+    throw new Error("Invalid generated question");
+  const grammar =
+    _topicId === "ratio"
+      ? /^A [a-z]+ recipe uses [1-9]\d? cups? of water (?:for every|and) [1-9]\d? cups? of flour\. How many cups? of flour (?:are|is) needed\?$/i
+      : _topicId === "linear"
+        ? /^(?:For|In) y = [1-9]\d?x, what (?:number )?(?:multiplies x|is the coefficient of x)\?$/i
+        : null;
+  if (!grammar?.test(question)) throw new Error("Invalid generated question");
 }
 
 /** Probes the cloud model with a deterministic response outside production budget. */

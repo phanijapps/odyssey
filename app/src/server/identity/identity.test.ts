@@ -2,6 +2,8 @@ import { afterEach, expect, test, vi } from "vitest";
 import {
   assertChildRecordScope,
   authenticateChild,
+  consumeGeneratedPracticeAllowance,
+  grantGeneratedPracticeAllowance,
   getIdentityPolicy,
   requireMutationProof,
   runProtectedMutation,
@@ -55,6 +57,7 @@ test("STUB: AC2 configures the password, session, throttling, and cookie control
     idleTimeoutMs: 30 * 60 * 1_000,
     absoluteTimeoutMs: 8 * 60 * 60 * 1_000,
     logoutInvalidates: true,
+    maxGeneratedContentRequestsPerSession: 10,
     cookie: { httpOnly: true, sameSite: "strict" },
   });
 });
@@ -81,6 +84,30 @@ test("STUB: AC6 permits a same-site mutation only after validation", async () =>
       async () => "persisted",
     ),
   ).resolves.toBe("persisted");
+});
+
+test("enforces the generated-practice session cap before an eleventh request", async () => {
+  const session = await authenticateChild({
+    username: "child",
+    password: "development-password",
+  });
+  const request = new Request("http://localhost/generated-practice", {
+    method: "POST",
+    headers: {
+      cookie: `session=${session.sessionToken}`,
+      origin: "http://localhost",
+    },
+  });
+  for (let index = 0; index < 10; index += 1) {
+    grantGeneratedPracticeAllowance(request, "ratio");
+    expect(consumeGeneratedPracticeAllowance(request, "ratio")).toEqual({
+      childId: "child-1",
+    });
+  }
+  grantGeneratedPracticeAllowance(request, "ratio");
+  expect(() => consumeGeneratedPracticeAllowance(request, "ratio")).toThrow(
+    "Generated practice allowance required",
+  );
 });
 
 test("STUB: AC6 rejects cross-site mutations before running their side effect", async () => {

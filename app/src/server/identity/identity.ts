@@ -7,7 +7,13 @@ import {
 
 const sessions = new Map<
   string,
-  { childId: string; createdAt: number; lastSeen: number }
+  {
+    childId: string;
+    createdAt: number;
+    lastSeen: number;
+    generatedRequests: number;
+    generationAllowanceTopicId: string | null;
+  }
 >();
 const failedLogins = new Map<string, { count: number; firstAt: number }>();
 const sessionKey = (token: string) =>
@@ -77,6 +83,8 @@ export async function authenticateChild(_credentials: {
     childId: "child-1",
     createdAt: Date.now(),
     lastSeen: Date.now(),
+    generatedRequests: 0,
+    generationAllowanceTopicId: null,
   });
   return { childId: "child-1", sessionToken };
 }
@@ -94,6 +102,7 @@ export function getIdentityPolicy(): {
   idleTimeoutMs: number;
   absoluteTimeoutMs: number;
   logoutInvalidates: boolean;
+  maxGeneratedContentRequestsPerSession: number;
   cookie: { httpOnly: boolean; sameSite: "strict" };
 } {
   return {
@@ -108,6 +117,7 @@ export function getIdentityPolicy(): {
     idleTimeoutMs: 30 * 60 * 1_000,
     absoluteTimeoutMs: 8 * 60 * 60 * 1_000,
     logoutInvalidates: true,
+    maxGeneratedContentRequestsPerSession: 10,
     cookie: { httpOnly: true, sameSite: "strict" },
   };
 }
@@ -127,7 +137,13 @@ export function requireMutationProof(_request: Request): { childId: string } {
   const token = cookie?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
   const session =
     token === "valid" && process.env.NODE_ENV === "test"
-      ? { childId: "child-1", createdAt: Date.now(), lastSeen: Date.now() }
+      ? {
+          childId: "child-1",
+          createdAt: Date.now(),
+          lastSeen: Date.now(),
+          generatedRequests: 0,
+          generationAllowanceTopicId: null,
+        }
       : token
         ? sessions.get(sessionKey(token))
         : undefined;
@@ -150,6 +166,45 @@ export function requireMutationProof(_request: Request): { childId: string } {
   }
   session.lastSeen = Date.now();
   return { childId: session.childId };
+}
+
+/** Grants one topic-bound provider request after an accepted local answer. */
+export function grantGeneratedPracticeAllowance(
+  _request: Request,
+  _topicId: string,
+): void {
+  const token = _request.headers
+    .get("cookie")
+    ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
+  const session = token ? sessions.get(sessionKey(token)) : undefined;
+  if (!session) return;
+  if (
+    session.generatedRequests <
+    getIdentityPolicy().maxGeneratedContentRequestsPerSession
+  )
+    session.generationAllowanceTopicId = _topicId;
+}
+
+/** Consumes the session's one-use, topic-bound provider request allowance. */
+export function consumeGeneratedPracticeAllowance(
+  _request: Request,
+  _topicId: string,
+): { childId: string } {
+  const { childId } = requireMutationProof(_request);
+  const token = _request.headers
+    .get("cookie")
+    ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
+  const session = token ? sessions.get(sessionKey(token)) : undefined;
+  if (
+    !session ||
+    session.generationAllowanceTopicId !== _topicId ||
+    session.generatedRequests >=
+      getIdentityPolicy().maxGeneratedContentRequestsPerSession
+  )
+    throw new Error("Generated practice allowance required");
+  session.generationAllowanceTopicId = null;
+  session.generatedRequests += 1;
+  return { childId };
 }
 
 export function resolveSession(token: string): { childId: string } | undefined {
