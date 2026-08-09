@@ -62,13 +62,13 @@ p {
   margin-top: 0;
 }
 h1 {
-  margin-bottom: 12px;
-  font-size: clamp(2.25rem, 5vw, 4.2rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
+  margin-bottom: 8px;
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
 }
 h2 {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   line-height: 1.25;
 }
 .lede {
@@ -167,7 +167,7 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 22px clamp(20px, 5vw, 72px);
+  padding: 14px clamp(16px, 4vw, 48px);
   border-bottom: 1px solid #e0e7e0;
   background: rgba(255, 255, 255, 0.62);
 }
@@ -202,18 +202,18 @@ button {
 .portal-grid {
   display: grid;
   grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.8fr);
-  gap: clamp(24px, 6vw, 90px);
-  max-width: 1240px;
+  gap: clamp(18px, 3vw, 42px);
+  max-width: 1320px;
   margin: 0 auto;
-  padding: clamp(38px, 8vw, 110px) clamp(20px, 5vw, 72px);
+  padding: clamp(24px, 4vw, 52px) clamp(16px, 4vw, 48px);
 }
 .sidebar {
   padding-top: 20px;
 }
 .sidebar h2 {
   max-width: 250px;
-  margin-bottom: 36px;
-  font-size: 2rem;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
   letter-spacing: -0.05em;
 }
 .progress-card {
