@@ -8,12 +8,14 @@ import {
 } from "../../../../packages/curriculum/src/promotion-workflow";
 import type { CurriculumUpload } from "./source-importer";
 import type { SilverCandidate } from "./curriculum-pi-agent";
+import type { GoldCandidate } from "./curriculum-pi-agent";
 
 type TemporaryCurriculumWorkflow = {
   readonly promotion: CurriculumPromotion;
   readonly bronze?: CurriculumUpload;
   readonly sourceBytes?: Uint8Array;
   readonly silver?: SilverCandidate;
+  readonly gold?: GoldCandidate;
 };
 
 export type TemporaryPromotionView = {
@@ -21,6 +23,7 @@ export type TemporaryPromotionView = {
   readonly stage: CurriculumPromotion["stage"];
   readonly bronze?: CurriculumUpload;
   readonly silver?: SilverCandidate;
+  readonly gold?: GoldCandidate;
 };
 
 const promotions = new Map<string, TemporaryCurriculumWorkflow>();
@@ -61,6 +64,7 @@ export function getTemporaryPromotionView(
     stage: workflow.promotion.stage,
     ...(workflow.bronze ? { bronze: workflow.bronze } : {}),
     ...(workflow.silver ? { silver: workflow.silver } : {}),
+    ...(workflow.gold ? { gold: workflow.gold } : {}),
   };
 }
 
@@ -92,6 +96,34 @@ export function saveSilverCandidate(id: string, silver: SilverCandidate): void {
   promotions.set(id, { ...workflow, silver });
 }
 
+/** Returns separately approved Silver plus its Bronze provenance for Gold formalization. */
+export function getApprovedSilverForGold(id: string): {
+  readonly approvedSilver: SilverCandidate;
+  readonly framework: string;
+  readonly sourceFingerprint: string;
+} {
+  const workflow = promotions.get(id);
+  if (
+    !workflow?.bronze ||
+    !workflow.silver ||
+    workflow.promotion.stage !== "silver-approved"
+  )
+    throw new Error("Silver approval required");
+  return {
+    approvedSilver: workflow.silver,
+    framework: workflow.bronze.fileName,
+    sourceFingerprint: workflow.bronze.fingerprint,
+  };
+}
+
+/** Retains a validated Gold handoff until semantic persistence completes. */
+export function saveGoldCandidate(id: string, gold: GoldCandidate): void {
+  const workflow = promotions.get(id);
+  if (!workflow || workflow.promotion.stage !== "gold")
+    throw new Error("Gold formalization unavailable");
+  promotions.set(id, { ...workflow, gold });
+}
+
 /** Advances a temporary workflow; Gold callers receive the final handoff record. */
 export function advancePromotion(
   id: string,
@@ -108,8 +140,7 @@ export function advancePromotion(
         : action === "approve-silver"
           ? approveSilver(current)
           : ingestGold(current);
-  if (next.stage === "gold") promotions.delete(id);
-  else promotions.set(id, { ...workflow, promotion: next });
+  promotions.set(id, { ...workflow, promotion: next });
   return next;
 }
 

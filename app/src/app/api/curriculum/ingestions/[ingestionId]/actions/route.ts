@@ -5,14 +5,17 @@ import {
   getTemporaryPromotionView,
 } from "../../../../../../server/curriculum/promotion-store";
 import { CurriculumPiAgent } from "../../../../../../server/curriculum/curriculum-pi-agent";
-import { generateSilverCandidate } from "../../../../../../server/curriculum/curriculum-promotion-service";
+import {
+  generateGoldCandidate,
+  generateSilverCandidate,
+} from "../../../../../../server/curriculum/curriculum-promotion-service";
+import { createLocalGoldSemanticIndex } from "../../../../../../server/curriculum/gold-semantic-index";
 
 type RouteContext = { params: Promise<{ ingestionId: string }> };
 
 const transitions = {
   "approve-bronze": "approve-bronze",
   "approve-silver": "approve-silver",
-  "generate-gold": "ingest-gold",
 } as const;
 
 /** Applies an explicit steward action to a temporary curriculum workflow. */
@@ -30,6 +33,21 @@ export async function POST(
     if (action === "generate-silver") {
       await generateSilverCandidate(ingestionId, new CurriculumPiAgent());
       return Response.json(getTemporaryPromotionView(ingestionId));
+    }
+    if (action === "generate-gold") {
+      const { gold, sourceFingerprint } = await generateGoldCandidate(
+        ingestionId,
+        new CurriculumPiAgent(),
+      );
+      const result = await createLocalGoldSemanticIndex().persist({
+        canonicalRecords: gold.canonicalRecords,
+        relations: gold.relations,
+        sourceFingerprint,
+        promptVersion: gold.provenance.promptVersion,
+        model: process.env.PI_MODEL ?? "local-ollama",
+      });
+      expireTemporaryPromotion(ingestionId);
+      return Response.json({ id: ingestionId, stage: "gold", ...result });
     }
     const promotion = advancePromotion(ingestionId, transitions[action]);
     return Response.json(
@@ -52,7 +70,9 @@ export async function POST(
 
 async function parseAction(
   request: Request,
-): Promise<keyof typeof transitions | "generate-silver" | "expire"> {
+): Promise<
+  keyof typeof transitions | "generate-silver" | "generate-gold" | "expire"
+> {
   const body = await request.json();
   if (
     !body ||
@@ -62,8 +82,13 @@ async function parseAction(
     typeof body.action !== "string" ||
     (!(body.action in transitions) &&
       body.action !== "generate-silver" &&
+      body.action !== "generate-gold" &&
       body.action !== "expire")
   )
     throw new Error("Invalid curriculum action");
-  return body.action as keyof typeof transitions | "generate-silver" | "expire";
+  return body.action as
+    | keyof typeof transitions
+    | "generate-silver"
+    | "generate-gold"
+    | "expire";
 }
