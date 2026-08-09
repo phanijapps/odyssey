@@ -3,6 +3,7 @@ import {
   learningDb,
   withLearningTransaction,
 } from "./sqlite-repository";
+import { assertLearningAction } from "./learning-actions";
 
 /** Records an allowed attempt and returns the next question for that child. */
 export function recommendNextLevel(input: {
@@ -10,6 +11,7 @@ export function recommendNextLevel(input: {
   correctStreak: number;
   memoryAvailable: boolean;
 }): number {
+  assertLearningAction("recommend-difficulty");
   if (
     !Number.isInteger(input.currentLevel) ||
     input.currentLevel < 1 ||

@@ -72,6 +72,8 @@ export async function requestLearningFixture(_input: {
   level: number;
   attemptCount: number;
 }): Promise<{ question: string; diagramSvg: string }> {
+  assertLearningAction("request-question");
+  assertLearningAction("request-diagram");
   if (
     !Number.isInteger(_input.level) ||
     _input.level < 1 ||
@@ -303,3 +305,4 @@ export function redactAgentAudit(
 }
 import "server-only";
 import { validateLearningPayload } from "../validation/payloads";
+import { assertLearningAction } from "../learning/learning-actions";

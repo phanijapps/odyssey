@@ -1,5 +1,9 @@
 import { expect, test } from "vitest";
-import { serializeSafeDiagnostic, validateLearningPayload } from "./payloads";
+import {
+  serializeSafeDiagnostic,
+  validateA2UIPayload,
+  validateLearningPayload,
+} from "./payloads";
 
 // STUB: AC7
 
@@ -10,6 +14,17 @@ test("STUB: AC7 accepts the approved SVG and app-owned A2UI payload", () => {
       diagramSvg: '<svg aria-label="triangle" />',
     }),
   ).not.toThrow();
+  expect(() =>
+    validateA2UIPayload({
+      component: "GeometryDiagram",
+      diagramSvg: '<svg aria-label="triangle" />',
+    }),
+  ).not.toThrow();
+  for (const payload of [
+    { component: "QuestionCard", question: "What is 2 + 2?", level: 1 },
+    { component: "ProgressIndicator", level: 1, correctStreak: 0 },
+  ])
+    expect(() => validateA2UIPayload(payload)).not.toThrow();
 });
 
 // STUB: AC9
@@ -22,7 +37,6 @@ test("STUB: AC9 rejects untyped input before persistence or rendering", () => {
       component: "GeometryDiagram",
       diagramSvg: '<svg aria-label="triangle" onload />',
     },
-    { component: "Unknown" },
     { component: "GeometryDiagram", unexpected: true },
     {
       component: "GeometryDiagram",
@@ -35,6 +49,17 @@ test("STUB: AC9 rejects untyped input before persistence or rendering", () => {
   ]) {
     expect(() => validateLearningPayload(payload)).toThrow();
   }
+  for (const payload of [
+    { component: "Unknown" },
+    {
+      component: "QuestionCard",
+      question: "Question",
+      level: 1,
+      rawHtml: "<script />",
+    },
+    { component: "ProgressIndicator", level: 0, correctStreak: 0 },
+  ])
+    expect(() => validateA2UIPayload(payload)).toThrow("Invalid A2UI payload");
 });
 
 // STUB: AC16
