@@ -58,8 +58,10 @@ framework, but the workflow and canonical records remain subject-neutral.
 | Formalization Pi agent | Formalize approved candidates | Approved Silver → Gold draft                                             | Gold approval, browser actions, child data        |
 
 The application enforces every human permission and promotion transition;
-agents provide data transformations only. Steward UI is compact and iPad-first:
-one dense workflow view with no decorative empty panels.
+agents provide data transformations only. Steward ingestion is a compact,
+desktop-only workflow for now; iPad validation applies to child practice. The
+pipeline is synchronous in this local-first slice and may become event-driven in
+a later architecture change.
 
 ## Conventions you'll see across packages
 

@@ -20,6 +20,8 @@ generated embedding for curriculum retrieval.
 - Preserve the source document, page number, official code, and exact standards text.
 - Model `Subject → Framework → Grade/Course → Domain → Cluster → Standard → Topic → AssessmentTarget` without making topics a replacement for official standards.
 - Store vectors in SQLite-Vec and generate them locally through Ollama using `nomic-embed-text:latest`.
+- Keep curriculum ingestion desktop-only and synchronous in this slice; do not
+  introduce an event bus or background worker.
 
 ### Ask first
 
