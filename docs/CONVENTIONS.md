@@ -247,15 +247,15 @@ is optional and informal; the RFC body remains the contract.
 Curriculum source ingestion has three canonical states:
 
 - **Bronze** is the submitted source artifact and its provenance. It may be a
-  PDF, CSV, JSON file, API response, or unstructured text. It is not usable as
-  curriculum.
-- **Silver** is a normalized, reviewable candidate produced from Bronze by the
-  dedicated extraction Pi agent. It preserves source links and validation
-  findings, but it is not authoritative.
-- **Gold** is the approved formal curriculum produced from Silver by a distinct
-  formalization Pi agent. Gold records conform to the canonical curriculum
-  model and are the only records eligible for embedding, vector retrieval,
-  assessment selection, or child-facing learning.
+  PDF, CSV, JSON file, API response, or unstructured text. A Curriculum
+  Steward must approve Bronze before any Silver ingestion.
+- **Silver** is a normalized, reviewable candidate synthesized from approved
+  Bronze by the dedicated Pi agent. A Curriculum Steward must approve Silver
+  before Gold ingestion.
+- **Gold** is the formal curriculum produced from approved Silver. Gold records
+  conform to the canonical curriculum model and are the only records eligible
+  for question generation, knowledge-graph relations, embedding, hybrid vector
+  retrieval, reranking, assessment selection, or child-facing learning.
 
 Source-specific parsing belongs in adapters. The core Bronze → Silver → Gold
 pipeline must not name a state, subject, document format, or standards body.

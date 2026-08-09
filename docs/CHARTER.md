@@ -57,8 +57,9 @@ seven, no more.
 
 1. **Curriculum is source-backed.** Every formal standard retains provenance
    to its approved source, rather than relying on an agent summary.
-2. **Promotion earns authority.** Bronze raw sources become Silver reviewable
-   candidates and only approved Silver becomes Gold formal curriculum.
+2. **Promotion earns authority.** Bronze sources require approval before Silver
+   synthesis, Silver requires approval before Gold ingestion, and only Gold
+   formal curriculum can drive questions or semantic retrieval.
 3. **Subjects are pluggable.** The canonical model supports any subject,
    framework, grade/course structure, and source format; Ohio math is one
    adapter, not the architecture.

@@ -38,13 +38,14 @@
 
 ## Curriculum ingestion
 
-Curriculum sources use a source-neutral promotion pipeline: Bronze is a raw
-document/feed, Silver is normalized candidate data, and Gold is approved
-canonical curriculum. Dedicated Pi agents transform Bronze → Silver and
-approved Silver → Gold. Source adapters may understand a particular document
-format or standards framework, but canonical records and local vector retrieval
-remain subject-neutral. Gold records alone are embedded through local Ollama and
-stored in SQLite-Vec for scoped retrieval.
+Curriculum sources use a source-neutral gated pipeline: Bronze is a raw
+document/feed awaiting steward approval; approved Bronze is ingested to Silver,
+where a dedicated Pi agent synthesizes a normalized candidate; approved Silver
+is ingested to Gold. Gold is the approved canonical curriculum and the only
+layer used for question generation or semantic retrieval. Its semantic layer
+combines knowledge-graph relations, local vectors, hybrid search, and reranking.
+Source adapters may understand a particular document format or standards
+framework, but the workflow and canonical records remain subject-neutral.
 
 ## Personas and access
 
@@ -57,7 +58,8 @@ stored in SQLite-Vec for scoped retrieval.
 | Formalization Pi agent | Formalize approved candidates | Approved Silver → Gold draft                                             | Gold approval, browser actions, child data        |
 
 The application enforces every human permission and promotion transition;
-agents provide data transformations only.
+agents provide data transformations only. Steward UI is compact and iPad-first:
+one dense workflow view with no decorative empty panels.
 
 ## Conventions you'll see across packages
 
