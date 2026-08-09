@@ -243,6 +243,7 @@ export default function HomePage() {
         question: payload.question,
         diagramSvg: payload.diagramSvg,
       });
+      setDiagramSvg(payload.diagramSvg);
       setFeedback({
         kind: "success",
         message: "A generated practice question is ready.",
