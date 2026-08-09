@@ -3,6 +3,34 @@
 - **Spec:** [spec.md](spec.md)
 - **Status:** Drafting
 
+## Resulting architecture
+
+```
+desktop steward UI (/ingestion)
+            │
+            ▼
+ingestion route + status/action routes
+            │
+            ▼
+temporary promotion store ──► reusable CurriculumPiAgent
+ Bronze / Silver only          ├─ bronze-to-silver system prompt
+                               └─ silver-to-gold system prompt
+            │ approved Gold only
+            ▼
+Gold semantic-index service
+   ├─ SQLite catalog + SQLite-Vec embeddings
+   └─ Engram knowledge-graph relations
+            │
+            ▼
+Gold-only hybrid retrieval → reranking input → question context
+```
+
+`packages/curriculum/` remains the pure subject-neutral model and promotion
+state-machine layer. `app/src/server/curriculum/` owns temporary runtime state,
+Pi/Ollama/Engram adapters, persistence, and semantic retrieval. Route handlers
+translate HTTP to those services; the client never imports server adapters or
+SQL/query definitions. The only new persisted projection is Gold.
+
 ## Implementation order
 
 The work is intentionally sequential: each promotion stage exposes a narrow,
@@ -25,6 +53,14 @@ validation warnings. Keep source bytes plus Bronze/Silver artifacts in the
 existing in-memory/temporary JSON promotion store. Do not introduce a database
 table for either stage.
 
+**Artifacts:** Change `app/src/server/curriculum/source-importer.ts` and
+`app/src/server/curriculum/promotion-store.ts`; add
+`app/src/server/curriculum/upload-contract.ts`; extend the two named test files.
+
+**Reuse:** `CurriculumPromotion` transition types and the existing
+`createBronzePromotion` temporary `Map`; `node:crypto` fingerprinting already
+used by `curriculum-indexer.ts`.
+
 **Done when:** A validated temporary Bronze record can be created without
 persisting source bytes or Silver content to SQLite.
 
@@ -40,6 +76,14 @@ the returned Bronze identifier/state.
 parses one submitted file, calls the T1 validator, creates the temporary Bronze
 promotion, and returns a small safe status payload. The route never exposes raw
 file contents in its response.
+
+**Artifacts:** Create
+`app/src/app/api/curriculum/ingestions/route.ts` and
+`app/src/app/api/curriculum/ingestions/route.test.ts`.
+
+**Reuse:** The existing Next App Router route/test convention in
+`app/src/app/api/generated-question/route.ts`; the T1 upload contract and
+temporary promotion store.
 
 **Done when:** A browser form can submit one supported local file and receive a
 Bronze validation result and promotion identifier.
@@ -59,6 +103,18 @@ steward actions: approve Bronze, generate Silver, approve Silver, generate
 Gold, and expire/cancel the temporary workflow. Return stage, validation,
 warnings, and reviewable candidate summaries; never return raw source bytes.
 
+**Artifacts:** Create
+`app/src/app/api/curriculum/ingestions/[ingestionId]/route.ts`,
+`app/src/app/api/curriculum/ingestions/[ingestionId]/route.test.ts`,
+`app/src/app/api/curriculum/ingestions/[ingestionId]/actions/route.ts`, and
+`app/src/app/api/curriculum/ingestions/[ingestionId]/actions/route.test.ts`;
+change `app/src/server/curriculum/promotion-store.ts` to expose safe workflow
+views and expiration.
+
+**Reuse:** The pure `approveBronze`, `ingestSilver`, `approveSilver`, and
+`ingestGold` functions in `packages/curriculum/src/promotion-workflow.ts`; the
+existing API error-response shape.
+
 **Done when:** Every transition is enforced by the shared promotion state
 machine rather than by browser state or an agent response.
 
@@ -75,6 +131,16 @@ small prompt registry. Add exactly two versioned system-prompt files:
 `bronze-to-silver.system.md` and `silver-to-gold.system.md`. Send source/Silver
 payloads as clearly delimited data messages, not system instructions. Keep model
 configuration in environment variables and preserve Pi as the execution engine.
+
+**Artifacts:** Create `app/src/server/curriculum/curriculum-pi-agent.ts`,
+`app/src/server/curriculum/curriculum-pi-agent.test.ts`,
+`app/src/server/curriculum/prompts/bronze-to-silver.system.md`, and
+`app/src/server/curriculum/prompts/silver-to-gold.system.md`; change
+`app/.env.example` only if the Pi configuration keys are absent.
+
+**Reuse:** The approved server-only Pi runtime dependency, `server-only`
+module boundary, and Ollama environment configuration pattern in
+`app/src/server/curriculum/ollama-embeddings.ts`.
 
 **Done when:** The same runner executes either stage with its own schema and
 prompt provenance, without authority to approve or persist curriculum.
@@ -93,6 +159,13 @@ survive, and Silver remains temporary.
 attach source locations and Pi provenance, then write the candidate only to the
 temporary workflow store for steward review.
 
+**Artifacts:** Change `app/src/server/curriculum/promotion-store.ts`,
+`app/src/app/api/curriculum/ingestions/[ingestionId]/actions/route.ts`, and the
+T4 agent/store tests; no new persistent artifact.
+
+**Reuse:** The `bronze-to-silver` Pi profile from T4 and the canonical
+source-location/provenance fields from `CurriculumRecord`.
+
 **Done when:** An approved Bronze workflow displays a schema-valid Silver
 candidate and cannot advance until the steward separately approves it.
 
@@ -110,8 +183,16 @@ assessment targets. Associate every candidate with approved-Silver identifiers,
 source fingerprint/location, prompt version, and model version before it enters
 the Gold persistence boundary.
 
+**Artifacts:** Change `app/src/server/curriculum/curriculum-pi-agent.ts`,
+`app/src/server/curriculum/promotion-store.ts`,
+`app/src/app/api/curriculum/ingestions/[ingestionId]/actions/route.ts`, and
+`app/src/server/curriculum/curriculum-pi-agent.test.ts`.
+
+**Reuse:** The `silver-to-gold` Pi profile, the shared promotion state machine,
+and the existing subject-neutral `CurriculumRecord` parser/validator.
+
 **Done when:** Only an approved Silver artifact can yield a validated Gold
-payload with complete provenance.
+payload with complete provenance and hand it to the T7 persistence boundary.
 
 ### T7: Persist and semantically index approved Gold
 
@@ -122,12 +203,30 @@ query-catalog persistence, Gold provenance, Engram graph projection,
 SQLite-Vec vector insertion, and rejection of Bronze/Silver at each indexer
 entry point.
 
-**Approach:** Add a server-only Gold semantic-index service. It persists
-canonical Gold records through named SQL entries in
+**Approach:** Add a server-only Gold semantic-index service, then wire the
+existing `generate Gold` action route to call it after T6 validates an
+approved-Silver result. That call is the only transition that persists Gold. The
+service persists canonical Gold records through named SQL entries in
 `app/src/server/curriculum/sqlite-queries.json`, projects Gold relations through
-the Engram adapter, embeds Gold text using the local Ollama adapter, and writes
-the embedding to SQLite-Vec. No SQL text belongs in TypeScript and no temporary
-artifact can reach this service.
+`app/src/server/curriculum/engram-curriculum-graph.ts`, embeds Gold text using
+the local Ollama adapter, and writes the embedding to SQLite-Vec. No SQL text
+belongs in TypeScript and no temporary artifact can reach this service.
+
+**Artifacts:** Create `app/src/server/curriculum/gold-semantic-index.ts` and
+`app/src/server/curriculum/gold-semantic-index.test.ts`,
+`app/src/server/curriculum/engram-curriculum-graph.ts`, and
+`app/src/server/curriculum/engram-curriculum-graph.test.ts`; change
+`app/src/server/curriculum/sqlite-queries.json`,
+`app/src/server/curriculum/vector-repository.ts`,
+`app/src/server/curriculum/curriculum-indexer.ts`, and the server-only Engram
+`app/src/app/api/curriculum/ingestions/[ingestionId]/actions/route.ts`. Verify
+the installed Engram package contract before implementing the named
+`engram-curriculum-graph.ts` adapter; it does not modify the existing
+child-profile adapter at `app/src/server/memory/engram-memory.ts`.
+
+**Reuse:** The JSON SQL catalog and `CurriculumVectorRepository`, local Ollama
+embedding adapter, and existing server-only Engram loading/configuration
+pattern. New SQL identifiers go in JSON; TypeScript calls them by name.
 
 **Done when:** Approved Gold is the only durable curriculum data and has both
 an Engram graph representation and a SQLite-Vec representation.
@@ -144,6 +243,16 @@ and deterministic reranking input order.
 neighbors with Engram graph neighbors, removes duplicates, and passes only Gold
 records with provenance to the reranker/question-context boundary. This task
 does not change question generation itself.
+
+**Artifacts:** Create `app/src/server/curriculum/gold-semantic-search.ts` and
+`app/src/server/curriculum/gold-semantic-search.test.ts`; change
+`app/src/server/curriculum/engram-curriculum-graph.ts` and
+`app/src/server/curriculum/vector-repository.ts` only when their existing read
+operations cannot serve the typed Gold-only interface.
+
+**Reuse:** `CurriculumVectorRepository.findNearest`, Gold provenance from T7,
+and the existing generated-question context boundary without changing its
+question-generation behavior.
 
 **Done when:** A topic query yields a provenance-preserving ranked Gold context,
 and temporary stages are structurally unable to appear in results.
@@ -163,6 +272,14 @@ approval; Silver review/approval; Gold result/provenance; and terminal errors.
 Keep the desktop workflow compact and do not modify child/parent learning
 screens.
 
+**Artifacts:** Change `app/src/app/ingestion/page.tsx`; create
+`app/src/app/ingestion/page.test.tsx` and
+`docs/specs/curriculum-ingestion/notes/manual-qa.md`; add only the Shadcn
+components generated by the project CLI that this screen imports.
+
+**Reuse:** Existing Shadcn `Button` and `Card` components and the current
+`/ingestion` route. No separate frontend application or custom design system.
+
 **Done when:** A steward can complete the entire staged workflow from `/ingestion`
 without using developer tools, and each stage clearly shows its next allowed
 action.
@@ -180,6 +297,14 @@ command and reason in the manual QA document.
 PDF/CSV/JSON/text fixtures through the browser, approve both gates, confirm
 Gold is indexed in SQLite-Vec and Engram, and confirm the semantic search path
 returns Gold-only context.
+
+**Artifacts:** Update
+`docs/specs/curriculum-ingestion/notes/manual-qa.md` with commands, fixtures,
+observed stage transitions, and local integration result. No production code or
+configuration is created by this task.
+
+**Reuse:** Root `pnpm` lint/typecheck/test/build commands and the existing
+optional `ollama-embeddings.integration.test.ts` convention.
 
 **Done when:** The documented browser workflow and the local semantic retrieval
 smoke test both succeed with observed results recorded.
