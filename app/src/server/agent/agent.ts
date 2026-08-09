@@ -1,3 +1,70 @@
+type LearningFixtureItem = {
+  question: (level: number) => string;
+  expectedAnswer: string;
+  diagramSvg: string;
+};
+
+const learningFixtures: Record<string, readonly LearningFixtureItem[]> = {
+  ratio: [
+    {
+      question: (level) =>
+        `A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level ${level}?`,
+      expectedAnswer: "2",
+      diagramSvg:
+        '<svg aria-label="ratio diagram" viewBox="0 0 100 60"><text x="10" y="30">1 water : 2 flour</text></svg>',
+    },
+    {
+      question: (level) =>
+        `A smoothie recipe uses 1 cup of water for every 3 cups of flour. How many cups of flour are needed at level ${level}?`,
+      expectedAnswer: "3",
+      diagramSvg:
+        '<svg aria-label="ratio diagram" viewBox="0 0 100 60"><text x="10" y="30">1 water : 3 flour</text></svg>',
+    },
+    {
+      question: (level) =>
+        `A soup recipe uses 2 cups of water for every 4 cups of flour. How many cups of flour go with 2 cups of water at level ${level}?`,
+      expectedAnswer: "4",
+      diagramSvg:
+        '<svg aria-label="ratio diagram" viewBox="0 0 100 60"><text x="10" y="30">2 water : 4 flour</text></svg>',
+    },
+  ],
+  linear: [
+    {
+      question: (level) =>
+        `In the linear relationship y = 2x, what number multiplies x at level ${level}?`,
+      expectedAnswer: "2",
+      diagramSvg:
+        '<svg aria-label="linear relationship" viewBox="0 0 100 60"><line x1="10" y1="50" x2="90" y2="50" stroke="#567063" stroke-width="2" /><line x1="20" y1="55" x2="20" y2="10" stroke="#567063" stroke-width="2" /><line x1="20" y1="45" x2="70" y2="15" stroke="#8fc9dc" stroke-width="3" /><text x="72" y="18">y = 2x</text></svg>',
+    },
+    {
+      question: (level) =>
+        `In the linear relationship y = 3x, what number multiplies x at level ${level}?`,
+      expectedAnswer: "3",
+      diagramSvg:
+        '<svg aria-label="linear relationship" viewBox="0 0 100 60"><line x1="10" y1="50" x2="90" y2="50" stroke="#567063" stroke-width="2" /><line x1="20" y1="55" x2="20" y2="10" stroke="#567063" stroke-width="2" /><line x1="20" y1="45" x2="60" y2="12" stroke="#8fc9dc" stroke-width="3" /><text x="62" y="18">y = 3x</text></svg>',
+    },
+    {
+      question: (level) =>
+        `In the linear relationship y = 4x, what number multiplies x at level ${level}?`,
+      expectedAnswer: "4",
+      diagramSvg:
+        '<svg aria-label="linear relationship" viewBox="0 0 100 60"><line x1="10" y1="50" x2="90" y2="50" stroke="#567063" stroke-width="2" /><line x1="20" y1="55" x2="20" y2="10" stroke="#567063" stroke-width="2" /><line x1="20" y1="45" x2="55" y2="10" stroke="#8fc9dc" stroke-width="3" /><text x="58" y="18">y = 4x</text></svg>',
+    },
+  ],
+};
+
+function getLearningFixtureItem(
+  topicId: string,
+  attemptCount: number,
+): LearningFixtureItem {
+  if (!Number.isInteger(attemptCount) || attemptCount < 0)
+    throw new Error("Invalid learning request");
+  if (!Object.hasOwn(learningFixtures, topicId))
+    throw new Error("Invalid learning request");
+  const fixtures = learningFixtures[topicId];
+  return fixtures[attemptCount % fixtures.length];
+}
+
 /** Builds a bounded fixture response through the same adapter shape as Pi Mono. */
 export async function requestLearningFixture(_input: {
   childId: string;
@@ -10,35 +77,25 @@ export async function requestLearningFixture(_input: {
     _input.level < 1 ||
     _input.level > 13 ||
     !Number.isInteger(_input.attemptCount) ||
-    _input.attemptCount < 1
+    _input.attemptCount < 0
   )
     throw new Error("Invalid learning request");
-  const fixtures = {
-    ratio: {
-      questions: [
-        `A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level ${_input.level}?`,
-        `For each cup of water, this recipe needs 2 cups of flour. How many cups of flour go with 1 cup of water at level ${_input.level}?`,
-      ],
-      diagramSvg:
-        '<svg aria-label="ratio diagram" viewBox="0 0 100 60"><rect x="10" y="10" width="25" height="25" /><rect x="45" y="10" width="25" height="25" /><rect x="75" y="10" width="15" height="25" /><text x="10" y="55">water</text><text x="55" y="55">flour</text></svg>',
-    },
-    linear: {
-      questions: [
-        `In the linear relationship y = 2x, what number multiplies x at level ${_input.level}?`,
-        `A line follows y = 2x. What is the coefficient of x at level ${_input.level}?`,
-      ],
-      diagramSvg:
-        '<svg aria-label="linear relationship" viewBox="0 0 100 60"><line x1="10" y1="50" x2="90" y2="50" stroke="#567063" stroke-width="2" /><line x1="20" y1="55" x2="20" y2="10" stroke="#567063" stroke-width="2" /><line x1="20" y1="45" x2="70" y2="15" stroke="#8fc9dc" stroke-width="3" /><text x="72" y="18">y = 2x</text></svg>',
-    },
-  };
-  if (!Object.hasOwn(fixtures, _input.topicId))
-    throw new Error("Invalid learning request");
-  const fixture = fixtures[_input.topicId as keyof typeof fixtures];
+  const item = getLearningFixtureItem(_input.topicId, _input.attemptCount);
   return {
-    question:
-      fixture.questions[(_input.attemptCount - 1) % fixture.questions.length],
-    diagramSvg: fixture.diagramSvg,
+    question: item.question(_input.level),
+    diagramSvg: item.diagramSvg,
   };
+}
+
+/** Reads the server-owned expected answer for a reviewed fixture position. */
+export function getLearningFixtureExpectedAnswer(_input: {
+  topicId: string;
+  attemptCount: number;
+}): string {
+  if (!Number.isInteger(_input.attemptCount) || _input.attemptCount < 0)
+    throw new Error("Invalid learning request");
+  return getLearningFixtureItem(_input.topicId, _input.attemptCount)
+    .expectedAnswer;
 }
 
 /** Runs the opt-in local Ollama integration path with a bounded structured prompt. */

@@ -28,6 +28,7 @@ export async function submitAnswer(_input: {
   childId: string;
   topicId: string;
   answer: string;
+  expectedAnswer: string;
   nextLevel: number;
 }): Promise<{
   questionId: string;
@@ -37,7 +38,12 @@ export async function submitAnswer(_input: {
   attemptCount: number;
 }> {
   const normalizedAnswer = _input.answer.trim();
-  if (!_input.childId || !_input.topicId || !normalizedAnswer)
+  if (
+    !_input.childId ||
+    !_input.topicId ||
+    !normalizedAnswer ||
+    !_input.expectedAnswer
+  )
     throw new Error("Invalid answer");
   return withLearningTransaction(() => {
     const current = learningDb
@@ -54,7 +60,7 @@ export async function submitAnswer(_input: {
         ? _input.nextLevel
         : 1;
     const level = current?.level ?? requestedLevel;
-    const correct = normalizedAnswer === "2";
+    const correct = normalizedAnswer === _input.expectedAnswer;
     const streak = correct ? (current?.correct_streak ?? 0) + 1 : 0;
     const nextLevel = recommendNextLevel({
       currentLevel: level,

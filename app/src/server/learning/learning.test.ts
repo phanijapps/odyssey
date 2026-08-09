@@ -14,6 +14,7 @@ test("STUB: AC4 persists the accepted recommendation and next question", async (
       childId: "child-1",
       topicId: "ratio",
       answer: "2",
+      expectedAnswer: "2",
       nextLevel: 2,
     }),
   ).resolves.toEqual({
@@ -27,8 +28,20 @@ test("STUB: AC4 persists the accepted recommendation and next question", async (
 
 test("records attempts and advances after two correct answers", async () => {
   const childId = "sqlite-test-child";
-  await submitAnswer({ childId, topicId: "ratio", answer: "2", nextLevel: 1 });
-  await submitAnswer({ childId, topicId: "ratio", answer: "2", nextLevel: 1 });
+  await submitAnswer({
+    childId,
+    topicId: "ratio",
+    answer: "2",
+    expectedAnswer: "2",
+    nextLevel: 1,
+  });
+  await submitAnswer({
+    childId,
+    topicId: "ratio",
+    answer: "2",
+    expectedAnswer: "2",
+    nextLevel: 1,
+  });
   expect(getLearningProgress(childId, "ratio")).toMatchObject({
     level: 2,
     correctStreak: 0,
@@ -41,9 +54,22 @@ test("treats surrounding whitespace as part of a valid numeric answer", async ()
     childId: "trimmed-answer-child",
     topicId: "ratio",
     answer: " 2 ",
+    expectedAnswer: "2",
     nextLevel: 1,
   });
   expect(result.correct).toBe(true);
+});
+
+test("does not accept an answer from a different reviewed fixture", async () => {
+  const result = await submitAnswer({
+    childId: "fixture-answer-child",
+    topicId: "ratio",
+    answer: "2",
+    expectedAnswer: "3",
+    nextLevel: 1,
+  });
+  expect(result.correct).toBe(false);
+  expect(result.correctStreak).toBe(0);
 });
 
 test("rejects an all-whitespace answer before persisting an attempt", async () => {
@@ -52,6 +78,7 @@ test("rejects an all-whitespace answer before persisting an attempt", async () =
       childId: "blank-answer-child",
       topicId: "ratio",
       answer: "   ",
+      expectedAnswer: "2",
       nextLevel: 1,
     }),
   ).rejects.toThrow("Invalid answer");
@@ -73,6 +100,7 @@ test("STUB: AC9 persists correctness without a raw child-answer column", async (
     childId: "privacy-test-child",
     topicId: "ratio",
     answer: "answer that must not persist",
+    expectedAnswer: "2",
     nextLevel: 1,
   });
   const columns = learningDb

@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   assertAgentRequestBudget,
   buildAgentProfileData,
+  getLearningFixtureExpectedAnswer,
   redactAgentAudit,
   requestLearningFixture,
   validateGeneratedLearningResponse,
@@ -16,10 +17,10 @@ test("STUB: AC7 supplies the approved local question and diagram fixture", async
     childId: "child-1",
     topicId: "ratio",
     level: 1,
-    attemptCount: 1,
+    attemptCount: 0,
   });
   expect(fixture.question).toBe(
-    "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
+    "A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
   );
   expect(fixture.diagramSvg).toContain('aria-label="ratio diagram"');
   expect(() =>
@@ -39,7 +40,7 @@ test("supplies a topic-aligned linear fixture", async () => {
   });
   expect(fixture.question).toContain("linear relationship");
   expect(fixture.diagramSvg).toContain('aria-label="linear relationship"');
-  expect(fixture.diagramSvg).toContain("y = 2x");
+  expect(fixture.diagramSvg).toContain("y = 3x");
   expect(fixture.diagramSvg).toContain('stroke="#8fc9dc"');
   expect(() =>
     validateLearningPayload({
@@ -79,14 +80,14 @@ test("rejects fixture requests outside the reviewed topic and level bounds", asy
       childId: "child-1",
       topicId: "ratio",
       level: 1,
-      attemptCount: 0,
+      attemptCount: -1,
     }),
   ).rejects.toThrow("Invalid learning request");
 });
 
 test("cycles approved topic prompts deterministically by attempt count", async () => {
   const questions = await Promise.all(
-    [1, 2, 3].map(async (attemptCount) =>
+    [0, 1, 2, 3].map(async (attemptCount) =>
       requestLearningFixture({
         childId: "child-1",
         topicId: "ratio",
@@ -96,10 +97,19 @@ test("cycles approved topic prompts deterministically by attempt count", async (
     ),
   );
   expect(questions.map((fixture) => fixture.question)).toEqual([
-    "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
-    "For each cup of water, this recipe needs 2 cups of flour. How many cups of flour go with 1 cup of water at level 1?",
-    "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
+    "A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
+    "A smoothie recipe uses 1 cup of water for every 3 cups of flour. How many cups of flour are needed at level 1?",
+    "A soup recipe uses 2 cups of water for every 4 cups of flour. How many cups of flour go with 2 cups of water at level 1?",
+    "A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
   ]);
+});
+
+test("keeps each reviewed fixture answer aligned to its attempt position", () => {
+  expect(
+    [0, 1, 2, 3].map((attemptCount) =>
+      getLearningFixtureExpectedAnswer({ topicId: "ratio", attemptCount }),
+    ),
+  ).toEqual(["2", "3", "4", "2"]);
 });
 
 test("rejects unsafe or topic-misaligned generated question text", () => {

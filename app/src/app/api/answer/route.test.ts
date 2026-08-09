@@ -3,9 +3,11 @@ import { authenticateChild } from "../../../server/identity/identity";
 import { POST } from "./route";
 
 function expectedRatioQuestion(attemptCount: number, level: number): string {
-  return attemptCount % 2 === 1
-    ? `A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level ${level}?`
-    : `For each cup of water, this recipe needs 2 cups of flour. How many cups of flour go with 1 cup of water at level ${level}?`;
+  return [
+    `A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level ${level}?`,
+    `A smoothie recipe uses 1 cup of water for every 3 cups of flour. How many cups of flour are needed at level ${level}?`,
+    `A soup recipe uses 2 cups of water for every 4 cups of flour. How many cups of flour go with 2 cups of water at level ${level}?`,
+  ][attemptCount % 3];
 }
 
 async function authenticatedRequest(body: unknown): Promise<Request> {
@@ -58,11 +60,16 @@ test("accepts only the allowlisted answer-submission shape", async () => {
   );
   expect(secondAccepted.status).toBe(200);
   const secondPayload = (await secondAccepted.json()) as {
+    correct: boolean;
     level: number;
+    correctStreak: number;
     attemptCount: number;
     nextQuestion: { question: string };
   };
   expect(secondPayload.attemptCount).toBe(firstPayload.attemptCount + 1);
+  expect(secondPayload.correct).toBe(false);
+  expect(secondPayload.correctStreak).toBe(0);
+  expect(secondPayload.level).toBe(firstPayload.level);
   expect(secondPayload.nextQuestion.question).toBe(
     expectedRatioQuestion(secondPayload.attemptCount, secondPayload.level),
   );

@@ -40,6 +40,8 @@ export default function HomePage() {
   const [canRequestGeneratedPractice, setCanRequestGeneratedPractice] =
     useState(false);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
+  const [isTopicLoading, setIsTopicLoading] = useState(false);
+  const [progressError, setProgressError] = useState("");
   const [level, setLevel] = useState(1);
   const [correctStreak, setCorrectStreak] = useState(0);
   const [question, setQuestion] = useState(topicQuestions.ratio);
@@ -63,6 +65,7 @@ export default function HomePage() {
     void (async () => {
       const response = await fetch("/api/session", { cache: "no-store" });
       if (response.ok) {
+        setIsTopicLoading(true);
         setSignedIn(true);
         await loadProgress(topicId);
       }
@@ -71,22 +74,47 @@ export default function HomePage() {
 
   async function loadProgress(activeTopicId: string) {
     const requestVersion = ++progressRequestVersion.current;
-    const response = await fetch(
-      `/api/progress?topicId=${encodeURIComponent(activeTopicId)}`,
-      { cache: "no-store" },
-    );
-    if (!response.ok) return;
-    const progress = (await response.json()) as {
-      level: number;
-      correctStreak: number;
-    };
-    if (
-      activeTopicRef.current !== activeTopicId ||
-      progressRequestVersion.current !== requestVersion
-    )
-      return;
-    setLevel(progress.level);
-    setCorrectStreak(progress.correctStreak);
+    setIsTopicLoading(true);
+    setProgressError("");
+    let loaded = false;
+    try {
+      const response = await fetch(
+        `/api/progress?topicId=${encodeURIComponent(activeTopicId)}`,
+        { cache: "no-store" },
+      );
+      if (!response.ok) return;
+      const progress = (await response.json()) as {
+        level: number;
+        correctStreak: number;
+        nextQuestion?: { question?: string; diagramSvg?: string };
+      };
+      if (
+        activeTopicRef.current !== activeTopicId ||
+        progressRequestVersion.current !== requestVersion
+      )
+        return;
+      setLevel(progress.level);
+      setCorrectStreak(progress.correctStreak);
+      if (progress.nextQuestion?.question)
+        setQuestion(progress.nextQuestion.question);
+      setDiagramSvg(progress.nextQuestion?.diagramSvg ?? null);
+      loaded = Boolean(progress.nextQuestion?.question);
+    } catch {
+      setProgressError(
+        "Your current practice question could not load. Please refresh and try again.",
+      );
+    } finally {
+      if (
+        activeTopicRef.current === activeTopicId &&
+        progressRequestVersion.current === requestVersion
+      ) {
+        if (loaded) setIsTopicLoading(false);
+        else
+          setProgressError(
+            "Your current practice question could not load. Please refresh and try again.",
+          );
+      }
+    }
   }
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
@@ -97,6 +125,7 @@ export default function HomePage() {
       body: JSON.stringify({ username, password }),
     });
     if (response.ok) {
+      setIsTopicLoading(true);
       setSignedIn(true);
       setError("");
       const topicResponse = await fetch("/api/topics", { cache: "no-store" });
@@ -126,6 +155,7 @@ export default function HomePage() {
 
   async function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmittingAnswer || isTopicLoading) return;
     const submittedTopicId = topicId;
     progressRequestVersion.current += 1;
     const requestVersion = ++questionRequestVersion.current;
@@ -431,27 +461,42 @@ export default function HomePage() {
                 {topic.standard} · {topic.grade}
               </span>
               <h2>{question}</h2>
-              <form onSubmit={submitAnswer} className="answer-row">
-                <label className="sr-only" htmlFor="answer">
-                  Your answer
-                </label>
-                <input
-                  id="answer"
-                  inputMode="numeric"
-                  value={answer}
-                  onChange={(event) => setAnswer(event.target.value)}
-                  placeholder="Type your answer"
-                  required
-                />
-                <button className="primary-button" type="submit">
-                  Check answer
-                </button>
-              </form>
+              {isTopicLoading ? (
+                <p role="status">
+                  {progressError || "Loading your current practice question…"}
+                </p>
+              ) : (
+                <form onSubmit={submitAnswer} className="answer-row">
+                  <label className="sr-only" htmlFor="answer">
+                    Your answer
+                  </label>
+                  <input
+                    id="answer"
+                    inputMode="numeric"
+                    value={answer}
+                    onChange={(event) => setAnswer(event.target.value)}
+                    placeholder="Type your answer"
+                    disabled={isSubmittingAnswer}
+                    required
+                  />
+                  <button
+                    className="primary-button"
+                    type="submit"
+                    disabled={isSubmittingAnswer}
+                  >
+                    Check answer
+                  </button>
+                </form>
+              )}
               <button
                 className="secondary-button generated-practice-button"
                 type="button"
                 onClick={() => void requestGeneratedPractice()}
-                disabled={!canRequestGeneratedPractice || isSubmittingAnswer}
+                disabled={
+                  !canRequestGeneratedPractice ||
+                  isSubmittingAnswer ||
+                  isTopicLoading
+                }
               >
                 Try generated practice
               </button>

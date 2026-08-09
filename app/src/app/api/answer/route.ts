@@ -2,8 +2,14 @@ import {
   grantGeneratedPracticeAllowance,
   requireMutationProof,
 } from "../../../server/identity/identity";
-import { submitAnswer } from "../../../server/learning/learning";
-import { requestLearningFixture } from "../../../server/agent/agent";
+import {
+  getLearningProgress,
+  submitAnswer,
+} from "../../../server/learning/learning";
+import {
+  getLearningFixtureExpectedAnswer,
+  requestLearningFixture,
+} from "../../../server/agent/agent";
 import { getSeedCurriculumCatalog } from "../../../../../packages/curriculum/src/catalog";
 import { validateLearningPayload } from "../../../server/validation/payloads";
 import {
@@ -37,10 +43,15 @@ export async function POST(request: Request): Promise<Response> {
       )
     )
       throw new Error("Unknown topic");
+    const currentProgress = getLearningProgress(childId, body.topicId);
     const result = await submitAnswer({
       childId,
       topicId: body.topicId,
       answer: body.answer,
+      expectedAnswer: getLearningFixtureExpectedAnswer({
+        topicId: body.topicId,
+        attemptCount: currentProgress?.attemptCount ?? 0,
+      }),
       nextLevel: 1,
     });
     const memoryWritten = await writeLearningSignal(
