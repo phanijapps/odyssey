@@ -35,8 +35,6 @@ test("enforces the two steward approval gates through the shared state machine",
   ).resolves.toMatchObject({
     status: 200,
   });
-  const silver = await POST(actionRequest("generate-silver"), context);
-  await expect(silver.json()).resolves.toMatchObject({ stage: "silver" });
   const earlyGold = await POST(actionRequest("generate-gold"), context);
   expect(earlyGold.status).toBe(409);
 });

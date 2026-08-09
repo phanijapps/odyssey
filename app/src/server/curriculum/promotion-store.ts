@@ -7,17 +7,20 @@ import {
   type CurriculumPromotion,
 } from "../../../../packages/curriculum/src/promotion-workflow";
 import type { CurriculumUpload } from "./source-importer";
+import type { SilverCandidate } from "./curriculum-pi-agent";
 
 type TemporaryCurriculumWorkflow = {
   readonly promotion: CurriculumPromotion;
   readonly bronze?: CurriculumUpload;
   readonly sourceBytes?: Uint8Array;
+  readonly silver?: SilverCandidate;
 };
 
-type TemporaryPromotionView = {
+export type TemporaryPromotionView = {
   readonly id: string;
   readonly stage: CurriculumPromotion["stage"];
   readonly bronze?: CurriculumUpload;
+  readonly silver?: SilverCandidate;
 };
 
 const promotions = new Map<string, TemporaryCurriculumWorkflow>();
@@ -57,7 +60,36 @@ export function getTemporaryPromotionView(
     id: workflow.promotion.id,
     stage: workflow.promotion.stage,
     ...(workflow.bronze ? { bronze: workflow.bronze } : {}),
+    ...(workflow.silver ? { silver: workflow.silver } : {}),
   };
+}
+
+/** Returns approved Bronze data for the server-only Silver transformation. */
+export function getApprovedBronzeForSilver(id: string): {
+  readonly source: string;
+  readonly sourceFingerprint: string;
+  readonly format: CurriculumUpload["format"];
+} {
+  const workflow = promotions.get(id);
+  if (
+    !workflow?.bronze ||
+    !workflow.sourceBytes ||
+    workflow.promotion.stage !== "bronze-approved"
+  )
+    throw new Error("Bronze approval required");
+  return {
+    source: new TextDecoder().decode(workflow.sourceBytes),
+    sourceFingerprint: workflow.bronze.fingerprint,
+    format: workflow.bronze.format,
+  };
+}
+
+/** Saves a schema-validated Silver candidate only in the temporary workflow. */
+export function saveSilverCandidate(id: string, silver: SilverCandidate): void {
+  const workflow = promotions.get(id);
+  if (!workflow || workflow.promotion.stage !== "silver")
+    throw new Error("Silver ingestion unavailable");
+  promotions.set(id, { ...workflow, silver });
 }
 
 /** Advances a temporary workflow; Gold callers receive the final handoff record. */

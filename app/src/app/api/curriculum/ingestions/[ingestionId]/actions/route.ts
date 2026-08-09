@@ -4,12 +4,13 @@ import {
   expireTemporaryPromotion,
   getTemporaryPromotionView,
 } from "../../../../../../server/curriculum/promotion-store";
+import { CurriculumPiAgent } from "../../../../../../server/curriculum/curriculum-pi-agent";
+import { generateSilverCandidate } from "../../../../../../server/curriculum/curriculum-promotion-service";
 
 type RouteContext = { params: Promise<{ ingestionId: string }> };
 
 const transitions = {
   "approve-bronze": "approve-bronze",
-  "generate-silver": "ingest-silver",
   "approve-silver": "approve-silver",
   "generate-gold": "ingest-gold",
 } as const;
@@ -25,6 +26,10 @@ export async function POST(
     if (action === "expire") {
       expireTemporaryPromotion(ingestionId);
       return Response.json({ id: ingestionId, stage: "expired" });
+    }
+    if (action === "generate-silver") {
+      await generateSilverCandidate(ingestionId, new CurriculumPiAgent());
+      return Response.json(getTemporaryPromotionView(ingestionId));
     }
     const promotion = advancePromotion(ingestionId, transitions[action]);
     return Response.json(
@@ -47,7 +52,7 @@ export async function POST(
 
 async function parseAction(
   request: Request,
-): Promise<keyof typeof transitions | "expire"> {
+): Promise<keyof typeof transitions | "generate-silver" | "expire"> {
   const body = await request.json();
   if (
     !body ||
@@ -55,8 +60,10 @@ async function parseAction(
     Array.isArray(body) ||
     Object.keys(body).length !== 1 ||
     typeof body.action !== "string" ||
-    (!(body.action in transitions) && body.action !== "expire")
+    (!(body.action in transitions) &&
+      body.action !== "generate-silver" &&
+      body.action !== "expire")
   )
     throw new Error("Invalid curriculum action");
-  return body.action as keyof typeof transitions | "expire";
+  return body.action as keyof typeof transitions | "generate-silver" | "expire";
 }
