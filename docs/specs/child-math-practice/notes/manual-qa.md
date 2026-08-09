@@ -111,6 +111,7 @@ local filesystem path here.
 - HTTP/API smoke: pass — `pnpm dev` served the child portal at `http://localhost:3000` with HTTP 200; invalid login returned 401; valid login, answer submission, parent summary, and parent chat returned 200.
 - Browser interaction smoke: pass — signed in with the local seed, selected Linear relationships, submitted `2`, and observed the level-2 linear question plus an application-owned `data:image/svg+xml` diagram. Changing back to Ratios & rates removed the generated image and restored the fallback diagram.
 - Browser persistence smoke: pass — submitted a correct ratio answer, refreshed the page, and observed the signed-in portal with the same persisted level and `1 correct in a row` streak.
+- Browser question-variation smoke: pass — after reloading the local portal, submitted two correct ratio answers and observed two distinct, topic-aligned prompts at the persisted levels.
 - Overall: pending user browser execution (M1–M6)
 - Failed case and observed result: not run in this environment
 - Follow-up issue: wire and verify a local Engram artifact before marking M5 ready.

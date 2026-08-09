@@ -2,6 +2,12 @@ import { expect, test } from "vitest";
 import { authenticateChild } from "../../../server/identity/identity";
 import { POST } from "./route";
 
+function expectedRatioQuestion(attemptCount: number, level: number): string {
+  return attemptCount % 2 === 1
+    ? `A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level ${level}?`
+    : `For each cup of water, this recipe needs 2 cups of flour. How many cups of flour go with 1 cup of water at level ${level}?`;
+}
+
 async function authenticatedRequest(body: unknown): Promise<Request> {
   const session = await authenticateChild({
     username: "child",
@@ -33,9 +39,34 @@ test("accepts only the allowlisted answer-submission shape", async () => {
     await authenticatedRequest({ topicId: "ratio", answer: "2" }),
   );
   expect(accepted.status).toBe(200);
-  await expect(accepted.json()).resolves.toMatchObject({
+  const firstPayload = (await accepted.json()) as {
+    correct: boolean;
+    level: number;
+    attemptCount: number;
+    nextQuestion: { question: string };
+  };
+  expect(firstPayload).toMatchObject({
     correct: true,
-    level: expect.any(Number),
+    attemptCount: expect.any(Number),
     nextQuestion: { question: expect.any(String) },
   });
+  expect(firstPayload.nextQuestion.question).toBe(
+    expectedRatioQuestion(firstPayload.attemptCount, firstPayload.level),
+  );
+  const secondAccepted = await POST(
+    await authenticatedRequest({ topicId: "ratio", answer: "2" }),
+  );
+  expect(secondAccepted.status).toBe(200);
+  const secondPayload = (await secondAccepted.json()) as {
+    level: number;
+    attemptCount: number;
+    nextQuestion: { question: string };
+  };
+  expect(secondPayload.attemptCount).toBe(firstPayload.attemptCount + 1);
+  expect(secondPayload.nextQuestion.question).toBe(
+    expectedRatioQuestion(secondPayload.attemptCount, secondPayload.level),
+  );
+  expect(secondPayload.nextQuestion.question).not.toBe(
+    firstPayload.nextQuestion.question,
+  );
 });

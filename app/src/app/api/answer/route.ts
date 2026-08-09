@@ -54,6 +54,7 @@ export async function POST(request: Request): Promise<Response> {
       childId,
       topicId: body.topicId,
       level: result.level,
+      attemptCount: result.attemptCount,
     });
     validateLearningPayload({
       component: "GeometryDiagram",

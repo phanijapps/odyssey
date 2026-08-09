@@ -34,6 +34,7 @@ export async function submitAnswer(_input: {
   level: number;
   correct: boolean;
   correctStreak: number;
+  attemptCount: number;
 }> {
   const normalizedAnswer = _input.answer.trim();
   if (!_input.childId || !_input.topicId || !normalizedAnswer)
@@ -82,11 +83,19 @@ export async function submitAnswer(_input: {
         correctStreak,
         new Date().toISOString(),
       );
+    const attemptCount = (
+      learningDb
+        .prepare(
+          "SELECT COUNT(*) AS count FROM learning_attempts WHERE child_id = ? AND topic_id = ?",
+        )
+        .get(_input.childId, _input.topicId) as { count: number }
+    ).count;
     return {
       questionId: `question-${Date.now()}`,
       level: nextLevel,
       correct,
       correctStreak,
+      attemptCount,
     };
   });
 }

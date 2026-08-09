@@ -14,9 +14,10 @@ test("STUB: AC7 supplies the approved local question and diagram fixture", async
     childId: "child-1",
     topicId: "ratio",
     level: 1,
+    attemptCount: 1,
   });
   expect(fixture.question).toBe(
-    "A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
+    "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
   );
   expect(fixture.diagramSvg).toContain('aria-label="ratio diagram"');
   expect(() =>
@@ -32,6 +33,7 @@ test("supplies a topic-aligned linear fixture", async () => {
     childId: "child-1",
     topicId: "linear",
     level: 1,
+    attemptCount: 1,
   });
   expect(fixture.question).toContain("linear relationship");
   expect(fixture.diagramSvg).toContain('aria-label="linear relationship"');
@@ -51,6 +53,7 @@ test("rejects fixture requests outside the reviewed topic and level bounds", asy
       childId: "child-1",
       topicId: "unreviewed",
       level: 1,
+      attemptCount: 1,
     }),
   ).rejects.toThrow("Invalid learning request");
   await expect(
@@ -58,6 +61,7 @@ test("rejects fixture requests outside the reviewed topic and level bounds", asy
       childId: "child-1",
       topicId: "__proto__",
       level: 1,
+      attemptCount: 1,
     }),
   ).rejects.toThrow("Invalid learning request");
   await expect(
@@ -65,8 +69,35 @@ test("rejects fixture requests outside the reviewed topic and level bounds", asy
       childId: "child-1",
       topicId: "ratio",
       level: 14,
+      attemptCount: 1,
     }),
   ).rejects.toThrow("Invalid learning request");
+  await expect(
+    requestLearningFixture({
+      childId: "child-1",
+      topicId: "ratio",
+      level: 1,
+      attemptCount: 0,
+    }),
+  ).rejects.toThrow("Invalid learning request");
+});
+
+test("cycles approved topic prompts deterministically by attempt count", async () => {
+  const questions = await Promise.all(
+    [1, 2, 3].map(async (attemptCount) =>
+      requestLearningFixture({
+        childId: "child-1",
+        topicId: "ratio",
+        level: 1,
+        attemptCount,
+      }),
+    ),
+  );
+  expect(questions.map((fixture) => fixture.question)).toEqual([
+    "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
+    "For each cup of water, this recipe needs 2 cups of flour. How many cups of flour go with 1 cup of water at level 1?",
+    "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
+  ]);
 });
 
 // STUB: AC12

@@ -21,6 +21,7 @@ test("STUB: AC4 persists the accepted recommendation and next question", async (
     level: 2,
     correct: true,
     correctStreak: 1,
+    attemptCount: 1,
   });
 });
 
