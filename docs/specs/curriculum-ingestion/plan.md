@@ -1,7 +1,7 @@
 # Plan: curriculum ingestion
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 
 ## Resulting architecture
 

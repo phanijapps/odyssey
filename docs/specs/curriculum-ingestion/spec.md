@@ -1,6 +1,6 @@
 # Spec: curriculum ingestion
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Plan:** [plan.md](plan.md)
 - **Constrained by:** RFC-0002, RFC-0003
 - **Shape:** mixed
