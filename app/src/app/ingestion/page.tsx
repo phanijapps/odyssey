@@ -29,6 +29,7 @@ const stageLabel: Record<Stage, string> = {
 /** Desktop-only steward workflow for source promotion. */
 export default function IngestionPage() {
   const [stage, setStage] = useState<Stage>("bronze");
+  const [sourceName, setSourceName] = useState<string | null>(null);
   const next = () =>
     setStage((current) =>
       current === "bronze"
@@ -77,6 +78,23 @@ export default function IngestionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {!sourceName ? (
+              <label className="block text-sm font-medium">
+                Source file
+                <input
+                  className="mt-2 block w-full text-sm"
+                  type="file"
+                  accept=".pdf,.csv,.json,.txt,text/plain,application/pdf,text/csv,application/json"
+                  onChange={(event) =>
+                    setSourceName(event.target.files?.[0]?.name ?? null)
+                  }
+                />
+              </label>
+            ) : (
+              <p className="mb-3 text-sm text-muted-foreground">
+                Bronze source: {sourceName}
+              </p>
+            )}
             <div className="rounded-md border bg-muted/40 p-3 text-sm">
               <strong>{stageLabel[stage]}</strong>
               <p className="mt-1 text-muted-foreground">
@@ -85,7 +103,7 @@ export default function IngestionPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={next} disabled={stage === "gold"}>
+            <Button onClick={next} disabled={!sourceName || stage === "gold"}>
               {action}
             </Button>
           </CardFooter>
