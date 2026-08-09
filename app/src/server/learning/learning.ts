@@ -25,7 +25,12 @@ export async function submitAnswer(_input: {
   topicId: string;
   answer: string;
   nextLevel: number;
-}): Promise<{ questionId: string; level: number; correct: boolean }> {
+}): Promise<{
+  questionId: string;
+  level: number;
+  correct: boolean;
+  correctStreak: number;
+}> {
   if (!_input.childId || !_input.topicId || !_input.answer)
     throw new Error("Invalid answer");
   return withLearningTransaction(() => {
@@ -50,6 +55,7 @@ export async function submitAnswer(_input: {
       correctStreak: streak,
       memoryAvailable: false,
     });
+    const correctStreak = nextLevel > level ? 0 : streak;
     learningDb
       .prepare(
         `INSERT INTO learning_attempts
@@ -74,10 +80,15 @@ export async function submitAnswer(_input: {
         _input.childId,
         _input.topicId,
         nextLevel,
-        nextLevel > level ? 0 : streak,
+        correctStreak,
         new Date().toISOString(),
       );
-    return { questionId: `question-${Date.now()}`, level: nextLevel, correct };
+    return {
+      questionId: `question-${Date.now()}`,
+      level: nextLevel,
+      correct,
+      correctStreak,
+    };
   });
 }
 

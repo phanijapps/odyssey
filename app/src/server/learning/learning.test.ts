@@ -20,6 +20,7 @@ test("STUB: AC4 persists the accepted recommendation and next question", async (
     questionId: expect.any(String),
     level: 2,
     correct: true,
+    correctStreak: 1,
   });
 });
 

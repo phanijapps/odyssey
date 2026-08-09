@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 const fallbackTopics = [
   {
@@ -29,11 +29,13 @@ export default function HomePage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [topicId, setTopicId] = useState("ratio");
+  const activeTopicRef = useRef(topicId);
+  const progressRequestVersion = useRef(0);
   const [topics, setTopics] = useState(fallbackTopics);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState("");
   const [level, setLevel] = useState(1);
-  const [correctCount, setCorrectCount] = useState(0);
+  const [correctStreak, setCorrectStreak] = useState(0);
   const [question, setQuestion] = useState(topicQuestions.ratio);
   const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
   const [memoryState, setMemoryState] = useState<"ready" | "unavailable">(
@@ -50,9 +52,32 @@ export default function HomePage() {
   useEffect(() => {
     void (async () => {
       const response = await fetch("/api/session", { cache: "no-store" });
-      if (response.ok) setSignedIn(true);
+      if (response.ok) {
+        setSignedIn(true);
+        await loadProgress(topicId);
+      }
     })();
   }, []);
+
+  async function loadProgress(activeTopicId: string) {
+    const requestVersion = ++progressRequestVersion.current;
+    const response = await fetch(
+      `/api/progress?topicId=${encodeURIComponent(activeTopicId)}`,
+      { cache: "no-store" },
+    );
+    if (!response.ok) return;
+    const progress = (await response.json()) as {
+      level: number;
+      correctStreak: number;
+    };
+    if (
+      activeTopicRef.current !== activeTopicId ||
+      progressRequestVersion.current !== requestVersion
+    )
+      return;
+    setLevel(progress.level);
+    setCorrectStreak(progress.correctStreak);
+  }
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,6 +108,7 @@ export default function HomePage() {
       }
       const memory = await fetch("/api/memory", { cache: "no-store" });
       if (memory.ok) setMemoryState((await memory.json()).kind);
+      await loadProgress(topicId);
     } else {
       setError("We could not sign you in. Check your details and try again.");
     }
@@ -90,6 +116,8 @@ export default function HomePage() {
 
   async function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const submittedTopicId = topicId;
+    progressRequestVersion.current += 1;
     const response = await fetch("/api/answer", {
       method: "POST",
       headers: {
@@ -97,7 +125,7 @@ export default function HomePage() {
         origin: window.location.origin,
       },
       body: JSON.stringify({
-        topicId,
+        topicId: submittedTopicId,
         answer,
       }),
     });
@@ -105,10 +133,13 @@ export default function HomePage() {
       const payload = (await response.json()) as {
         level: number;
         correct: boolean;
+        correctStreak: number;
         nextQuestion?: { question?: string; diagramSvg?: string };
       };
+      if (activeTopicRef.current !== submittedTopicId) return;
+      progressRequestVersion.current += 1;
       setLevel(payload.level);
-      if (payload.correct) setCorrectCount((count) => count + 1);
+      setCorrectStreak(payload.correctStreak);
       setFeedback(
         payload.correct
           ? "Nice work — your next question is ready."
@@ -283,7 +314,7 @@ export default function HomePage() {
             <span className="progress-ring">{level}</span>
             <div>
               <strong>Level {level}</strong>
-              <small>{correctCount} correct today</small>
+              <small>{correctStreak} correct in a row</small>
             </div>
           </div>
           <p className="memory-state">
@@ -304,9 +335,11 @@ export default function HomePage() {
               value={topicId}
               onChange={(event) => {
                 const nextTopic = event.target.value;
+                activeTopicRef.current = nextTopic;
                 setTopicId(nextTopic);
                 setQuestion(topicQuestions[nextTopic] ?? topicQuestions.ratio);
                 setDiagramSvg(null);
+                void loadProgress(nextTopic);
               }}
             >
               {topics.map((item) => (
