@@ -36,6 +36,16 @@
   contracts. Entry points: `packages/curriculum/src/catalog.ts` and
   `packages/curriculum/src/progression.ts`.
 
+## Curriculum ingestion
+
+Curriculum sources use a source-neutral promotion pipeline: Bronze is a raw
+document/feed, Silver is normalized candidate data, and Gold is approved
+canonical curriculum. Dedicated Pi agents transform Bronze → Silver and
+approved Silver → Gold. Source adapters may understand a particular document
+format or standards framework, but canonical records and local vector retrieval
+remain subject-neutral. Gold records alone are embedded through local Ollama and
+stored in SQLite-Vec for scoped retrieval.
+
 ## Conventions you'll see across packages
 
 - The application and its server behavior run through one Next.js process and

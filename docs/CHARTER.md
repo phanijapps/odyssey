@@ -16,19 +16,22 @@ are scaffolding around it; this file is the why.
      faster by giving Claude Code and other AI agents the structure they
      need to be reliable contributors." -->
 
-<replace with one sentence>
+Odyssey Learning is a local-first application that helps children learn from
+reviewed curriculum through adaptive, understandable practice.
 
 ## Scope
 
 What this project does:
 
-- <bullet>
-- <bullet>
+- Stores source-backed curriculum across subjects and turns approved standards
+  into guided learning experiences.
+- Uses local-first data, local AI integrations, and explicit human approval for
+  curriculum authority.
 
 What this project does **not** do:
 
-- <bullet>
-- <bullet>
+- Treats AI-extracted or raw source text as authoritative curriculum.
+- Couples the curriculum model to one subject, state, document type, or source.
 
 The "does not" list is at least as important as the "does" list. It's how
 we — and AI agents working in the repo — know when a request is out of
@@ -40,12 +43,18 @@ either list, that's a signal to refine this section, not to drift.
 The values that resolve ties when reasonable people disagree. Five to
 seven, no more.
 
-1. **<principle>.** <one-sentence elaboration with a concrete example of
-   how we've applied it.>
-2. **<principle>.** ...
-3. **<principle>.** ...
-4. **<principle>.** ...
-5. **<principle>.** ...
+1. **Curriculum is source-backed.** Every formal standard retains provenance
+   to its approved source, rather than relying on an agent summary.
+2. **Promotion earns authority.** Bronze raw sources become Silver reviewable
+   candidates and only approved Silver becomes Gold formal curriculum.
+3. **Subjects are pluggable.** The canonical model supports any subject,
+   framework, grade/course structure, and source format; Ohio math is one
+   adapter, not the architecture.
+4. **Agents transform; the application governs.** Separate bounded Pi agents
+   perform extraction and formalization while application validation, approval,
+   and persistence remain authoritative.
+5. **Learning stays understandable.** Questions, diagrams, scoring, and guided
+   explanations serve the child rather than exposing system complexity.
 
 ## What's NOT in this charter
 

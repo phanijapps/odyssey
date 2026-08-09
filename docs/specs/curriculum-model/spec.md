@@ -6,7 +6,12 @@
 
 ## Objective
 
-The application stores source-backed curriculum content in a reusable subject model. Ohio Mathematics 2017 standards import into that model with their original identifiers, text, source pages, grade or course, domain, cluster, and curated teaching topics. Each searchable record has a locally generated embedding for curriculum retrieval.
+The application stores source-backed curriculum content in a reusable subject
+model. Any submitted source moves through Bronze raw source, Silver reviewable
+normalization, and approved Gold formal curriculum. Gold records retain their
+original identifiers, text, source location, grade or course, domain, cluster,
+and curated teaching topics. Each searchable Gold record has a locally
+generated embedding for curriculum retrieval.
 
 ## Boundaries
 
@@ -37,7 +42,8 @@ The application stores source-backed curriculum content in a reusable subject mo
 
 - [ ] A subject-neutral canonical record represents frameworks, grade/course bands, domains, clusters, standards, curated topics, and assessment targets.
 - [ ] Each official standard retains an identifier, exact source text, source document fingerprint, and page number.
-- [ ] The Ohio Mathematics 2017 importer creates records for grades 6–8 and high-school domains without treating extracted plain text as authoritative when its structure is ambiguous.
+- [ ] Any source adapter creates Silver candidates without treating extraction as
+      authoritative curriculum; only approved candidates become Gold records.
 - [ ] Each embedding record stores its model name, dimension, source-record identifier, and content fingerprint; `nomic-embed-text:latest` vectors have dimension 768.
 - [ ] SQLite-Vec stores vectors locally and supports a bounded nearest-neighbor lookup scoped to a subject and framework.
 - [ ] The application exposes no browser route for raw curriculum documents, embeddings, or unrestricted vector search.

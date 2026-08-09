@@ -242,6 +242,26 @@ is optional and informal; the RFC body remains the contract.
 
 ---
 
+## Curriculum source promotion
+
+Curriculum source ingestion has three canonical states:
+
+- **Bronze** is the submitted source artifact and its provenance. It may be a
+  PDF, CSV, JSON file, API response, or unstructured text. It is not usable as
+  curriculum.
+- **Silver** is a normalized, reviewable candidate produced from Bronze by the
+  dedicated extraction Pi agent. It preserves source links and validation
+  findings, but it is not authoritative.
+- **Gold** is the approved formal curriculum produced from Silver by a distinct
+  formalization Pi agent. Gold records conform to the canonical curriculum
+  model and are the only records eligible for embedding, vector retrieval,
+  assessment selection, or child-facing learning.
+
+Source-specific parsing belongs in adapters. The core Bronze → Silver → Gold
+pipeline must not name a state, subject, document format, or standards body.
+Agents cannot self-approve a promotion; application-owned validation and an
+explicit approval record control every state transition.
+
 ## 4. Specs and Plans — `docs/specs/<feature>/`
 
 **What:** the precise definition of a single feature, sized to be built in days
