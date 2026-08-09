@@ -46,6 +46,19 @@ format or standards framework, but canonical records and local vector retrieval
 remain subject-neutral. Gold records alone are embedded through local Ollama and
 stored in SQLite-Vec for scoped retrieval.
 
+## Personas and access
+
+| Persona                | Primary use                   | Allowed capabilities                                                     | Excluded capabilities                             |
+| ---------------------- | ----------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------- |
+| Learner                | Practice a subject            | Answer questions, view diagrams/explanations, view own progress          | Parent data, curriculum sources, approvals        |
+| Parent/Guardian        | Support one child             | View linked-child progress, read guided outcomes, send bounded questions | Curriculum edits, source approval, other children |
+| Curriculum Steward     | Govern curriculum             | Submit Bronze sources, review Silver, approve Gold, map topics/targets   | Child answers, session data, agent self-approval  |
+| Extraction Pi agent    | Normalize sources             | Bronze → Silver under a bounded parser/tool set                          | Gold approval, browser actions, child data        |
+| Formalization Pi agent | Formalize approved candidates | Approved Silver → Gold draft                                             | Gold approval, browser actions, child data        |
+
+The application enforces every human permission and promotion transition;
+agents provide data transformations only.
+
 ## Conventions you'll see across packages
 
 - The application and its server behavior run through one Next.js process and

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Odyssey persona mockups</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        color: #18231e;
+        background: #f6f5ef;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        max-width: 1000px;
+        margin: auto;
+        padding: 32px;
+      }
+      nav {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 20px 0;
+      }
+      button {
+        border: 1px solid #95a399;
+        background: white;
+        padding: 10px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button[aria-selected="true"] {
+        background: #193a2b;
+        color: white;
+      }
+      .view {
+        display: none;
+        background: white;
+        border: 1px solid #d8ddd5;
+        border-radius: 12px;
+        padding: 24px;
+      }
+      .view.active {
+        display: block;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .card {
+        border: 1px solid #d8ddd5;
+        border-radius: 10px;
+        padding: 16px;
+      }
+      small {
+        color: #526158;
+      }
+      .diagram {
+        height: 120px;
+        border-radius: 8px;
+        background: #edf2ed;
+        display: grid;
+        place-items: center;
+        font-size: 28px;
+      }
+      ul {
+        padding-left: 20px;
+      }
+      .notice {
+        padding: 12px;
+        background: #eff6ed;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <small>STATIC PRODUCT MOCKUP · NOT A RUNNING SCREEN</small>
+      <h1>Odyssey Learning</h1>
+      <p>Persona-based views and permissions.</p>
+      <nav role="tablist">
+        <button role="tab" aria-selected="true" data-view="learner">
+          Learner
+        </button>
+        <button role="tab" aria-selected="false" data-view="parent">
+          Parent / Guardian
+        </button>
+        <button role="tab" aria-selected="false" data-view="steward">
+          Curriculum Steward
+        </button>
+      </nav>
+      <section id="learner" class="view active">
+        <small>LEARNER · OWN PRACTICE ONLY</small>
+        <h2>Ratios &amp; rates · Level 2</h2>
+        <div class="grid">
+          <div class="card">
+            <p>
+              For every 2 cups of flour, a recipe uses 1 cup of water. How much
+              water is needed for 6 cups of flour?
+            </p>
+            <button>3 cups</button> <button>4 cups</button>
+            <button>6 cups</button>
+          </div>
+          <div class="diagram">1 water : 2 flour</div>
+        </div>
+        <p class="notice">
+          <strong>Guided feedback</strong><br />Correct. Divide 6 flour cups by
+          2 to find matching water cups: 3.
+        </p>
+      </section>
+      <section id="parent" class="view">
+        <small>PARENT / GUARDIAN · LINKED CHILD ONLY</small>
+        <h2>Practice overview</h2>
+        <div class="grid">
+          <div class="card">
+            <strong>Ratios &amp; rates</strong>
+            <p>Level 2 · 6 attempts · 4 correct</p>
+          </div>
+          <div class="card">
+            <strong>Recent guided outcome</strong>
+            <p>
+              Uses ratio diagrams successfully; needs practice with unit rates.
+            </p>
+          </div>
+        </div>
+        <p>
+          <input
+            aria-label="Question about progress"
+            placeholder="How can we practice unit rates?"
+          />
+          <button>Ask</button>
+        </p>
+      </section>
+      <section id="steward" class="view">
+        <small>CURRICULUM STEWARD · APPROVAL AUTHORITY</small>
+        <h2>Curriculum source promotion</h2>
+        <div class="grid">
+          <div class="card">
+            <strong>Bronze</strong>
+            <p>Source document received</p>
+            <button>Inspect provenance</button>
+          </div>
+          <div class="card">
+            <strong>Silver</strong>
+            <p>Normalized candidate ready for review</p>
+            <button>Review candidate</button>
+          </div>
+          <div class="card">
+            <strong>Gold</strong>
+            <p>Approval required before formalization</p>
+            <button>Approve promotion</button>
+          </div>
+        </div>
+        <p class="notice">
+          Pi agents can create Silver and Gold drafts; only a Curriculum Steward
+          can approve promotion.
+        </p>
+      </section>
+    </main>
+    <script>
+      document.querySelectorAll("[data-view]").forEach(
+        (b) =>
+          (b.onclick = () => {
+            document
+              .querySelectorAll("[data-view]")
+              .forEach((x) => x.setAttribute("aria-selected", "false"));
+            document
+              .querySelectorAll(".view")
+              .forEach((x) => x.classList.remove("active"));
+            b.setAttribute("aria-selected", "true");
+            document.getElementById(b.dataset.view).classList.add("active");
+          }),
+      );
+    </script>
+  </body>
+</html>

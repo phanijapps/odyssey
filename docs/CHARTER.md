@@ -33,6 +33,18 @@ What this project does **not** do:
 - Treats AI-extracted or raw source text as authoritative curriculum.
 - Couples the curriculum model to one subject, state, document type, or source.
 
+## Personas
+
+- **Learner:** practices assigned skills, receives diagrams and guided feedback,
+  and sees only their own progress.
+- **Parent/Guardian:** sees their child’s progress and can ask bounded
+  questions about practice; they do not edit curriculum or scoring.
+- **Curriculum Steward:** submits sources, reviews Silver candidates, approves
+  promotion to Gold, and manages topic/assessment mappings.
+- **Pi agents:** are system roles only. The extraction agent creates Silver;
+  the formalization agent creates Gold drafts from approved Silver. Neither can
+  approve a promotion or access child-facing controls.
+
 The "does not" list is at least as important as the "does" list. It's how
 we — and AI agents working in the repo — know when a request is out of
 bounds. If you find the project being asked to do things that aren't on
