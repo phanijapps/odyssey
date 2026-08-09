@@ -16,7 +16,7 @@ test("STUB: AC7 supplies the approved local question and diagram fixture", async
     level: 1,
   });
   expect(fixture.question).toBe(
-    "Solve the ratio problem for ratio at level 1.",
+    "A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level 1?",
   );
   expect(fixture.diagramSvg).toContain('aria-label="ratio diagram"');
   expect(() =>

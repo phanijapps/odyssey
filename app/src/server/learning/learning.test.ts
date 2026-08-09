@@ -35,6 +35,28 @@ test("records attempts and advances after two correct answers", async () => {
   });
 });
 
+test("treats surrounding whitespace as part of a valid numeric answer", async () => {
+  const result = await submitAnswer({
+    childId: "trimmed-answer-child",
+    topicId: "ratio",
+    answer: " 2 ",
+    nextLevel: 1,
+  });
+  expect(result.correct).toBe(true);
+});
+
+test("rejects an all-whitespace answer before persisting an attempt", async () => {
+  await expect(
+    submitAnswer({
+      childId: "blank-answer-child",
+      topicId: "ratio",
+      answer: "   ",
+      nextLevel: 1,
+    }),
+  ).rejects.toThrow("Invalid answer");
+  expect(getLearningProgress("blank-answer-child", "ratio")).toBeNull();
+});
+
 // STUB: AC16
 test("STUB: AC16 redacts raw child answers from learning audit data", () => {
   expect(

@@ -19,7 +19,7 @@ const fallbackTopics = [
 
 const topicQuestions: Record<string, string> = {
   ratio:
-    "A recipe uses 1 cup of water for every 2 cups of flour. What is the ratio of water to flour?",
+    "A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed?",
   linear: "For y = 2x, what is the coefficient of x?",
 };
 

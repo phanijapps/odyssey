@@ -35,7 +35,8 @@ export async function submitAnswer(_input: {
   correct: boolean;
   correctStreak: number;
 }> {
-  if (!_input.childId || !_input.topicId || !_input.answer)
+  const normalizedAnswer = _input.answer.trim();
+  if (!_input.childId || !_input.topicId || !normalizedAnswer)
     throw new Error("Invalid answer");
   return withLearningTransaction(() => {
     const current = learningDb
@@ -52,7 +53,7 @@ export async function submitAnswer(_input: {
         ? _input.nextLevel
         : 1;
     const level = current?.level ?? requestedLevel;
-    const correct = _input.answer === "2";
+    const correct = normalizedAnswer === "2";
     const streak = correct ? (current?.correct_streak ?? 0) + 1 : 0;
     const nextLevel = recommendNextLevel({
       currentLevel: level,

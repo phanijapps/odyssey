@@ -8,7 +8,7 @@ export async function requestLearningFixture(_input: {
     throw new Error("Invalid learning request");
   const fixtures = {
     ratio: {
-      question: `Solve the ratio problem for ratio at level ${_input.level}.`,
+      question: `A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed at level ${_input.level}?`,
       diagramSvg:
         '<svg aria-label="ratio diagram" viewBox="0 0 100 60"><rect x="10" y="10" width="25" height="25" /><rect x="45" y="10" width="25" height="25" /><rect x="75" y="10" width="15" height="25" /><text x="10" y="55">water</text><text x="55" y="55">flour</text></svg>',
     },
