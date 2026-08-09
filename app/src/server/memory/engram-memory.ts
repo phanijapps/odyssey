@@ -2,6 +2,7 @@ import "server-only";
 import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { isAbsolute, relative } from "node:path";
+import { getSeedCurriculumCatalog } from "../../../../packages/curriculum/src/catalog";
 
 const seededVocabulary = new Set<string>();
 
@@ -22,7 +23,9 @@ export function projectLearningSignal(_input: unknown): LearningProfileSignal {
   const level = input.acceptedLevel;
   if (
     Object.keys(input).some((key) => !allowed.includes(key)) ||
-    input.topicId !== "ratio" ||
+    !getSeedCurriculumCatalog().topics.some(
+      (topic) => topic.id === input.topicId,
+    ) ||
     typeof level !== "number" ||
     !Number.isInteger(level) ||
     level < 1 ||

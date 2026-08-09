@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { getSeedCurriculumCatalog } from "../../../../packages/curriculum/src/catalog";
 import {
   openProfileMemory,
   getProfileMemoryState,
@@ -31,6 +32,19 @@ test("STUB: AC13 projects only approved derived learning-profile signals", () =>
   });
 });
 
+test("projects every reviewed catalog topic into the profile signal", () => {
+  for (const topic of getSeedCurriculumCatalog().topics) {
+    expect(
+      projectLearningSignal({
+        topicId: topic.id,
+        acceptedLevel: 2,
+        correct: true,
+        progressState: "practicing",
+      }),
+    ).toMatchObject({ topicId: topic.id });
+  }
+});
+
 test("STUB: AC13 rejects raw answers and credentials before profile projection", () => {
   expect(() =>
     projectLearningSignal({
@@ -48,6 +62,14 @@ test("STUB: AC13 rejects raw answers and credentials before profile projection",
 });
 
 test("STUB: AC13 rejects unknown, out-of-range, and non-catalog profile values", () => {
+  expect(() =>
+    projectLearningSignal({
+      topicId: "unreviewed",
+      acceptedLevel: 2,
+      correct: true,
+      progressState: "practicing",
+    }),
+  ).toThrow();
   expect(() =>
     projectLearningSignal({
       topicId: "unknown-topic",
