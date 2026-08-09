@@ -12,8 +12,17 @@ export async function embedCurriculumText(text: string): Promise<number[]> {
     signal: AbortSignal.timeout(30_000),
   });
   const payload = (await response.json()) as { embeddings?: unknown };
-  const vector = Array.isArray(payload.embeddings) ? payload.embeddings[0] : null;
-  if (!response.ok || !Array.isArray(vector) || vector.length !== OLLAMA_EMBEDDING_DIMENSION || !vector.every((value) => typeof value === "number" && Number.isFinite(value)))
+  const vector = Array.isArray(payload.embeddings)
+    ? payload.embeddings[0]
+    : null;
+  if (
+    !response.ok ||
+    !Array.isArray(vector) ||
+    vector.length !== OLLAMA_EMBEDDING_DIMENSION ||
+    !vector.every(
+      (value) => typeof value === "number" && Number.isFinite(value),
+    )
+  )
     throw new Error("Invalid Ollama embedding response");
   return vector;
 }

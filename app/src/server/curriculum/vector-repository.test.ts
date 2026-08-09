@@ -14,7 +14,9 @@ test("stores a fixed-dimension local curriculum embedding", () => {
     vector: Array.from({ length: 768 }, () => 0),
   });
   expect(
-    database.prepare("SELECT record_id, dimension FROM curriculum_embedding_records").get(),
+    database
+      .prepare("SELECT record_id, dimension FROM curriculum_embedding_records")
+      .get(),
   ).toEqual({ record_id: "ohio-math-2017:6:rp:1", dimension: 768 });
   repository.save({
     recordId: "other-framework:6:rp:1",

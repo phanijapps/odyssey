@@ -1,4 +1,7 @@
-import { type CurriculumRecord, parseCurriculumRecord } from "./curriculum-model";
+import {
+  type CurriculumRecord,
+  parseCurriculumRecord,
+} from "./curriculum-model";
 
 const STANDARD_LINE = /^(?:\(\+\)\s*)?([A-Z0-9]+\.[A-Z]{1,3}\.[0-9]+)\s+(.+)$/;
 

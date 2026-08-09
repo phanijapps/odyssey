@@ -7,7 +7,8 @@ test("imports explicit Ohio standard codes with their source page", () => {
       page: 41,
       gradeOrCourse: "Grade 6",
       domain: "Ratios and Proportional Relationships",
-      cluster: "Understand ratio concepts and use ratio reasoning to solve problems.",
+      cluster:
+        "Understand ratio concepts and use ratio reasoning to solve problems.",
       text: `6.RP.1 Understand the concept of a ratio and use ratio language to
 describe a ratio relationship between two quantities.
 6.RP.2 Understand the concept of a unit rate.`,

@@ -48,7 +48,9 @@ export function parseCurriculumRecord(input: unknown): CurriculumRecord {
         (typeof record[key] !== "string" || !(record[key] as string).trim()),
     ) ||
     !Array.isArray(record.topics) ||
-    !record.topics.every((topic) => typeof topic === "string" && topic.length > 0) ||
+    !record.topics.every(
+      (topic) => typeof topic === "string" && topic.length > 0,
+    ) ||
     !Array.isArray(record.assessmentTargets) ||
     !record.assessmentTargets.every(
       (target) => typeof target === "string" && target.length > 0,
