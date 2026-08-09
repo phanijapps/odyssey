@@ -11,13 +11,15 @@ test("STUB: AC7 accepts the approved SVG and app-owned A2UI payload", () => {
   expect(() =>
     validateLearningPayload({
       component: "GeometryDiagram",
-      diagramSvg: '<svg aria-label="triangle" />',
+      diagramSvg:
+        '<svg xmlns="http://www.w3.org/2000/svg" aria-label="triangle" />',
     }),
   ).not.toThrow();
   expect(() =>
     validateA2UIPayload({
       component: "GeometryDiagram",
-      diagramSvg: '<svg aria-label="triangle" />',
+      diagramSvg:
+        '<svg xmlns="http://www.w3.org/2000/svg" aria-label="triangle" />',
     }),
   ).not.toThrow();
   for (const payload of [
@@ -25,6 +27,43 @@ test("STUB: AC7 accepts the approved SVG and app-owned A2UI payload", () => {
     { component: "ProgressIndicator", level: 1, correctStreak: 0 },
   ])
     expect(() => validateA2UIPayload(payload)).not.toThrow();
+});
+
+test("accepts the fixed SVG namespace required by standalone diagram images", () => {
+  expect(() =>
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg:
+        '<svg xmlns="http://www.w3.org/2000/svg" aria-label="triangle" viewBox="0 0 100 60" />',
+    }),
+  ).not.toThrow();
+  expect(() =>
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg:
+        '<svg xmlns="https://example.invalid/svg" aria-label="triangle" />',
+    }),
+  ).toThrow();
+  expect(() =>
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg: '<svg aria-label="triangle" />',
+    }),
+  ).toThrow();
+  expect(() =>
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg: '<text x="1" y="1">triangle</text>',
+    }),
+  ).toThrow();
+  for (const diagramSvg of [
+    'text<svg xmlns="http://www.w3.org/2000/svg" />',
+    '<svg xmlns="http://www.w3.org/2000/svg" />text',
+    '<svg xmlns="http://www.w3.org/2000/svg" />junk/>',
+  ])
+    expect(() =>
+      validateLearningPayload({ component: "GeometryDiagram", diagramSvg }),
+    ).toThrow();
 });
 
 // STUB: AC9

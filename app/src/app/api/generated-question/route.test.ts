@@ -159,7 +159,8 @@ test("uses the persisted level after an answer to request generated practice", a
   requestOllamaLearningQuestion.mockResolvedValue({
     question:
       "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed?",
-    diagramSvg: '<svg aria-label="ratio diagram" />',
+    diagramSvg:
+      '<svg xmlns="http://www.w3.org/2000/svg" aria-label="ratio diagram" />',
   });
 
   const response = await POST(
@@ -181,7 +182,8 @@ test("consumes the generation allowance after one provider request", async () =>
   requestOllamaLearningQuestion.mockResolvedValue({
     question:
       "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed?",
-    diagramSvg: '<svg aria-label="ratio diagram" />',
+    diagramSvg:
+      '<svg xmlns="http://www.w3.org/2000/svg" aria-label="ratio diagram" />',
   });
   const first = await POST(
     requestFor("/api/generated-question", sessionToken, { topicId: "ratio" }),

@@ -165,10 +165,18 @@ test("accepts complete, topic-aligned provider response fixtures", () => {
   ]) {
     expect(
       validateGeneratedLearningResponse(
-        { question, diagramSvg: '<svg aria-label="diagram" />' },
+        {
+          question,
+          diagramSvg:
+            '<svg xmlns="http://www.w3.org/2000/svg" aria-label="diagram" />',
+        },
         topicId,
       ),
-    ).toEqual({ question, diagramSvg: '<svg aria-label="diagram" />' });
+    ).toEqual({
+      question,
+      diagramSvg:
+        '<svg xmlns="http://www.w3.org/2000/svg" aria-label="diagram" />',
+    });
   }
 });
 
@@ -279,7 +287,7 @@ test("constrains generated output to the reviewed question and SVG schema", () =
   const instruction = getGeneratedOutputInstruction("ratio");
   expect(instruction).toContain("exactly two keys");
   expect(instruction).toContain("Never include an answer key");
-  expect(instruction).toContain("Do not use xmlns");
+  expect(instruction).toContain("xmlns exactly as http://www.w3.org/2000/svg");
   expect(instruction).toContain(
     "A smoothie recipe uses 1 cup of water for every 2 cups of flour.",
   );

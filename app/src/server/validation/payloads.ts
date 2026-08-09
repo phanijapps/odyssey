@@ -87,10 +87,29 @@ function isSafeSvg(svg: string): boolean {
     "fill",
     "stroke",
     "stroke-width",
+    "xmlns",
   ]);
+  const [rootTag, rootName] = tags[0] ?? [];
+  const trimmedSvg = svg.trim();
+  const hasSelfClosingRoot = rootTag.endsWith("/>");
+  const elementStack: string[] = [];
+  let rootCount = 0;
+  const isSingleSvgDocument = tags.every(([tag, name]) => {
+    if (tag.startsWith("</")) return elementStack.pop() === name;
+    if (elementStack.length === 0) rootCount += 1;
+    if (!tag.endsWith("/>")) elementStack.push(name);
+    return rootCount === 1;
+  });
   return (
-    tags.length > 0 &&
-    tags.every(([, name, raw]) => {
+    rootName === "svg" &&
+    !rootTag.startsWith("</") &&
+    trimmedSvg.startsWith("<svg") &&
+    (hasSelfClosingRoot
+      ? trimmedSvg === rootTag
+      : trimmedSvg.endsWith("</svg>")) &&
+    isSingleSvgDocument &&
+    elementStack.length === 0 &&
+    tags.every(([tag, name, raw]) => {
       const attributeKeys = [...raw.matchAll(/([:\w-]+)\s*=/g)];
       const attributeValues = [...raw.matchAll(/([:\w-]+)\s*=\s*"([^"]*)"/g)];
       const unconsumed = raw
@@ -101,8 +120,16 @@ function isSafeSvg(svg: string): boolean {
         allowed.has(name) &&
         attributeKeys.length === attributeValues.length &&
         unconsumed.length === 0 &&
+        (tag.startsWith("</") ||
+          name !== "svg" ||
+          attributeValues.some(
+            ([, key, value]) =>
+              key === "xmlns" && value === "http://www.w3.org/2000/svg",
+          )) &&
         attributeValues.every(([, key, value]) => {
           if (!attrs.has(key)) return false;
+          if (key === "xmlns")
+            return name === "svg" && value === "http://www.w3.org/2000/svg";
           if (key === "fill" || key === "stroke")
             return /^(?:#[0-9a-f]{3,8}|none|transparent|currentColor|[a-z]{3,20})$/i.test(
               value,
