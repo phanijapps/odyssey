@@ -35,6 +35,7 @@ export default function HomePage() {
   const [level, setLevel] = useState(1);
   const [correctCount, setCorrectCount] = useState(0);
   const [question, setQuestion] = useState(topicQuestions.ratio);
+  const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
   const [memoryState, setMemoryState] = useState<"ready" | "unavailable">(
     "unavailable",
   );
@@ -104,7 +105,7 @@ export default function HomePage() {
       const payload = (await response.json()) as {
         level: number;
         correct: boolean;
-        nextQuestion?: { question?: string };
+        nextQuestion?: { question?: string; diagramSvg?: string };
       };
       setLevel(payload.level);
       if (payload.correct) setCorrectCount((count) => count + 1);
@@ -115,6 +116,7 @@ export default function HomePage() {
       );
       if (payload.nextQuestion?.question)
         setQuestion(payload.nextQuestion.question);
+      setDiagramSvg(payload.nextQuestion?.diagramSvg ?? null);
       setAnswer("");
     } else {
       setFeedback("We could not save that answer. Please try again.");
@@ -304,6 +306,7 @@ export default function HomePage() {
                 const nextTopic = event.target.value;
                 setTopicId(nextTopic);
                 setQuestion(topicQuestions[nextTopic] ?? topicQuestions.ratio);
+                setDiagramSvg(null);
               }}
             >
               {topics.map((item) => (
@@ -345,65 +348,97 @@ export default function HomePage() {
               )}
             </div>
             <div className="diagram-card" aria-label="Labeled math diagram">
-              <svg
-                viewBox="0 0 240 150"
-                role="img"
-                aria-labelledby="diagram-title diagram-desc"
-              >
-                <title id="diagram-title">
-                  {topicId === "linear"
-                    ? "Linear relationship"
-                    : "Water to flour ratio"}
-                </title>
-                <desc id="diagram-desc">
-                  {topicId === "linear"
-                    ? "A line rising two units for every one unit across."
-                    : "One blue block labeled water beside two gold blocks labeled flour."}
-                </desc>
-                {topicId === "linear" ? (
-                  <>
-                    <line x1="30" y1="120" x2="210" y2="120" className="axis" />
-                    <line x1="50" y1="135" x2="50" y2="20" className="axis" />
-                    <line x1="50" y1="110" x2="140" y2="30" className="water" />
-                    <text x="145" y="35">
-                      y = 2x
-                    </text>
-                  </>
-                ) : (
-                  <>
-                    <rect
-                      x="20"
-                      y="45"
-                      width="60"
-                      height="60"
-                      rx="12"
-                      className="water"
-                    />
-                    <rect
-                      x="95"
-                      y="45"
-                      width="60"
-                      height="60"
-                      rx="12"
-                      className="flour"
-                    />
-                    <rect
-                      x="170"
-                      y="45"
-                      width="50"
-                      height="60"
-                      rx="12"
-                      className="flour"
-                    />
-                    <text x="50" y="130">
-                      water
-                    </text>
-                    <text x="150" y="130">
-                      flour
-                    </text>
-                  </>
-                )}
-              </svg>
+              {diagramSvg ? (
+                <img
+                  className="generated-diagram"
+                  src={`data:image/svg+xml,${encodeURIComponent(diagramSvg)}`}
+                  alt={`${topic.label} diagram`}
+                />
+              ) : (
+                <svg
+                  viewBox="0 0 240 150"
+                  role="img"
+                  aria-labelledby="diagram-title diagram-desc"
+                >
+                  <title id="diagram-title">
+                    {topicId === "linear"
+                      ? "Linear relationship"
+                      : "Water to flour ratio"}
+                  </title>
+                  <desc id="diagram-desc">
+                    {topicId === "linear"
+                      ? "A line rising two units for every one unit across."
+                      : "One blue block labeled water beside two gold blocks labeled flour."}
+                  </desc>
+                  {topicId === "linear" ? (
+                    <>
+                      <line
+                        x1="30"
+                        y1="120"
+                        x2="210"
+                        y2="120"
+                        className="axis"
+                        stroke="#567063"
+                        strokeWidth="2"
+                      />
+                      <line
+                        x1="50"
+                        y1="135"
+                        x2="50"
+                        y2="20"
+                        className="axis"
+                        stroke="#567063"
+                        strokeWidth="2"
+                      />
+                      <line
+                        x1="50"
+                        y1="110"
+                        x2="140"
+                        y2="30"
+                        className="water"
+                        stroke="#8fc9dc"
+                        strokeWidth="3"
+                      />
+                      <text x="145" y="35">
+                        y = 2x
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      <rect
+                        x="20"
+                        y="45"
+                        width="60"
+                        height="60"
+                        rx="12"
+                        className="water"
+                      />
+                      <rect
+                        x="95"
+                        y="45"
+                        width="60"
+                        height="60"
+                        rx="12"
+                        className="flour"
+                      />
+                      <rect
+                        x="170"
+                        y="45"
+                        width="50"
+                        height="60"
+                        rx="12"
+                        className="flour"
+                      />
+                      <text x="50" y="130">
+                        water
+                      </text>
+                      <text x="150" y="130">
+                        flour
+                      </text>
+                    </>
+                  )}
+                </svg>
+              )}
             </div>
           </div>
         </section>

@@ -47,14 +47,34 @@ function isSafeSvg(svg: string): boolean {
     "rx",
     "class",
     "fill",
+    "stroke",
+    "stroke-width",
   ]);
   return (
     tags.length > 0 &&
-    tags.every(
-      ([, name, raw]) =>
+    tags.every(([, name, raw]) => {
+      const attributeKeys = [...raw.matchAll(/([:\w-]+)\s*=/g)];
+      const attributeValues = [...raw.matchAll(/([:\w-]+)\s*=\s*"([^"]*)"/g)];
+      const unconsumed = raw
+        .replace(/([:\w-]+)\s*=\s*"[^"]*"/g, "")
+        .replaceAll("/", "")
+        .trim();
+      return (
         allowed.has(name) &&
-        [...raw.matchAll(/([:\w-]+)\s*=/g)].every(([, key]) => attrs.has(key)),
-    )
+        attributeKeys.length === attributeValues.length &&
+        unconsumed.length === 0 &&
+        attributeValues.every(([, key, value]) => {
+          if (!attrs.has(key)) return false;
+          if (key === "fill" || key === "stroke")
+            return /^(?:#[0-9a-f]{3,8}|none|transparent|currentColor|[a-z]{3,20})$/i.test(
+              value,
+            );
+          if (key === "stroke-width")
+            return /^(?:0|[1-9]\d?)(?:\.\d+)?$/.test(value);
+          return true;
+        })
+      );
+    })
   );
 }
 

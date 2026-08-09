@@ -18,8 +18,17 @@ test("STUB: AC9 rejects untyped input before persistence or rendering", () => {
     { diagramSvg: "<script />" },
     { diagramSvg: '<svg><a href="https://example.invalid" /></svg>' },
     { diagramSvg: '<svg onload="alert(1)" />' },
+    {
+      component: "GeometryDiagram",
+      diagramSvg: '<svg aria-label="triangle" onload />',
+    },
     { component: "Unknown" },
     { component: "GeometryDiagram", unexpected: true },
+    {
+      component: "GeometryDiagram",
+      diagramSvg:
+        '<svg><line x1="0" y1="0" x2="1" y2="1" stroke="url&#40;https://example.invalid/paint.svg&#41;" /></svg>',
+    },
     { tool: "unregistered-action" },
     { rawHtml: "<img src=x onerror=alert(1)>" },
     { serialized: '{"__proto__":{"polluted":true}}' },

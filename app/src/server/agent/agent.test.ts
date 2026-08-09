@@ -36,6 +36,7 @@ test("supplies a topic-aligned linear fixture", async () => {
   expect(fixture.question).toContain("linear relationship");
   expect(fixture.diagramSvg).toContain('aria-label="linear relationship"');
   expect(fixture.diagramSvg).toContain("y = 2x");
+  expect(fixture.diagramSvg).toContain('stroke="#8fc9dc"');
   expect(() =>
     validateLearningPayload({
       component: "GeometryDiagram",

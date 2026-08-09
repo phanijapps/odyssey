@@ -15,7 +15,7 @@ export async function requestLearningFixture(_input: {
     linear: {
       question: `Identify the coefficient in this linear relationship at level ${_input.level}.`,
       diagramSvg:
-        '<svg aria-label="linear relationship" viewBox="0 0 100 60"><line x1="10" y1="50" x2="90" y2="50" /><line x1="20" y1="55" x2="20" y2="10" /><line x1="20" y1="45" x2="70" y2="15" /><text x="72" y="18">y = 2x</text></svg>',
+        '<svg aria-label="linear relationship" viewBox="0 0 100 60"><line x1="10" y1="50" x2="90" y2="50" stroke="#567063" stroke-width="2" /><line x1="20" y1="55" x2="20" y2="10" stroke="#567063" stroke-width="2" /><line x1="20" y1="45" x2="70" y2="15" stroke="#8fc9dc" stroke-width="3" /><text x="72" y="18">y = 2x</text></svg>',
     },
   };
   if (!Object.hasOwn(fixtures, _input.topicId))

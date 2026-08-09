@@ -315,6 +315,10 @@ button {
   width: 90%;
   max-width: 280px;
 }
+.generated-diagram {
+  width: 90%;
+  max-width: 280px;
+}
 .diagram-card text {
   fill: #567063;
   font-size: 11px;
