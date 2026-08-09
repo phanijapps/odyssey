@@ -6,6 +6,7 @@ import {
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
 import { validateLearningPayload } from "../../../server/validation/payloads";
+import { retrieveProfileMemory } from "../../../server/memory/engram-memory";
 import { getSeedCurriculumCatalog } from "../../../../../packages/curriculum/src/catalog";
 
 const unavailableResponse = () =>
@@ -47,9 +48,14 @@ export async function POST(request: Request): Promise<Response> {
   }
   try {
     const progress = getLearningProgress(childId, topicId);
+    const profileMemory = await retrieveProfileMemory({
+      sessionChildId: childId,
+      requestedChildId: childId,
+    });
     const question = await requestOllamaLearningQuestion({
       topicId,
       level: progress?.level ?? 1,
+      profileContext: profileMemory.at(-1),
     });
     validateLearningPayload({
       component: "GeometryDiagram",

@@ -104,6 +104,7 @@ export function getLearningFixtureExpectedAnswer(_input: {
 export async function requestOllamaLearningQuestion(input: {
   topicId: string;
   level: number;
+  profileContext?: unknown;
 }): Promise<{ question: string; diagramSvg: string }> {
   assertOllamaIntegrationConfiguration();
   if (
@@ -113,6 +114,9 @@ export async function requestOllamaLearningQuestion(input: {
     input.level > 13
   )
     throw new Error("Invalid learning request");
+  const profileData = input.profileContext
+    ? buildAgentProfileData(input.profileContext)
+    : null;
   assertAgentRequestBudget({
     requestCount: 1,
     timeoutMs: 15_000,
@@ -139,6 +143,9 @@ export async function requestOllamaLearningQuestion(input: {
           role: "user",
           content: `<learning-data>${JSON.stringify({ topicId: input.topicId, level: input.level })}</learning-data>`,
         },
+        ...(profileData
+          ? [{ role: "user", content: profileData.content }]
+          : []),
       ],
     }),
   });

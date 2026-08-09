@@ -9,6 +9,7 @@ import {
   validateGeneratedQuestion,
 } from "./agent";
 import { validateLearningPayload } from "../validation/payloads";
+import { parseRetrievedProfileMemory } from "../memory/engram-memory";
 
 // STUB: AC7
 
@@ -191,6 +192,29 @@ test("STUB: AC12 delimits validated profile context as model data", () => {
       vocabularyVersion: "v1",
     }),
   ).toEqual({
+    content:
+      '<profile-data>{"topicId":"ratio","acceptedLevel":2,"correct":true,"progressState":"practicing"}</profile-data>',
+  });
+});
+
+test("hands a versioned recalled signal to the prompt boundary as data", () => {
+  const profileContext = parseRetrievedProfileMemory({
+    items: [
+      {
+        content: JSON.stringify({
+          topicId: "ratio",
+          acceptedLevel: 2,
+          correct: true,
+          progressState: "practicing",
+          provenanceVersion: "v1",
+          vocabularyVersion: "v1",
+        }),
+        policy: { visibility: "private" },
+        provenance: { source: "odyssey-learning" },
+      },
+    ],
+  })[0];
+  expect(buildAgentProfileData(profileContext)).toEqual({
     content:
       '<profile-data>{"topicId":"ratio","acceptedLevel":2,"correct":true,"progressState":"practicing"}</profile-data>',
   });

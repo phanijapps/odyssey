@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { getSeedCurriculumCatalog } from "../../../../packages/curriculum/src/catalog";
 import {
   openProfileMemory,
+  parseRetrievedProfileMemory,
   getProfileMemoryState,
   loadConfiguredEngramTransport,
   prepareProfileContext,
@@ -445,6 +446,77 @@ test("STUB: AC12 accepts only bounded, versioned profile context as agent data",
     correct: true,
     progressState: "practicing",
   });
+});
+
+test("accepts only bounded private application-provenanced recalled signals", () => {
+  const item = {
+    content: JSON.stringify({
+      topicId: "ratio",
+      acceptedLevel: 2,
+      correct: true,
+      progressState: "practicing",
+      provenanceVersion: "v1",
+      vocabularyVersion: "v1",
+    }),
+    policy: { visibility: "private" },
+    provenance: { source: "odyssey-learning" },
+  };
+  expect(
+    parseRetrievedProfileMemory({
+      items: [item, item, item, item, item, item],
+    }),
+  ).toEqual(
+    Array.from({ length: 5 }, () => ({
+      topicId: "ratio",
+      acceptedLevel: 2,
+      correct: true,
+      progressState: "practicing",
+      provenanceVersion: "v1",
+      vocabularyVersion: "v1",
+    })),
+  );
+});
+
+test("ignores malformed, public, foreign, and unversioned recalled signals", () => {
+  const validSignal = {
+    topicId: "ratio",
+    acceptedLevel: 2,
+    correct: true,
+    progressState: "practicing",
+    provenanceVersion: "v1",
+    vocabularyVersion: "v1",
+  };
+  expect(
+    parseRetrievedProfileMemory({
+      items: [
+        {
+          content: "not-json",
+          policy: { visibility: "private" },
+          provenance: { source: "odyssey-learning" },
+        },
+        {
+          content: JSON.stringify(validSignal),
+          policy: { visibility: "public" },
+          provenance: { source: "odyssey-learning" },
+        },
+        {
+          content: JSON.stringify(validSignal),
+          policy: { visibility: "private" },
+          provenance: { source: "other" },
+        },
+        {
+          content: JSON.stringify({ ...validSignal, vocabularyVersion: "v2" }),
+          policy: { visibility: "private" },
+          provenance: { source: "odyssey-learning" },
+        },
+        {
+          content: "x".repeat(1_025),
+          policy: { visibility: "private" },
+          provenance: { source: "odyssey-learning" },
+        },
+      ],
+    }),
+  ).toEqual([]);
 });
 
 test("STUB: AC12 ignores stale, unprovenanced, unknown, or instruction-shaped profile context", () => {

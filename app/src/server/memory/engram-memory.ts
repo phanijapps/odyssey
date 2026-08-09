@@ -16,6 +16,11 @@ export type LearningProfileSignal = {
   progressState: string;
 };
 
+type AgentProfileContext = LearningProfileSignal & {
+  provenanceVersion: "v1";
+  vocabularyVersion: "v1";
+};
+
 type ConfiguredEngramArtifact = {
   approvedRoot: string;
   sourceRoot: string;
@@ -314,11 +319,16 @@ export async function writeLearningSignal(
   } | null;
   if (!transport?.write) return false;
   const observedAt = new Date().toISOString();
+  const storedSignal = {
+    ...signal,
+    provenanceVersion: "v1",
+    vocabularyVersion: "v1",
+  };
   try {
     await transport.write({
       content: {
         format: "json",
-        text: JSON.stringify(signal),
+        text: JSON.stringify(storedSignal),
         structured: signal,
         summary: "Derived math learning progress signal",
       },
@@ -339,33 +349,83 @@ export async function writeLearningSignal(
   }
 }
 
+/** Parses only private, versioned application signals from untrusted recall data. */
+export function parseRetrievedProfileMemory(
+  payload: unknown,
+): AgentProfileContext[] {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload))
+    return [];
+  const items = (payload as { items?: unknown }).items;
+  if (!Array.isArray(items)) return [];
+  const signals: AgentProfileContext[] = [];
+  for (const item of items.slice(0, 5)) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const record = item as {
+      content?: unknown;
+      policy?: { visibility?: unknown };
+      provenance?: { source?: unknown };
+    };
+    if (
+      typeof record.content !== "string" ||
+      record.content.length > 1_024 ||
+      record.policy?.visibility !== "private" ||
+      record.provenance?.source !== "odyssey-learning"
+    )
+      continue;
+    try {
+      const signal = prepareProfileContext(JSON.parse(record.content));
+      if (signal)
+        signals.push({
+          ...signal,
+          provenanceVersion: "v1",
+          vocabularyVersion: "v1",
+        });
+    } catch {
+      continue;
+    }
+  }
+  return signals;
+}
+
 /** Retrieves bounded child-scoped context for the next agent decision. */
 export async function recallLearningContext(childId: string): Promise<boolean> {
-  const transport = loadConfiguredEngramTransport() as {
-    recall?: (request: unknown) => Promise<unknown>;
-  } | null;
-  if (!transport?.recall) return false;
-  try {
-    await transport.recall({
-      query: "math learning progress",
-      requester: { actor: { id: "odyssey-learning", kind: "service" } },
-      scope: { tenant: "odyssey", subject: childId, workspace: "learning" },
-      limit: 5,
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  return (
+    (
+      await retrieveProfileMemory({
+        sessionChildId: childId,
+        requestedChildId: childId,
+      })
+    ).length > 0
+  );
 }
 
 /** Rejects profile reads whose requested child differs from the session child. */
 export async function retrieveProfileMemory(_input: {
   sessionChildId: string;
   requestedChildId: string;
-}): Promise<LearningProfileSignal[]> {
+}): Promise<AgentProfileContext[]> {
   if (_input.sessionChildId !== _input.requestedChildId)
     throw new Error("Forbidden");
-  return [];
+  const transport = loadConfiguredEngramTransport() as {
+    recall?: (request: unknown) => Promise<unknown>;
+  } | null;
+  if (!transport?.recall) return [];
+  try {
+    return parseRetrievedProfileMemory(
+      await transport.recall({
+        query: "math learning progress",
+        requester: { actor: { id: "odyssey-learning", kind: "service" } },
+        scope: {
+          tenant: "odyssey",
+          subject: _input.sessionChildId,
+          workspace: "learning",
+        },
+        limit: 5,
+      }),
+    );
+  } catch {
+    return [];
+  }
 }
 
 /** Seeds the reviewed learning-profile ontology and taxonomy idempotently. */
