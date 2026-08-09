@@ -1,4 +1,8 @@
-import { learningDb, withLearningTransaction } from "./sqlite-repository";
+import {
+  createLearningAttemptWrite,
+  learningDb,
+  withLearningTransaction,
+} from "./sqlite-repository";
 
 /** Records an allowed attempt and returns the next question for that child. */
 export function recommendNextLevel(input: {
@@ -56,21 +60,15 @@ export async function submitAnswer(_input: {
       memoryAvailable: false,
     });
     const correctStreak = nextLevel > level ? 0 : streak;
-    learningDb
-      .prepare(
-        `INSERT INTO learning_attempts
-    (child_id, topic_id, answer, correct, level_before, level_after, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        _input.childId,
-        _input.topicId,
-        _input.answer,
-        correct ? 1 : 0,
-        level,
-        nextLevel,
-        new Date().toISOString(),
-      );
+    const attemptWrite = createLearningAttemptWrite({
+      childId: _input.childId,
+      topicId: _input.topicId,
+      correct,
+      levelBefore: level,
+      levelAfter: nextLevel,
+      createdAt: new Date().toISOString(),
+    });
+    learningDb.prepare(attemptWrite.sql).run(...attemptWrite.parameters);
     learningDb
       .prepare(
         `INSERT INTO learning_progress (child_id, topic_id, level, correct_streak, updated_at)
@@ -141,18 +139,6 @@ export function getParentProgressSummary(childId: string): {
   return {
     topics,
     totalAttempts: topics.reduce((sum, topic) => sum + topic.attempts, 0),
-  };
-}
-
-/** Builds the bound values for an answer insert without interpolating child input. */
-export function createAnswerWrite(_input: {
-  childId: string;
-  topicId: string;
-  answer: string;
-}): { sql: string; parameters: readonly string[] } {
-  return {
-    sql: "INSERT INTO attempts (child_id, topic_id, answer) VALUES (?, ?, ?)",
-    parameters: [_input.childId, _input.topicId, _input.answer],
   };
 }
 

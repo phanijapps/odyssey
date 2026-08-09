@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
 import {
-  createAnswerWrite,
   getLearningProgress,
   redactLearningAudit,
   submitAnswer,
 } from "./learning";
+import { learningDb } from "./sqlite-repository";
 
 // STUB: AC4
 
@@ -45,13 +45,19 @@ test("STUB: AC16 redacts raw child answers from learning audit data", () => {
 });
 
 // STUB: AC9
-test("STUB: AC9 binds answer values instead of interpolating SQLite input", () => {
-  const childId = "child-1'; DROP TABLE children; --";
-  const topicId = "ratio'; DROP TABLE topics; --";
-  const answer = "2'); DROP TABLE attempts; --";
-
-  expect(createAnswerWrite({ childId, topicId, answer })).toEqual({
-    sql: "INSERT INTO attempts (child_id, topic_id, answer) VALUES (?, ?, ?)",
-    parameters: [childId, topicId, answer],
+test("STUB: AC9 persists correctness without a raw child-answer column", async () => {
+  await submitAnswer({
+    childId: "privacy-test-child",
+    topicId: "ratio",
+    answer: "answer that must not persist",
+    nextLevel: 1,
+  });
+  const columns = learningDb
+    .prepare("PRAGMA table_info(learning_attempts)")
+    .all() as Array<{ name: string }>;
+  expect(columns.map((column) => column.name)).not.toContain("answer");
+  expect(getLearningProgress("privacy-test-child", "ratio")).toMatchObject({
+    attemptCount: 1,
+    correctStreak: 0,
   });
 });
