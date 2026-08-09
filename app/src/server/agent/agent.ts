@@ -4,11 +4,23 @@ export async function requestLearningFixture(_input: {
   topicId: string;
   level: number;
 }): Promise<{ question: string; diagramSvg: string }> {
-  return {
-    question: `Solve the ratio problem for ${_input.topicId} at level ${_input.level}.`,
-    diagramSvg:
-      '<svg aria-label="ratio diagram" viewBox="0 0 100 60"><line x1="10" y1="30" x2="90" y2="30" /></svg>',
+  if (!Number.isInteger(_input.level) || _input.level < 1 || _input.level > 13)
+    throw new Error("Invalid learning request");
+  const fixtures = {
+    ratio: {
+      question: `Solve the ratio problem for ratio at level ${_input.level}.`,
+      diagramSvg:
+        '<svg aria-label="ratio diagram" viewBox="0 0 100 60"><rect x="10" y="10" width="25" height="25" /><rect x="45" y="10" width="25" height="25" /><rect x="75" y="10" width="15" height="25" /><text x="10" y="55">water</text><text x="55" y="55">flour</text></svg>',
+    },
+    linear: {
+      question: `Identify the coefficient in this linear relationship at level ${_input.level}.`,
+      diagramSvg:
+        '<svg aria-label="linear relationship" viewBox="0 0 100 60"><line x1="10" y1="50" x2="90" y2="50" /><line x1="20" y1="55" x2="20" y2="10" /><line x1="20" y1="45" x2="70" y2="15" /><text x="72" y="18">y = 2x</text></svg>',
+    },
   };
+  if (!Object.hasOwn(fixtures, _input.topicId))
+    throw new Error("Invalid learning request");
+  return fixtures[_input.topicId as keyof typeof fixtures];
 }
 
 /** Runs the opt-in local Ollama integration path with a bounded structured prompt. */

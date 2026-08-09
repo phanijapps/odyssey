@@ -27,6 +27,47 @@ test("STUB: AC7 supplies the approved local question and diagram fixture", async
   ).not.toThrow();
 });
 
+test("supplies a topic-aligned linear fixture", async () => {
+  const fixture = await requestLearningFixture({
+    childId: "child-1",
+    topicId: "linear",
+    level: 1,
+  });
+  expect(fixture.question).toContain("linear relationship");
+  expect(fixture.diagramSvg).toContain('aria-label="linear relationship"');
+  expect(fixture.diagramSvg).toContain("y = 2x");
+  expect(() =>
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg: fixture.diagramSvg,
+    }),
+  ).not.toThrow();
+});
+
+test("rejects fixture requests outside the reviewed topic and level bounds", async () => {
+  await expect(
+    requestLearningFixture({
+      childId: "child-1",
+      topicId: "unreviewed",
+      level: 1,
+    }),
+  ).rejects.toThrow("Invalid learning request");
+  await expect(
+    requestLearningFixture({
+      childId: "child-1",
+      topicId: "__proto__",
+      level: 1,
+    }),
+  ).rejects.toThrow("Invalid learning request");
+  await expect(
+    requestLearningFixture({
+      childId: "child-1",
+      topicId: "ratio",
+      level: 14,
+    }),
+  ).rejects.toThrow("Invalid learning request");
+});
+
 // STUB: AC12
 test("STUB: AC12 rejects a model request beyond the configured budget", () => {
   expect(() =>
