@@ -262,6 +262,12 @@ pipeline must not name a state, subject, document format, or standards body.
 Agents cannot self-approve a promotion; application-owned validation and an
 explicit approval record control every state transition.
 
+Database repositories do not embed datastore query text in source code. Query
+catalogs live in versioned JSON beside the repository, keyed by operation name,
+so storage implementations can change without mixing query dialect into domain
+logic. Bronze and Silver workflow state is transient; Gold is the persistence
+boundary.
+
 ## 4. Specs and Plans — `docs/specs/<feature>/`
 
 **What:** the precise definition of a single feature, sized to be built in days
