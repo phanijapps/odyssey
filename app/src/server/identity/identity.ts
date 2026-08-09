@@ -69,6 +69,9 @@ export async function authenticateChild(_credentials: {
     throw new Error("Invalid credentials");
   }
   failedLogins.delete(throttleKey);
+  for (const [key, session] of sessions) {
+    if (session.childId === "child-1") sessions.delete(key);
+  }
   const sessionToken = randomBytes(32).toString("base64url");
   sessions.set(sessionKey(sessionToken), {
     childId: "child-1",

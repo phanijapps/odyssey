@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import {
   assertChildRecordScope,
   authenticateChild,
@@ -8,6 +8,8 @@ import {
   logoutSession,
   resolveSession,
 } from "./identity";
+
+afterEach(() => vi.useRealTimers());
 
 // STUB: AC2
 
@@ -110,6 +112,53 @@ test("logout invalidates the issued session token", async () => {
   expect(resolveSession(session.sessionToken)).toBeUndefined();
 });
 
+test("rotates an existing child session on a new login", async () => {
+  const first = await authenticateChild({
+    username: "child",
+    password: "development-password",
+  });
+  const second = await authenticateChild({
+    username: "child",
+    password: "development-password",
+  });
+
+  expect(second.sessionToken).not.toBe(first.sessionToken);
+  expect(resolveSession(first.sessionToken)).toBeUndefined();
+  expect(resolveSession(second.sessionToken)).toEqual({ childId: "child-1" });
+});
+
+test("expires sessions after the idle timeout", async () => {
+  const idleSession = await authenticateChild({
+    username: "child",
+    password: "development-password",
+  });
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.now() + getIdentityPolicy().idleTimeoutMs + 1);
+  expect(resolveSession(idleSession.sessionToken)).toBeUndefined();
+});
+
+test("expires an active session at the absolute timeout", async () => {
+  const absoluteSession = await authenticateChild({
+    username: "child",
+    password: "development-password",
+  });
+  const start = Date.now();
+  const policy = getIdentityPolicy();
+  vi.useFakeTimers();
+  for (
+    let elapsed = policy.idleTimeoutMs - 1;
+    elapsed < policy.absoluteTimeoutMs - 1;
+    elapsed += policy.idleTimeoutMs - 1
+  ) {
+    vi.setSystemTime(start + elapsed);
+    expect(resolveSession(absoluteSession.sessionToken)).toEqual({
+      childId: "child-1",
+    });
+  }
+  vi.setSystemTime(start + policy.absoluteTimeoutMs + 1);
+  expect(resolveSession(absoluteSession.sessionToken)).toBeUndefined();
+});
+
 test("throttles repeated failed logins", async () => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await expect(
@@ -122,6 +171,28 @@ test("throttles repeated failed logins", async () => {
       password: "development-password",
     }),
   ).rejects.toThrow("Invalid credentials");
+});
+
+test("allows a correct sign-in after the throttle window expires", async () => {
+  const username = "child";
+  for (
+    let attempt = 0;
+    attempt < getIdentityPolicy().maxFailedLogins;
+    attempt += 1
+  ) {
+    await expect(
+      authenticateChild({ username, password: "wrong" }),
+    ).rejects.toThrow("Invalid credentials");
+  }
+  await expect(
+    authenticateChild({ username, password: "development-password" }),
+  ).rejects.toThrow("Invalid credentials");
+
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.now() + getIdentityPolicy().throttleWindowMs + 1);
+  await expect(
+    authenticateChild({ username, password: "development-password" }),
+  ).resolves.toMatchObject({ childId: "child-1" });
 });
 
 test("STUB: AC6 rejects a cookie-authenticated POST with no Origin or CSRF token before state access", async () => {

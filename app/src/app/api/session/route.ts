@@ -23,6 +23,8 @@ export async function POST(request: Request): Promise<Response> {
     const session = await authenticateChild({
       username: body.username ?? "",
       password: body.password ?? "",
+      environment:
+        process.env.NODE_ENV === "development" ? "development" : "production",
     });
     return Response.json(
       { childId: session.childId },
