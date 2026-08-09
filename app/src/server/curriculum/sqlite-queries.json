@@ -1,0 +1,10 @@
+{
+  "initializeRecords": "CREATE TABLE IF NOT EXISTS curriculum_embedding_records (id INTEGER PRIMARY KEY, record_id TEXT UNIQUE NOT NULL, subject TEXT NOT NULL, framework TEXT NOT NULL, model TEXT NOT NULL, dimension INTEGER NOT NULL, content_fingerprint TEXT NOT NULL)",
+  "initializeVectors": "CREATE VIRTUAL TABLE IF NOT EXISTS curriculum_embedding_vectors USING vec0(embedding float[768])",
+  "upsertRecord": "INSERT INTO curriculum_embedding_records (record_id, subject, framework, model, dimension, content_fingerprint) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(record_id) DO UPDATE SET subject=excluded.subject, framework=excluded.framework, model=excluded.model, dimension=excluded.dimension, content_fingerprint=excluded.content_fingerprint",
+  "findRecordId": "SELECT id FROM curriculum_embedding_records WHERE record_id = ?",
+  "deleteVector": "DELETE FROM curriculum_embedding_vectors WHERE rowid = ?",
+  "insertVector": "INSERT INTO curriculum_embedding_vectors(rowid, embedding) VALUES (?, ?)",
+  "nearestVectors": "SELECT rowid, distance FROM curriculum_embedding_vectors WHERE embedding MATCH ? AND k = ? ORDER BY distance",
+  "scopedRecord": "SELECT record_id FROM curriculum_embedding_records WHERE id = ? AND subject = ? AND framework = ?"
+}

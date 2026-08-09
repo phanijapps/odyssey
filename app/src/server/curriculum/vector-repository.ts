@@ -1,6 +1,7 @@
 import "server-only";
 import { DatabaseSync } from "node:sqlite";
 import { load } from "sqlite-vec";
+import queries from "./sqlite-queries.json";
 
 const EMBEDDING_DIMENSION = 768;
 
@@ -17,29 +18,14 @@ export type CurriculumEmbedding = {
 export class CurriculumVectorRepository {
   constructor(private readonly database: DatabaseSync) {
     loadVectorExtension(database);
-    database.exec(`
-      CREATE TABLE IF NOT EXISTS curriculum_embedding_records (
-        id INTEGER PRIMARY KEY, record_id TEXT UNIQUE NOT NULL, subject TEXT NOT NULL,
-        framework TEXT NOT NULL, model TEXT NOT NULL, dimension INTEGER NOT NULL,
-        content_fingerprint TEXT NOT NULL
-      );
-      CREATE VIRTUAL TABLE IF NOT EXISTS curriculum_embedding_vectors
-      USING vec0(embedding float[768]);
-    `);
+    database.exec(`${queries.initializeRecords};${queries.initializeVectors};`);
   }
 
   save(input: CurriculumEmbedding): void {
     if (input.vector.length !== EMBEDDING_DIMENSION)
       throw new Error("Invalid embedding dimension");
     this.database
-      .prepare(
-        `INSERT INTO curriculum_embedding_records
-      (record_id, subject, framework, model, dimension, content_fingerprint)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON CONFLICT(record_id) DO UPDATE SET subject=excluded.subject,
-      framework=excluded.framework, model=excluded.model, dimension=excluded.dimension,
-      content_fingerprint=excluded.content_fingerprint`,
-      )
+      .prepare(queries.upsertRecord)
       .run(
         input.recordId,
         input.subject,
@@ -49,17 +35,11 @@ export class CurriculumVectorRepository {
         input.contentFingerprint,
       );
     const record = this.database
-      .prepare(
-        "SELECT id FROM curriculum_embedding_records WHERE record_id = ?",
-      )
+      .prepare(queries.findRecordId)
       .get(input.recordId) as { id: number };
+    this.database.prepare(queries.deleteVector).run(BigInt(record.id));
     this.database
-      .prepare("DELETE FROM curriculum_embedding_vectors WHERE rowid = ?")
-      .run(BigInt(record.id));
-    this.database
-      .prepare(
-        "INSERT INTO curriculum_embedding_vectors(rowid, embedding) VALUES (?, ?)",
-      )
+      .prepare(queries.insertVector)
       .run(BigInt(record.id), JSON.stringify(input.vector));
   }
 
@@ -74,10 +54,7 @@ export class CurriculumVectorRepository {
       throw new Error("Invalid embedding dimension");
     const limit = Math.min(Math.max(input.limit, 1), 20);
     const candidates = this.database
-      .prepare(
-        `SELECT rowid, distance FROM curriculum_embedding_vectors
-       WHERE embedding MATCH ? AND k = ? ORDER BY distance`,
-      )
+      .prepare(queries.nearestVectors)
       .all(JSON.stringify(input.vector), 50) as Array<{
       rowid: number;
       distance: number;
@@ -85,10 +62,7 @@ export class CurriculumVectorRepository {
     return candidates
       .flatMap((candidate) => {
         const record = this.database
-          .prepare(
-            `SELECT record_id FROM curriculum_embedding_records
-         WHERE id = ? AND subject = ? AND framework = ?`,
-          )
+          .prepare(queries.scopedRecord)
           .get(candidate.rowid, input.subject, input.framework) as
           | { record_id: string }
           | undefined;
