@@ -1,7 +1,9 @@
 import "server-only";
-import { realpathSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { isAbsolute, relative } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import { getSeedCurriculumCatalog } from "../../../../packages/curriculum/src/catalog";
 
 const seededVocabulary = new Set<string>();
@@ -13,6 +15,90 @@ export type LearningProfileSignal = {
   correct: boolean;
   progressState: string;
 };
+
+type ConfiguredEngramArtifact = {
+  approvedRoot: string;
+  sourceRoot: string;
+  addonPath: string;
+  packagePath: string;
+  expectedRevision: string;
+  expectedContractSha256: string;
+  expectedAddonSha256: string;
+  expectedPackageSha256: string;
+};
+
+function canonicalPath(candidate: string): string {
+  try {
+    return realpathSync(candidate);
+  } catch {
+    return candidate;
+  }
+}
+
+function assertArtifactIsConfined(input: {
+  approvedRoot: string;
+  sourceRoot: string;
+  addonPath: string;
+}): void {
+  const root = canonicalPath(input.approvedRoot);
+  const source = canonicalPath(input.sourceRoot);
+  const addon = canonicalPath(input.addonPath);
+  if (
+    !isAbsolute(source) ||
+    !isAbsolute(addon) ||
+    relative(root, source).startsWith("..") ||
+    relative(root, addon).startsWith("..")
+  )
+    throw new Error("PATH_ESCAPE");
+}
+
+function assertPathIsConfined(root: string, candidate: string): void {
+  const canonicalRoot = canonicalPath(root);
+  const canonicalCandidate = canonicalPath(candidate);
+  if (
+    !isAbsolute(canonicalCandidate) ||
+    relative(canonicalRoot, canonicalCandidate).startsWith("..")
+  )
+    throw new Error("PATH_ESCAPE");
+}
+
+function sha256(path: string): string {
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function runtimePackageSha256(runtimeRoot: string): string {
+  const files = readdirSync(runtimeRoot, {
+    encoding: "utf8",
+    recursive: true,
+  }).sort();
+  const digest = createHash("sha256");
+  for (const file of files) {
+    const path = join(runtimeRoot, file);
+    const stat = lstatSync(path);
+    if (stat.isDirectory()) continue;
+    if (!stat.isFile()) throw new Error("Artifact integrity mismatch");
+    digest.update(file).update("\0").update(readFileSync(path));
+  }
+  return digest.digest("hex");
+}
+
+function runPreflightGit(sourceRoot: string, args: string[]): string {
+  return execFileSync(
+    "git",
+    ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", ...args],
+    {
+      cwd: sourceRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GIT_CONFIG_GLOBAL: "/dev/null",
+        GIT_CONFIG_NOSYSTEM: "1",
+        GIT_OPTIONAL_LOCKS: "0",
+      },
+      timeout: 1_000,
+    },
+  );
+}
 
 /** Selects only allowlisted, derived fields for profile-memory projection. */
 export function projectLearningSignal(_input: unknown): LearningProfileSignal {
@@ -57,24 +143,50 @@ export async function verifyLocalEngramArtifact(_input: {
     _input.observedAddonSha256 !== _input.expectedAddonSha256
   )
     throw new Error("Artifact integrity mismatch");
-  const canonical = (candidate: string) => {
-    try {
-      return realpathSync(candidate);
-    } catch {
-      return candidate;
-    }
-  };
-  const root = canonical(_input.approvedRoot);
-  const source = canonical(_input.sourceRoot);
-  const addon = canonical(_input.addonPath);
-  if (
-    !isAbsolute(source) ||
-    !isAbsolute(addon) ||
-    relative(root, source).startsWith("..") ||
-    relative(root, addon).startsWith("..")
-  )
-    throw new Error("PATH_ESCAPE");
+  assertArtifactIsConfined(_input);
   return { revision: _input.expectedRevision };
+}
+
+/** Verifies the configured source tree and generated files before native loading. */
+export function verifyConfiguredEngramArtifact(
+  artifact: ConfiguredEngramArtifact,
+): { revision: string } {
+  assertArtifactIsConfined(artifact);
+  assertPathIsConfined(artifact.sourceRoot, artifact.packagePath);
+  const runtimeRoot = join(artifact.sourceRoot, "packages", "node", "dist");
+  if (
+    canonicalPath(artifact.packagePath) !==
+    canonicalPath(join(runtimeRoot, "index.js"))
+  )
+    throw new Error("Artifact integrity mismatch");
+  try {
+    const sourceState = runPreflightGit(artifact.sourceRoot, [
+      "status",
+      "--porcelain=v1",
+      "--untracked-files=all",
+    ]);
+    if (sourceState.trim()) throw new Error("Artifact integrity mismatch");
+    const observedRevision = runPreflightGit(artifact.sourceRoot, [
+      "rev-parse",
+      "HEAD",
+    ]).trim();
+    const observedContractSha256 = sha256(
+      join(artifact.sourceRoot, "packages", "node", "dist", "index.d.ts"),
+    );
+    const observedAddonSha256 = sha256(artifact.addonPath);
+    const observedPackageSha256 = runtimePackageSha256(runtimeRoot);
+    if (
+      observedRevision !== artifact.expectedRevision ||
+      observedContractSha256 !== artifact.expectedContractSha256 ||
+      observedAddonSha256 !== artifact.expectedAddonSha256 ||
+      observedPackageSha256 !== artifact.expectedPackageSha256
+    )
+      throw new Error("Artifact integrity mismatch");
+    return { revision: artifact.expectedRevision };
+  } catch (error) {
+    if (error instanceof Error && error.message === "PATH_ESCAPE") throw error;
+    throw new Error("Artifact integrity mismatch");
+  }
 }
 
 /** Produces bounded, validated profile context for the agent's data section. */
@@ -128,40 +240,37 @@ export function getConfiguredEngramArtifact(): {
   approvedRoot: string;
   sourceRoot: string;
   addonPath: string;
+  packagePath: string;
   expectedRevision: string;
   expectedContractSha256: string;
   expectedAddonSha256: string;
+  expectedPackageSha256: string;
 } | null {
   const values = {
     approvedRoot: process.env.ENGRAM_APPROVED_ROOT,
     sourceRoot: process.env.ENGRAM_SOURCE_ROOT,
     addonPath: process.env.ENGRAM_ADDON_PATH,
+    packagePath: process.env.ENGRAM_NODE_PACKAGE_PATH,
     expectedRevision: process.env.ENGRAM_EXPECTED_REVISION,
     expectedContractSha256: process.env.ENGRAM_EXPECTED_CONTRACT_SHA256,
     expectedAddonSha256: process.env.ENGRAM_EXPECTED_ADDON_SHA256,
+    expectedPackageSha256: process.env.ENGRAM_EXPECTED_PACKAGE_SHA256,
   };
   return Object.values(values).every((value) => value?.trim())
-    ? (values as {
-        approvedRoot: string;
-        sourceRoot: string;
-        addonPath: string;
-        expectedRevision: string;
-        expectedContractSha256: string;
-        expectedAddonSha256: string;
-      })
+    ? (values as ConfiguredEngramArtifact)
     : null;
 }
 
 /** Loads the optional local transport only on the server after configuration. */
 export function loadConfiguredEngramTransport(): unknown | null {
   const artifact = getConfiguredEngramArtifact();
-  const packagePath = process.env.ENGRAM_NODE_PACKAGE_PATH;
-  if (!artifact || !packagePath) return null;
+  if (!artifact) return null;
   try {
+    verifyConfiguredEngramArtifact(artifact);
     const loadModule = createRequire(import.meta.url) as unknown as (
       moduleId: string,
     ) => unknown;
-    const nodePackage = loadModule(packagePath) as {
+    const nodePackage = loadModule(artifact.packagePath) as {
       createNativeMemoryTransport?: (options: { dbPath?: string }) => unknown;
       createNativeProviderTransport?: (options: {
         configJson: string;

@@ -1,22 +1,25 @@
-import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
+import {
+  getConfiguredEngramArtifact,
+  loadConfiguredEngramTransport,
+} from "./engram-memory";
 
 const packagePath = process.env.ENGRAM_NODE_PACKAGE_PATH;
-const enabled = Boolean(packagePath && process.env.ENGRAM_INTEGRATION === "1");
+const enabled = Boolean(
+  packagePath &&
+  getConfiguredEngramArtifact() &&
+  process.env.ENGRAM_INTEGRATION === "1",
+);
 
 describe.skipIf(!enabled)("local Engram native integration", () => {
   it("writes and recalls a child-scoped derived signal", async () => {
-    const load = createRequire(import.meta.url) as unknown as (
-      moduleId: string,
-    ) => {
-      createNativeProviderTransport(options: { configJson: string }): any;
-    };
-    const nodePackage = load(packagePath as string);
-    const transport = nodePackage.createNativeProviderTransport({
-      configJson: process.env.ENGRAM_CONFIG_JSON ?? "",
-    });
+    const transport = loadConfiguredEngramTransport() as {
+      write: (request: unknown) => Promise<unknown>;
+      recall: (request: unknown) => Promise<unknown>;
+    } | null;
+    expect(transport).not.toBeNull();
     const now = new Date().toISOString();
-    await transport.write({
+    await transport!.write({
       content: {
         format: "json",
         text: '{"topicId":"ratio","acceptedLevel":1,"correct":true}',
@@ -37,7 +40,7 @@ describe.skipIf(!enabled)("local Engram native integration", () => {
       },
       idempotencyKey: `integration-${Date.now()}`,
     });
-    const context = await transport.recall({
+    const context = await transport!.recall({
       query: "ratio progress",
       requester: { actor: { id: "odyssey-learning", kind: "service" } },
       scope: {
