@@ -1,9 +1,13 @@
 # Spec: curriculum ingestion
 
-- **Status:** Implementing
+- **Status:** Archived
 - **Plan:** [plan.md](plan.md)
 - **Constrained by:** RFC-0002, RFC-0003
 - **Shape:** mixed
+
+> Superseded by the curriculum deep-agent framework specification. Ingestion
+> promotion remains the product workflow; document reading and agent execution
+> move to the reusable framework.
 
 ## Objective
 
@@ -69,17 +73,16 @@ only the approved Silver payload, requires every Gold record to retain a source
 link, and forbids changing official text or creating unrelated curriculum. The
 application validates it, stores it as a Gold draft, and only then indexes it.
 
-Gold semantic indexing writes canonical Gold records and relations to Engram's
-knowledge graph, stores local embeddings in SQLite-Vec, retrieves with graph
-and vector candidates, and reranks only Gold candidates before question context
-is selected.
+Gold semantic indexing stores canonical Gold records and local embeddings in
+SQLite-Vec for structured curriculum search. Engram owns the associated graph
+and semantic-memory operations; Bronze and Silver never enter either layer.
 
 ## Testing Strategy
 
 - TDD: stage transitions, upload metadata validation, output schemas, and
   Gold-only access invariants.
 - Integration: local file upload, deterministic agent fixtures, Gold persistence,
-  local Ollama embeddings, SQLite-Vec retrieval, and reranking input boundaries.
+  and local Ollama embeddings with SQLite-Vec structured search.
 - Manual: desktop steward uploads PDF/CSV/JSON/text, observes both approvals,
   and confirms Gold appears in semantic search while Bronze/Silver do not.
 
@@ -93,8 +96,7 @@ is selected.
       system prompts for Bronze cleanup and Silver formalization; each output is
       schema-validated.
 - [ ] Gold records preserve source fingerprint/location and agent provenance.
-- [ ] Only Gold records are projected into the server-only Engram knowledge
-      graph and SQLite-Vec; Bronze/Silver are rejected from both, hybrid
-      retrieval/reranking, and generated-question context.
+- [ ] Only Gold records are persisted as structured SQLite records and indexed
+      in SQLite-Vec; Bronze/Silver are rejected from both and from Engram.
 - [ ] Bronze and Silver temporary artifacts expire after the local workflow and
       never appear in child or parent interfaces.

@@ -1,7 +1,7 @@
 # Plan: curriculum ingestion
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Executing
+- **Status:** Done
 
 ## Resulting architecture
 
@@ -231,31 +231,26 @@ pattern. New SQL identifiers go in JSON; TypeScript calls them by name.
 **Done when:** Approved Gold is the only durable curriculum data and has both
 an Engram graph representation and a SQLite-Vec representation.
 
-### T8: Add Gold-only hybrid retrieval and reranking input
+### T8: Verify Gold structured search boundary
 
 **Depends on:** T7
 
-**Tests:** TDD `app/src/server/curriculum/gold-semantic-search.test.ts` for
-vector candidates, Engram relation candidates, deduplication, Gold-only guards,
-and deterministic reranking input order.
+**Tests:** Extend `app/src/server/curriculum/vector-repository.test.ts` for
+Gold-only structured-record filtering and SQLite-Vec nearest-neighbor lookup.
 
-**Approach:** Create a server-only retrieval service that combines SQLite-Vec
-neighbors with Engram graph neighbors, removes duplicates, and passes only Gold
-records with provenance to the reranker/question-context boundary. This task
-does not change question generation itself.
+**Approach:** Keep structured Gold records and their embeddings searchable via
+SQLite-Vec. Delegate graph, semantic-memory, and any later agent retrieval
+orchestration to Engram rather than implementing a second custom retrieval
+layer in this application.
 
-**Artifacts:** Create `app/src/server/curriculum/gold-semantic-search.ts` and
-`app/src/server/curriculum/gold-semantic-search.test.ts`; change
-`app/src/server/curriculum/engram-curriculum-graph.ts` and
-`app/src/server/curriculum/vector-repository.ts` only when their existing read
-operations cannot serve the typed Gold-only interface.
+**Artifacts:** Change `app/src/server/curriculum/vector-repository.ts` and its
+test only if the existing typed nearest-neighbor interface needs a Gold filter.
 
-**Reuse:** `CurriculumVectorRepository.findNearest`, Gold provenance from T7,
-and the existing generated-question context boundary without changing its
-question-generation behavior.
+**Reuse:** `CurriculumVectorRepository.findNearest` and the Engram curriculum
+adapter from T7.
 
-**Done when:** A topic query yields a provenance-preserving ranked Gold context,
-and temporary stages are structurally unable to appear in results.
+**Done when:** Structured Gold records can be found through SQLite-Vec and
+temporary stages are structurally unable to appear in the search store.
 
 ### T9: Connect the compact Shadcn desktop steward workflow
 
