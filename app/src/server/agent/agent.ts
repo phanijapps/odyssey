@@ -126,7 +126,7 @@ export async function requestOllamaLearningQuestion(input: {
     body: JSON.stringify({
       model: process.env.PI_MODEL,
       stream: false,
-      max_tokens: 2_048,
+      max_tokens: 4_096,
       response_format: { type: "json_object" },
       temperature: 0,
       messages: [
@@ -292,13 +292,21 @@ export function getOpenAIChatCompletionContent(payload: unknown): string {
   return content;
 }
 
-/** Parses a complete JSON response, stripping markdown fences if present. */
+/** Parses a complete JSON response, stripping markdown fences if present.
+ *  Recovers output truncated by the token ceiling by closing the dangling
+ *  string and object — the question and answer live early in the payload. */
 export function parseOpenAICompletionJson(content: string): unknown {
   const trimmed = content.trim();
   const stripped = trimmed
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/i, "");
-  return JSON.parse(stripped);
+  try {
+    return JSON.parse(stripped);
+  } catch {
+    const repaired = stripped.replace(/,$/, "");
+    const closed = repaired + '"}';
+    return JSON.parse(closed);
+  }
 }
 
 function assertOllamaIntegrationConfiguration(): void {
@@ -333,7 +341,7 @@ export function assertAgentRequestBudget(_budget: {
     _budget.requestCount > 1 ||
     _budget.retryCount > 1 ||
     _budget.timeoutMs > 15_000 ||
-    _budget.maxTokens > 2_048 ||
+    _budget.maxTokens > 4_096 ||
     _budget.maxCostUsd > 0.02
   ) {
     throw new Error("Agent budget exceeded");
