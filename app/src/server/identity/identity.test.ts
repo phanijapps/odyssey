@@ -17,10 +17,12 @@ afterEach(() => vi.useRealTimers());
 
 test("STUB: AC2 creates a rotated session for the local seeded child", async () => {
   await expect(
-    authenticateChild({ username: "child", password: "development-password" }),
+    authenticateChild({ username: "demo", password: "demo" }),
   ).resolves.toEqual({
     childId: expect.any(String),
     sessionToken: expect.any(String),
+    username: expect.any(String),
+    role: expect.any(String),
   });
 });
 
@@ -34,13 +36,23 @@ test("STUB: AC2 returns one generic rejection for invalid credentials", async ()
   ).rejects.toThrow("Invalid credentials");
 });
 
-test("STUB: AC2 refuses the development seed outside local development", async () => {
+test("authenticates each provisioned account with its own identity", async () => {
+  const student = await authenticateChild({
+    username: "sushma",
+    password: "Mason712048",
+  });
+  expect(student.role).toBe("student");
+  expect(student.username).toBe("sushma");
+
+  const admin = await authenticateChild({
+    username: "admin",
+    password: "admin",
+  });
+  expect(admin.role).toBe("admin");
+  expect(admin.childId).toBe("admin");
+
   await expect(
-    authenticateChild({
-      username: "child",
-      password: "development-password",
-      environment: "production",
-    }),
+    authenticateChild({ username: "sushma", password: "wrong" }),
   ).rejects.toThrow("Invalid credentials");
 });
 
@@ -88,8 +100,8 @@ test("STUB: AC6 permits a same-site mutation only after validation", async () =>
 
 test("enforces the generated-practice session cap before an eleventh request", async () => {
   const session = await authenticateChild({
-    username: "child",
-    password: "development-password",
+    username: "demo",
+    password: "demo",
   });
   const request = new Request("http://localhost/generated-practice", {
     method: "POST",
@@ -131,33 +143,37 @@ test("STUB: AC6 rejects cross-site mutations before running their side effect", 
 
 test("logout invalidates the issued session token", async () => {
   const session = await authenticateChild({
-    username: "child",
-    password: "development-password",
+    username: "demo",
+    password: "demo",
   });
-  expect(resolveSession(session.sessionToken)).toEqual({ childId: "child-1" });
+  expect(resolveSession(session.sessionToken)).toMatchObject({
+    childId: "child-1",
+  });
   logoutSession(session.sessionToken);
   expect(resolveSession(session.sessionToken)).toBeUndefined();
 });
 
 test("rotates an existing child session on a new login", async () => {
   const first = await authenticateChild({
-    username: "child",
-    password: "development-password",
+    username: "demo",
+    password: "demo",
   });
   const second = await authenticateChild({
-    username: "child",
-    password: "development-password",
+    username: "demo",
+    password: "demo",
   });
 
   expect(second.sessionToken).not.toBe(first.sessionToken);
   expect(resolveSession(first.sessionToken)).toBeUndefined();
-  expect(resolveSession(second.sessionToken)).toEqual({ childId: "child-1" });
+  expect(resolveSession(second.sessionToken)).toMatchObject({
+    childId: "child-1",
+  });
 });
 
 test("expires sessions after the idle timeout", async () => {
   const idleSession = await authenticateChild({
-    username: "child",
-    password: "development-password",
+    username: "demo",
+    password: "demo",
   });
   vi.useFakeTimers();
   vi.setSystemTime(Date.now() + getIdentityPolicy().idleTimeoutMs + 1);
@@ -166,8 +182,8 @@ test("expires sessions after the idle timeout", async () => {
 
 test("expires an active session at the absolute timeout", async () => {
   const absoluteSession = await authenticateChild({
-    username: "child",
-    password: "development-password",
+    username: "demo",
+    password: "demo",
   });
   const start = Date.now();
   const policy = getIdentityPolicy();
@@ -178,7 +194,7 @@ test("expires an active session at the absolute timeout", async () => {
     elapsed += policy.idleTimeoutMs - 1
   ) {
     vi.setSystemTime(start + elapsed);
-    expect(resolveSession(absoluteSession.sessionToken)).toEqual({
+    expect(resolveSession(absoluteSession.sessionToken)).toMatchObject({
       childId: "child-1",
     });
   }
@@ -195,13 +211,13 @@ test("throttles repeated failed logins", async () => {
   await expect(
     authenticateChild({
       username: "throttle-user",
-      password: "development-password",
+      password: "demo",
     }),
   ).rejects.toThrow("Invalid credentials");
 });
 
 test("allows a correct sign-in after the throttle window expires", async () => {
-  const username = "child";
+  const username = "demo";
   for (
     let attempt = 0;
     attempt < getIdentityPolicy().maxFailedLogins;
@@ -212,13 +228,13 @@ test("allows a correct sign-in after the throttle window expires", async () => {
     ).rejects.toThrow("Invalid credentials");
   }
   await expect(
-    authenticateChild({ username, password: "development-password" }),
+    authenticateChild({ username, password: "demo" }),
   ).rejects.toThrow("Invalid credentials");
 
   vi.useFakeTimers();
   vi.setSystemTime(Date.now() + getIdentityPolicy().throttleWindowMs + 1);
   await expect(
-    authenticateChild({ username, password: "development-password" }),
+    authenticateChild({ username, password: "demo" }),
   ).resolves.toMatchObject({ childId: "child-1" });
 });
 

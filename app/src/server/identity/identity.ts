@@ -4,89 +4,218 @@ import {
   scrypt as deriveKey,
   timingSafeEqual,
 } from "node:crypto";
+import { learningDb } from "../learning/sqlite-repository";
 
-const sessions = new Map<
-  string,
-  {
-    childId: string;
-    createdAt: number;
-    lastSeen: number;
-    generatedRequests: number;
-    generationAllowanceTopicId: string | null;
-  }
->();
-const failedLogins = new Map<string, { count: number; firstAt: number }>();
-const sessionKey = (token: string) =>
-  createHash("sha256").update(token).digest("hex");
-const seedPasswordSalt = randomBytes(16);
-let seedPasswordHash: Buffer | undefined;
+/** One provisioned account: student or admin. */
+type AccountRow = {
+  username: string;
+  password_hash: Buffer;
+  salt: Buffer;
+  role: string;
+};
 
-function seedHash(): Promise<Buffer> {
-  if (!seedPasswordHash) {
-    return new Promise((resolve, reject) => {
-      deriveKey("development-password", seedPasswordSalt, 32, (error, key) => {
-        if (error) reject(error);
-        else {
-          seedPasswordHash = key as Buffer;
-          resolve(seedPasswordHash);
-        }
-      });
-    });
-  }
-  return Promise.resolve(seedPasswordHash);
-}
+/** Session row persisted in SQLite so sign-ins survive restarts. */
+type SessionRow = {
+  token_hash: string;
+  child_id: string;
+  username: string;
+  role: string;
+  created_at: number;
+  last_seen: number;
+  generated_requests: number;
+  allowance_topic: string | null;
+  active_ai_question: string | null;
+  question_pool: string | null;
+};
 
-/** Authenticates a development child without exposing account existence. */
-export async function authenticateChild(_credentials: {
+/** Initial local accounts, seeded idempotently. Passwords belong to .env in
+ *  any shared deployment; these are single-household local defaults. */
+const SEED_ACCOUNTS: ReadonlyArray<{
   username: string;
   password: string;
-  environment?: "development" | "production";
-}): Promise<{ childId: string; sessionToken: string }> {
-  const environment = _credentials.environment ?? "development";
-  const throttleKey = _credentials.username || "unknown";
-  const now = Date.now();
-  const failed = failedLogins.get(throttleKey);
-  if (
-    failed &&
-    now - failed.firstAt < getIdentityPolicy().throttleWindowMs &&
-    failed.count >= getIdentityPolicy().maxFailedLogins
-  )
-    throw new Error("Invalid credentials");
-  const expected = await seedHash();
-  const supplied = await new Promise<Buffer>((resolve, reject) => {
-    deriveKey(_credentials.password, seedPasswordSalt, 32, (error, key) => {
+  role: "admin" | "student";
+  childId: string;
+}> = [
+  { username: "admin", password: "admin", role: "admin", childId: "admin" },
+  {
+    username: "sushma",
+    password: "Mason712048",
+    role: "student",
+    childId: "child:sushma",
+  },
+  { username: "demo", password: "demo", role: "student", childId: "child-1" },
+];
+
+learningDb.exec(`
+CREATE TABLE IF NOT EXISTS accounts (
+  username TEXT PRIMARY KEY,
+  password_hash BLOB NOT NULL,
+  salt BLOB NOT NULL,
+  role TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  token_hash TEXT PRIMARY KEY,
+  child_id TEXT NOT NULL,
+  username TEXT NOT NULL,
+  role TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  last_seen INTEGER NOT NULL,
+  generated_requests INTEGER NOT NULL DEFAULT 0,
+  allowance_topic TEXT,
+  active_ai_question TEXT,
+  question_pool TEXT
+);
+CREATE TABLE IF NOT EXISTS failed_logins (
+  username TEXT PRIMARY KEY,
+  count INTEGER NOT NULL,
+  first_at INTEGER NOT NULL
+);
+`);
+
+function scryptSync(password: string, salt: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    deriveKey(password, salt, 32, (error, key) => {
       if (error) reject(error);
       else resolve(key as Buffer);
     });
   });
+}
+
+/** Seeds the local accounts once; existing rows are never overwritten. */
+async function seedAccounts(): Promise<void> {
+  const existing = learningDb
+    .prepare("SELECT username FROM accounts")
+    .all() as Array<{ username: string }>;
+  const have = new Set(existing.map((r) => r.username));
+  const insert = learningDb.prepare(
+    "INSERT INTO accounts (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
+  );
+  for (const account of SEED_ACCOUNTS) {
+    if (have.has(account.username)) continue;
+    const salt = randomBytes(16);
+    const hash = await scryptSync(account.password, salt);
+    insert.run(account.username, hash, salt, account.role);
+  }
+}
+
+const seedPromise = seedAccounts();
+
+function findAccount(username: string): AccountRow | undefined {
+  return learningDb
+    .prepare(
+      "SELECT username, password_hash, salt, role FROM accounts WHERE username = ?",
+    )
+    .get(username) as AccountRow | undefined;
+}
+
+const sessionKey = (token: string) =>
+  createHash("sha256").update(token).digest("hex");
+
+function readSession(token: string): SessionRow | undefined {
+  return learningDb
+    .prepare("SELECT * FROM auth_sessions WHERE token_hash = ?")
+    .get(sessionKey(token)) as SessionRow | undefined;
+}
+
+function expireIfStale(row: SessionRow): SessionRow | undefined {
+  const policy = getIdentityPolicy();
+  const now = Date.now();
   if (
-    environment !== "development" ||
-    _credentials.username !== "child" ||
-    supplied.length !== expected.length ||
-    !timingSafeEqual(supplied, expected)
+    now - row.created_at > policy.absoluteTimeoutMs ||
+    now - row.last_seen > policy.idleTimeoutMs
   ) {
-    const current = failedLogins.get(throttleKey);
-    failedLogins.set(
-      throttleKey,
-      current && now - current.firstAt < getIdentityPolicy().throttleWindowMs
-        ? { count: current.count + 1, firstAt: current.firstAt }
-        : { count: 1, firstAt: now },
-    );
+    learningDb
+      .prepare("DELETE FROM auth_sessions WHERE token_hash = ?")
+      .run(row.token_hash);
+    return undefined;
+  }
+  return row;
+}
+
+/** Authenticates a provisioned account without exposing account existence. */
+export async function authenticateChild(_credentials: {
+  username: string;
+  password: string;
+  environment?: "development" | "production";
+}): Promise<{
+  childId: string;
+  sessionToken: string;
+  username: string;
+  role: "admin" | "student";
+}> {
+  await seedPromise;
+  const username = _credentials.username.trim();
+  const now = Date.now();
+  const policy = getIdentityPolicy();
+
+  const failed = learningDb
+    .prepare("SELECT count, first_at FROM failed_logins WHERE username = ?")
+    .get(username) as { count: number; first_at: number } | undefined;
+  if (
+    failed &&
+    now - failed.first_at < policy.throttleWindowMs &&
+    failed.count >= policy.maxFailedLogins
+  )
+    throw new Error("Invalid credentials");
+
+  const account = findAccount(username);
+  const supplied = account
+    ? await scryptSync(_credentials.password, account.salt)
+    : (await scryptSync(_credentials.password, randomBytes(16)),
+      Buffer.alloc(32));
+  const valid =
+    !!account &&
+    supplied.length === account.password_hash.length &&
+    timingSafeEqual(supplied, account.password_hash);
+
+  if (!account || !valid) {
+    learningDb
+      .prepare(
+        `INSERT INTO failed_logins (username, count, first_at) VALUES (?, 1, ?)
+         ON CONFLICT(username) DO UPDATE SET
+           count = CASE WHEN ? - first_at < ? THEN count + 1 ELSE 1 END,
+           first_at = CASE WHEN ? - first_at < ? THEN first_at ELSE ? END`,
+      )
+      .run(
+        username,
+        now,
+        now,
+        policy.throttleWindowMs,
+        now,
+        policy.throttleWindowMs,
+        now,
+      );
     throw new Error("Invalid credentials");
   }
-  failedLogins.delete(throttleKey);
-  for (const [key, session] of sessions) {
-    if (session.childId === "child-1") sessions.delete(key);
-  }
+
+  learningDb
+    .prepare("DELETE FROM failed_logins WHERE username = ?")
+    .run(username);
+
+  const childId =
+    SEED_ACCOUNTS.find((a) => a.username === username)?.childId ??
+    `child:${username}`;
+  const role = (account.role === "admin" ? "admin" : "student") as
+    | "admin"
+    | "student";
+
+  // Rotate: one active session per account.
+  learningDb
+    .prepare("DELETE FROM auth_sessions WHERE username = ?")
+    .run(username);
+
   const sessionToken = randomBytes(32).toString("base64url");
-  sessions.set(sessionKey(sessionToken), {
-    childId: "child-1",
-    createdAt: Date.now(),
-    lastSeen: Date.now(),
-    generatedRequests: 0,
-    generationAllowanceTopicId: null,
-  });
-  return { childId: "child-1", sessionToken };
+  const issuedAt = Date.now();
+  learningDb
+    .prepare(
+      `INSERT INTO auth_sessions
+        (token_hash, child_id, username, role, created_at, last_seen, generated_requests)
+       VALUES (?, ?, ?, ?, ?, ?, 0)`,
+    )
+    .run(sessionKey(sessionToken), childId, username, role, issuedAt, issuedAt);
+
+  return { childId, sessionToken, username, role };
 }
 
 /** Exposes the immutable identity controls that the local service enforces. */
@@ -130,42 +259,51 @@ export function assertChildRecordScope(
   if (_sessionChildId !== _recordChildId) throw new Error("Forbidden");
 }
 
+function activeSession(request: Request): SessionRow | undefined {
+  const token = request.headers
+    .get("cookie")
+    ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
+  if (token === "valid" && process.env.NODE_ENV === "test") {
+    const now = Date.now();
+    return {
+      token_hash: "test",
+      child_id: "child-1",
+      username: "demo",
+      role: "student",
+      created_at: now,
+      last_seen: now,
+      generated_requests: 0,
+      allowance_topic: null,
+      active_ai_question: null,
+      question_pool: null,
+    };
+  }
+  if (!token) return undefined;
+  const row = readSession(token);
+  if (!row) return undefined;
+  const fresh = expireIfStale(row);
+  if (fresh) {
+    learningDb
+      .prepare("UPDATE auth_sessions SET last_seen = ? WHERE token_hash = ?")
+      .run(Date.now(), fresh.token_hash);
+  }
+  return fresh;
+}
+
 /** Authorizes a mutating request before it reads or changes learning state. */
 export function requireMutationProof(_request: Request): { childId: string } {
   const origin = _request.headers.get("origin");
-  const cookie = _request.headers.get("cookie");
-  const token = cookie?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
-  const session =
-    token === "valid" && process.env.NODE_ENV === "test"
-      ? {
-          childId: "child-1",
-          createdAt: Date.now(),
-          lastSeen: Date.now(),
-          generatedRequests: 0,
-          generationAllowanceTopicId: null,
-        }
-      : token
-        ? sessions.get(sessionKey(token))
-        : undefined;
   let sameSiteOrigin = false;
   try {
     sameSiteOrigin = new URL(origin ?? "").hostname === "localhost";
   } catch {
     sameSiteOrigin = false;
   }
-  if (
-    _request.method !== "POST" ||
-    !cookie ||
-    !origin ||
-    !sameSiteOrigin ||
-    !session ||
-    Date.now() - session.createdAt > getIdentityPolicy().absoluteTimeoutMs ||
-    Date.now() - session.lastSeen > getIdentityPolicy().idleTimeoutMs
-  ) {
+  const session = activeSession(_request);
+  if (_request.method !== "POST" || !origin || !sameSiteOrigin || !session) {
     throw new Error("Mutation proof required");
   }
-  session.lastSeen = Date.now();
-  return { childId: session.childId };
+  return { childId: session.child_id };
 }
 
 /** Grants one topic-bound provider request after an accepted local answer. */
@@ -173,16 +311,17 @@ export function grantGeneratedPracticeAllowance(
   _request: Request,
   _topicId: string,
 ): void {
-  const token = _request.headers
-    .get("cookie")
-    ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
-  const session = token ? sessions.get(sessionKey(token)) : undefined;
+  const session = activeSession(_request);
   if (!session) return;
   if (
-    session.generatedRequests <
+    session.generated_requests <
     getIdentityPolicy().maxGeneratedContentRequestsPerSession
   )
-    session.generationAllowanceTopicId = _topicId;
+    learningDb
+      .prepare(
+        "UPDATE auth_sessions SET allowance_topic = ? WHERE token_hash = ?",
+      )
+      .run(_topicId, session.token_hash);
 }
 
 /** Consumes the session's one-use, topic-bound provider request allowance. */
@@ -191,38 +330,62 @@ export function consumeGeneratedPracticeAllowance(
   _topicId: string,
 ): { childId: string } {
   const { childId } = requireMutationProof(_request);
-  const token = _request.headers
-    .get("cookie")
-    ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
-  const session = token ? sessions.get(sessionKey(token)) : undefined;
+  const session = activeSession(_request);
   if (
     !session ||
-    session.generationAllowanceTopicId !== _topicId ||
-    session.generatedRequests >=
+    session.allowance_topic !== _topicId ||
+    session.generated_requests >=
       getIdentityPolicy().maxGeneratedContentRequestsPerSession
   )
     throw new Error("Generated practice allowance required");
-  session.generationAllowanceTopicId = null;
-  session.generatedRequests += 1;
+  learningDb
+    .prepare(
+      "UPDATE auth_sessions SET allowance_topic = NULL, generated_requests = generated_requests + 1 WHERE token_hash = ?",
+    )
+    .run(session.token_hash);
   return { childId };
 }
 
-export function resolveSession(token: string): { childId: string } | undefined {
-  const session = sessions.get(sessionKey(token));
-  if (
-    !session ||
-    Date.now() - session.createdAt > getIdentityPolicy().absoluteTimeoutMs ||
-    Date.now() - session.lastSeen > getIdentityPolicy().idleTimeoutMs
-  ) {
-    if (session) sessions.delete(sessionKey(token));
-    return undefined;
-  }
-  session.lastSeen = Date.now();
+/** Requires an admin session; throws otherwise. */
+export function requireAdmin(request: Request): { childId: string } {
+  const token = request.headers
+    .get("cookie")
+    ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
+  const session = token ? resolveSession(token) : undefined;
+  if (!session || session.role !== "admin")
+    throw new Error("Admin access required");
   return { childId: session.childId };
 }
 
+/** Resolves a session token to the signed-in identity. */
+export function resolveSession(token: string):
+  | {
+      childId: string;
+      username: string;
+      role: "admin" | "student";
+    }
+  | undefined {
+  if (token === "valid" && process.env.NODE_ENV === "test")
+    return { childId: "child-1", username: "demo", role: "student" };
+  const row = readSession(token);
+  if (!row) return undefined;
+  const fresh = expireIfStale(row);
+  if (!fresh) return undefined;
+  learningDb
+    .prepare("UPDATE auth_sessions SET last_seen = ? WHERE token_hash = ?")
+    .run(Date.now(), fresh.token_hash);
+  return {
+    childId: fresh.child_id,
+    username: fresh.username,
+    role: fresh.role === "admin" ? "admin" : "student",
+  };
+}
+
+/** Invalidates one session (sign out). */
 export function logoutSession(token: string): void {
-  sessions.delete(sessionKey(token));
+  learningDb
+    .prepare("DELETE FROM auth_sessions WHERE token_hash = ?")
+    .run(sessionKey(token));
 }
 
 /** Runs a mutation only after session and same-site request validation. */
@@ -232,4 +395,84 @@ export async function runProtectedMutation<T>(
 ): Promise<T> {
   requireMutationProof(_request);
   return _mutation();
+}
+
+/* ============================================================
+   Persisted per-session practice state (AI question + pool)
+   ============================================================ */
+
+type ActiveAiQuestion = {
+  topicId: string;
+  question: string;
+  answer: string;
+  acceptableAnswers: readonly string[];
+  hint: string;
+};
+
+type SessionPool = {
+  topicId: string;
+  questions: readonly {
+    id: string;
+    question: string;
+    answer: string;
+    acceptableAnswers: readonly string[];
+    hint: string;
+    diagramSvg: string;
+    difficulty: number;
+  }[];
+  shownIds: string[];
+  currentDifficulty: number;
+  batchPosition: number;
+  batchSize: number;
+};
+
+/** Stores the active AI-generated question's answer in the session. */
+export function setActiveAiQuestion(
+  request: Request,
+  question: ActiveAiQuestion,
+): void {
+  const session = activeSession(request);
+  if (!session) return;
+  learningDb
+    .prepare(
+      "UPDATE auth_sessions SET active_ai_question = ? WHERE token_hash = ?",
+    )
+    .run(JSON.stringify(question), session.token_hash);
+}
+
+/** Returns the active AI question's answer, consuming it once. */
+export function getActiveAiQuestion(request: Request): ActiveAiQuestion | null {
+  const session = activeSession(request);
+  if (!session?.active_ai_question) return null;
+  try {
+    const parsed = JSON.parse(session.active_ai_question) as ActiveAiQuestion;
+    learningDb
+      .prepare(
+        "UPDATE auth_sessions SET active_ai_question = NULL WHERE token_hash = ?",
+      )
+      .run(session.token_hash);
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Stores the adaptive question pool in the session. */
+export function setSessionPool(request: Request, pool: SessionPool): void {
+  const session = activeSession(request);
+  if (!session) return;
+  learningDb
+    .prepare("UPDATE auth_sessions SET question_pool = ? WHERE token_hash = ?")
+    .run(JSON.stringify(pool), session.token_hash);
+}
+
+/** Reads the adaptive question pool from the session. */
+export function getSessionPool(request: Request): SessionPool | null {
+  const session = activeSession(request);
+  if (!session?.question_pool) return null;
+  try {
+    return JSON.parse(session.question_pool) as SessionPool;
+  } catch {
+    return null;
+  }
 }
