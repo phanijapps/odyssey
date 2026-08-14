@@ -176,12 +176,19 @@ export async function POST(request: Request): Promise<Response> {
           batchSize: updatedPool.batchSize,
         });
       } else {
-        // Generate next question lazily via AI
-        const standards = getStandardsForSelection({
+        // Generate next question lazily via AI, scoped to the exact standard
+        // being practiced (segment [3]) — not the whole domain.
+        const allDomainStandards = getStandardsForSelection({
           subject: body.topicId.split("::")[0] ?? "",
           grade: body.topicId.split("::")[1] ?? "",
           domain: body.topicId.split("::")[2] ?? "",
         });
+        const selectedStandard = body.topicId.split("::")[3];
+        const standards = selectedStandard
+          ? allDomainStandards.filter(
+              (s) => s.standardCode === selectedStandard,
+            )
+          : allDomainStandards;
         const lazy = await generateLazyQuestion(
           pool.topicId,
           adjusted.currentDifficulty,
