@@ -137,6 +137,26 @@ export default function DashboardPage() {
   const [adminChecked, setAdminChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Admin gate: dashboard requires an admin session. While checking, render
+  // nothing; students/anonymous see the gate card.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/session", { cache: "no-store" });
+        if (res.ok) {
+          const account = (await res.json()) as { role?: string };
+          setIsAdmin(account.role === "admin");
+        } else {
+          setIsAdmin(false);
+        }
+      } catch {
+        setIsAdmin(false);
+      } finally {
+        setAdminChecked(true);
+      }
+    })();
+  }, []);
+
   // Knowledge graph state
   const [kgStats, setKgStats] = useState<KgStats | null>(null);
   const [kgQuery, setKgQuery] = useState("");
