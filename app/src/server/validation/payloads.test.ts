@@ -118,3 +118,13 @@ test("STUB: AC16 redacts every forbidden value from logs, client errors, and aud
     audit: { event: "agent-request" },
   });
 });
+
+test("accepts polygon and ellipse diagrams for geometry questions", () => {
+  expect(() =>
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg:
+        '<svg xmlns="http://www.w3.org/2000/svg" aria-label="area" viewBox="0 0 200 100"><polygon points="20,80 20,40 70,40 70,80" fill="#8fc9dc" /><ellipse cx="150" cy="60" rx="30" ry="20" fill="none" stroke="#333333" stroke-width="2" /></svg>',
+    }),
+  ).not.toThrow();
+});

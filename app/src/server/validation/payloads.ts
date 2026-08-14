@@ -64,7 +64,10 @@ function isSafeSvg(svg: string): boolean {
     "svg",
     "rect",
     "circle",
+    "ellipse",
     "line",
+    "polygon",
+    "polyline",
     "text",
     "title",
     "desc",
@@ -83,6 +86,9 @@ function isSafeSvg(svg: string): boolean {
     "cx",
     "cy",
     "r",
+    "rx",
+    "ry",
+    "points",
     "width",
     "height",
     "rx",
@@ -90,6 +96,16 @@ function isSafeSvg(svg: string): boolean {
     "fill",
     "stroke",
     "stroke-width",
+    "stroke-dasharray",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "font-size",
+    "font-family",
+    "font-weight",
+    "text-anchor",
+    "dominant-baseline",
+    "opacity",
+    "transform",
     "xmlns",
   ]);
   const [rootTag, rootName] = tags[0] ?? [];
@@ -139,6 +155,10 @@ function isSafeSvg(svg: string): boolean {
             );
           if (key === "stroke-width")
             return /^(?:0|[1-9]\d?)(?:\.\d+)?$/.test(value);
+          if (key === "stroke-dasharray") return /^[\d.,\s]+$/.test(value);
+          if (key === "font-size" || key === "opacity")
+            return /^[\d.]+(?:px|em|rem)?$/.test(value);
+          if (key === "transform") return /^[a-zA-Z0-9(),.\s-]+$/.test(value);
           return true;
         })
       );

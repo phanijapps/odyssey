@@ -171,8 +171,8 @@ export async function requestOllamaLearningQuestion(input: {
       diagramSvg: output.diagramSvg,
     });
   } catch {
-    safeDiagram =
-      '<svg xmlns="http://www.w3.org/2000/svg" aria-label="diagram" viewBox="0 0 200 80"><text x="40" y="40" fill="#333333">Practice question</text></svg>';
+    // Unusable diagram: return empty so clients render no diagram column.
+    safeDiagram = "";
   }
   return {
     question: output.question,

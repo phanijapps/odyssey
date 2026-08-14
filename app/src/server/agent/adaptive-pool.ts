@@ -32,7 +32,9 @@ function safeDiagram(raw: string): string {
     validateLearningPayload({ component: "GeometryDiagram", diagramSvg: raw });
     return raw;
   } catch {
-    return '<svg xmlns="http://www.w3.org/2000/svg" aria-label="diagram" viewBox="0 0 200 80"><text x="40" y="40" fill="#333333">Practice</text></svg>';
+    // Unusable diagram: return empty so clients render no diagram column
+    // rather than a placeholder stub.
+    return "";
   }
 }
 
