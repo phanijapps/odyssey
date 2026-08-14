@@ -5,6 +5,35 @@ import {
 } from "./sqlite-repository";
 import { assertLearningAction } from "./learning-actions";
 
+/** Compares a submitted answer against expected and acceptable answers. */
+export function checkAnswer(
+  submitted: string,
+  expected: string,
+  acceptable?: readonly string[],
+): boolean {
+  const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  const submittedNorm = normalize(submitted);
+  const expectedNorm = normalize(expected);
+  if (submittedNorm === expectedNorm) return true;
+  if (acceptable?.some((a) => normalize(a) === submittedNorm)) return true;
+  const isPureNumber = (s: string) =>
+    /^-?\d+(?:\.\d+)?$/.test(
+      s
+        .replace(
+          /\s*(cups?|pounds?|lbs?|marbles?|girls?|apples?|pages?|degrees?|feet|hours?|minutes?|mph|miles per hour)\s*$/i,
+          "",
+        )
+        .trim(),
+    );
+  if (isPureNumber(submittedNorm) && isPureNumber(expectedNorm)) {
+    const submittedNum = Number.parseFloat(submittedNorm);
+    const expectedNum = Number.parseFloat(expectedNorm);
+    if (!Number.isNaN(submittedNum) && !Number.isNaN(expectedNum))
+      return Math.abs(submittedNum - expectedNum) < 0.01;
+  }
+  return false;
+}
+
 /** Records an allowed attempt and returns the next question for that child. */
 export function recommendNextLevel(input: {
   currentLevel: number;
@@ -31,6 +60,7 @@ export async function submitAnswer(_input: {
   topicId: string;
   answer: string;
   expectedAnswer: string;
+  acceptableAnswers?: readonly string[];
   nextLevel: number;
 }): Promise<{
   questionId: string;
@@ -62,7 +92,11 @@ export async function submitAnswer(_input: {
         ? _input.nextLevel
         : 1;
     const level = current?.level ?? requestedLevel;
-    const correct = normalizedAnswer === _input.expectedAnswer;
+    const correct = checkAnswer(
+      normalizedAnswer,
+      _input.expectedAnswer,
+      _input.acceptableAnswers,
+    );
     const streak = correct ? (current?.correct_streak ?? 0) + 1 : 0;
     const nextLevel = recommendNextLevel({
       currentLevel: level,
@@ -137,14 +171,80 @@ export function getLearningProgress(
   };
 }
 
+/** Returns per-topic detail for one child including accuracy. */
+export function getTopicDetail(
+  childId: string,
+  topicId: string,
+): {
+  topicId: string;
+  level: number;
+  correctStreak: number;
+  attempts: number;
+  correct: number;
+  accuracy: number;
+  lastAttempt: string | null;
+} | null {
+  const progress = learningDb
+    .prepare(
+      "SELECT level, correct_streak, updated_at FROM learning_progress WHERE child_id = ? AND topic_id = ?",
+    )
+    .get(childId, topicId) as
+    | { level: number; correct_streak: number; updated_at: string }
+    | undefined;
+  if (!progress) return null;
+  const stats = learningDb
+    .prepare(
+      `SELECT COUNT(*) AS attempts, SUM(correct) AS correct FROM learning_attempts WHERE child_id = ? AND topic_id = ?`,
+    )
+    .get(childId, topicId) as { attempts: number; correct: number };
+  const lastAttempt =
+    (
+      learningDb
+        .prepare(
+          "SELECT created_at FROM learning_attempts WHERE child_id = ? AND topic_id = ? ORDER BY created_at DESC LIMIT 1",
+        )
+        .get(childId, topicId) as { created_at: string } | undefined
+    )?.created_at ?? null;
+  return {
+    topicId,
+    level: progress.level,
+    correctStreak: progress.correct_streak,
+    attempts: stats.attempts,
+    correct: stats.correct ?? 0,
+    accuracy:
+      stats.attempts > 0
+        ? Math.round(((stats.correct ?? 0) / stats.attempts) * 100)
+        : 0,
+    lastAttempt,
+  };
+}
+
 /** Returns aggregate progress suitable for a parent-facing summary. */
 export function getParentProgressSummary(childId: string): {
-  topics: Array<{ topicId: string; level: number; attempts: number }>;
+  topics: Array<{
+    topicId: string;
+    level: number;
+    attempts: number;
+    correct: number;
+    accuracy: number;
+    lastAttempt: string | null;
+  }>;
   totalAttempts: number;
+  totalCorrect: number;
+  overallAccuracy: number;
+  recentAttempts: Array<{
+    topicId: string;
+    correct: boolean;
+    levelBefore: number;
+    levelAfter: number;
+    createdAt: string;
+  }>;
 } {
   const topics = learningDb
     .prepare(
-      `SELECT p.topic_id AS topicId, p.level AS level, COUNT(a.id) AS attempts
+      `SELECT p.topic_id AS topicId, p.level AS level,
+        COUNT(a.id) AS attempts, COALESCE(SUM(a.correct), 0) AS correct,
+        MAX(a.created_at) AS lastAttempt
       FROM learning_progress p LEFT JOIN learning_attempts a
       ON a.child_id = p.child_id AND a.topic_id = p.topic_id
       WHERE p.child_id = ? GROUP BY p.topic_id, p.level`,
@@ -153,10 +253,52 @@ export function getParentProgressSummary(childId: string): {
     topicId: string;
     level: number;
     attempts: number;
+    correct: number;
+    lastAttempt: string | null;
   }>;
+
+  const topicsWithAccuracy = topics.map((t) => ({
+    ...t,
+    accuracy: t.attempts > 0 ? Math.round((t.correct / t.attempts) * 100) : 0,
+  }));
+
+  const totalAttempts = topicsWithAccuracy.reduce(
+    (sum, t) => sum + t.attempts,
+    0,
+  );
+  const totalCorrect = topicsWithAccuracy.reduce(
+    (sum, t) => sum + t.correct,
+    0,
+  );
+
+  const recentAttempts = learningDb
+    .prepare(
+      `SELECT topic_id AS topicId, correct, level_before AS levelBefore,
+        level_after AS levelAfter, created_at AS createdAt
+      FROM learning_attempts WHERE child_id = ?
+      ORDER BY created_at DESC LIMIT 20`,
+    )
+    .all(childId) as Array<{
+    topicId: string;
+    correct: number;
+    levelBefore: number;
+    levelAfter: number;
+    createdAt: string;
+  }>;
+
   return {
-    topics,
-    totalAttempts: topics.reduce((sum, topic) => sum + topic.attempts, 0),
+    topics: topicsWithAccuracy,
+    totalAttempts,
+    totalCorrect,
+    overallAccuracy:
+      totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0,
+    recentAttempts: recentAttempts.map((a) => ({
+      topicId: a.topicId,
+      correct: a.correct === 1,
+      levelBefore: a.levelBefore,
+      levelAfter: a.levelAfter,
+      createdAt: a.createdAt,
+    })),
   };
 }
 

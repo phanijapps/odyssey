@@ -73,19 +73,27 @@ test("STUB: AC13 rejects raw answers and credentials before profile projection",
   ).toThrow();
 });
 
-test("STUB: AC13 rejects unknown, out-of-range, and non-catalog profile values", () => {
+test("STUB: AC13 rejects out-of-range and malformed profile values", () => {
   expect(() =>
     projectLearningSignal({
-      topicId: "unreviewed",
-      acceptedLevel: 2,
+      topicId: "test",
+      acceptedLevel: 0,
       correct: true,
       progressState: "practicing",
     }),
   ).toThrow();
   expect(() =>
     projectLearningSignal({
-      topicId: "unknown-topic",
-      acceptedLevel: 0,
+      topicId: "test",
+      acceptedLevel: 14,
+      correct: true,
+      progressState: "practicing",
+    }),
+  ).toThrow();
+  expect(() =>
+    projectLearningSignal({
+      topicId: "test",
+      acceptedLevel: 2,
       correct: true,
       progressState: "invented",
       unexpected: true,

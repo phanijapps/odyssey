@@ -3,11 +3,11 @@ import { requestOllamaLearningQuestion } from "../../../server/agent/agent";
 import {
   consumeGeneratedPracticeAllowance,
   requireMutationProof,
+  setActiveAiQuestion,
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
 import { validateLearningPayload } from "../../../server/validation/payloads";
 import { retrieveProfileMemory } from "../../../server/memory/engram-memory";
-import { getSeedCurriculumCatalog } from "../../../../../packages/curriculum/src/catalog";
 
 const unavailableResponse = () =>
   Response.json(
@@ -32,10 +32,7 @@ export async function POST(request: Request): Promise<Response> {
       !Object.keys(body).every((key) => key === "topicId") ||
       typeof body.topicId !== "string" ||
       body.topicId.length === 0 ||
-      body.topicId.length > 100 ||
-      !getSeedCurriculumCatalog().topics.some(
-        (topic) => topic.id === body.topicId,
-      )
+      body.topicId.length > 100
     )
       throw new Error();
     topicId = body.topicId;
@@ -61,7 +58,17 @@ export async function POST(request: Request): Promise<Response> {
       component: "GeometryDiagram",
       diagramSvg: question.diagramSvg,
     });
-    return Response.json(question);
+    setActiveAiQuestion(request, {
+      topicId,
+      question: question.question,
+      answer: question.answer,
+      acceptableAnswers: question.acceptableAnswers,
+      hint: question.hint,
+    });
+    return Response.json({
+      question: question.question,
+      diagramSvg: question.diagramSvg,
+    });
   } catch {
     return unavailableResponse();
   }

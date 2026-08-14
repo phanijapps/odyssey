@@ -38,8 +38,8 @@ afterEach(() => {
 
 async function authenticatedSession(): Promise<string> {
   const session = await authenticateChild({
-    username: "child",
-    password: "development-password",
+    username: "demo",
+    password: "demo",
   });
   return session.sessionToken;
 }
@@ -71,7 +71,10 @@ async function authenticatedRequest(body: unknown): Promise<Request> {
 test("rejects unknown generated-practice request fields", async () => {
   const sessionToken = await authenticatedSession();
   await submitAnswer(
-    requestFor("/api/answer", sessionToken, { topicId: "ratio", answer: "2" }),
+    requestFor("/api/answer", sessionToken, {
+      topicId: "ratio",
+      answer: "2:1",
+    }),
   );
   const response = await POST(
     requestFor("/api/generated-question", sessionToken, {
@@ -99,13 +102,13 @@ test("requires a same-site child session before requesting generated practice", 
   });
 });
 
-test("rejects an unreviewed generated-practice topic before provider access", async () => {
+test("rejects a missing topicId before provider access", async () => {
   const sessionToken = await authenticatedSession();
-  const request = requestFor("/api/generated-question", sessionToken, {
-    topicId: "unreviewed",
-  });
-  grantGeneratedPracticeAllowance(request, "unreviewed");
-  const response = await POST(request);
+  const response = await POST(
+    requestFor("/api/generated-question", sessionToken, {
+      topicId: "",
+    }),
+  );
   expect(response.status).toBe(400);
   expect(requestOllamaLearningQuestion).not.toHaveBeenCalled();
 });
@@ -113,7 +116,10 @@ test("rejects an unreviewed generated-practice topic before provider access", as
 test("rejects a reviewed topic that does not match the answer-issued allowance", async () => {
   const sessionToken = await authenticatedSession();
   await submitAnswer(
-    requestFor("/api/answer", sessionToken, { topicId: "ratio", answer: "2" }),
+    requestFor("/api/answer", sessionToken, {
+      topicId: "ratio",
+      answer: "2:1",
+    }),
   );
   const response = await POST(
     requestFor("/api/generated-question", sessionToken, { topicId: "linear" }),
@@ -137,7 +143,10 @@ test("returns a recoverable state when the configured provider is unavailable", 
 
   const sessionToken = await authenticatedSession();
   await submitAnswer(
-    requestFor("/api/answer", sessionToken, { topicId: "ratio", answer: "2" }),
+    requestFor("/api/answer", sessionToken, {
+      topicId: "ratio",
+      answer: "2:1",
+    }),
   );
   const response = await POST(
     requestFor("/api/generated-question", sessionToken, { topicId: "ratio" }),
@@ -153,12 +162,18 @@ test("returns a recoverable state when the configured provider is unavailable", 
 test("uses the persisted level after an answer to request generated practice", async () => {
   const sessionToken = await authenticatedSession();
   const answerResponse = await submitAnswer(
-    requestFor("/api/answer", sessionToken, { topicId: "ratio", answer: "2" }),
+    requestFor("/api/answer", sessionToken, {
+      topicId: "ratio",
+      answer: "2:1",
+    }),
   );
   const answer = (await answerResponse.json()) as { level: number };
   requestOllamaLearningQuestion.mockResolvedValue({
     question:
       "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed?",
+    answer: "2",
+    acceptableAnswers: [],
+    hint: "Divide flour by water.",
     diagramSvg:
       '<svg xmlns="http://www.w3.org/2000/svg" aria-label="ratio diagram" />',
   });
@@ -168,20 +183,28 @@ test("uses the persisted level after an answer to request generated practice", a
   );
 
   expect(response.status).toBe(200);
-  expect(requestOllamaLearningQuestion).toHaveBeenCalledWith({
-    topicId: "ratio",
-    level: answer.level,
-  });
+  expect(requestOllamaLearningQuestion).toHaveBeenCalledWith(
+    expect.objectContaining({
+      topicId: "ratio",
+      level: answer.level,
+    }),
+  );
 });
 
 test("consumes the generation allowance after one provider request", async () => {
   const sessionToken = await authenticatedSession();
   await submitAnswer(
-    requestFor("/api/answer", sessionToken, { topicId: "ratio", answer: "2" }),
+    requestFor("/api/answer", sessionToken, {
+      topicId: "ratio",
+      answer: "2:1",
+    }),
   );
   requestOllamaLearningQuestion.mockResolvedValue({
     question:
       "A smoothie recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed?",
+    answer: "2",
+    acceptableAnswers: [],
+    hint: "Divide flour by water.",
     diagramSvg:
       '<svg xmlns="http://www.w3.org/2000/svg" aria-label="ratio diagram" />',
   });

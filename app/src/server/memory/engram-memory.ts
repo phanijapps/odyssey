@@ -114,9 +114,8 @@ export function projectLearningSignal(_input: unknown): LearningProfileSignal {
   const level = input.acceptedLevel;
   if (
     Object.keys(input).some((key) => !allowed.includes(key)) ||
-    !getSeedCurriculumCatalog().topics.some(
-      (topic) => topic.id === input.topicId,
-    ) ||
+    typeof input.topicId !== "string" ||
+    !input.topicId ||
     typeof level !== "number" ||
     !Number.isInteger(level) ||
     level < 1 ||
