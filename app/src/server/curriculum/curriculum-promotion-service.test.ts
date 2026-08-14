@@ -4,7 +4,10 @@ import {
   createTemporaryBronzePromotion,
   getTemporaryPromotionView,
 } from "./promotion-store";
-import { generateSilverCandidate } from "./curriculum-promotion-service";
+import {
+  generateSilverCandidate,
+  splitSilverSource,
+} from "./curriculum-promotion-service";
 import type { SilverCandidate } from "./curriculum-pi-agent";
 
 const silverCandidate: SilverCandidate = {
@@ -55,4 +58,10 @@ test("generates a temporary Silver candidate only from approved Bronze", async (
     stage: "silver",
     silver: { sourceSummary: "Ratio standard." },
   });
+});
+
+test("splits a large source before sending it to the Pi runner", () => {
+  const chunks = splitSilverSource("x".repeat(45_001));
+  expect(chunks).toHaveLength(4);
+  expect(chunks.every((chunk) => chunk.length <= 15_000)).toBe(true);
 });

@@ -46,6 +46,7 @@ export async function POST(
         promptVersion: gold.provenance.promptVersion,
         model: process.env.PI_MODEL ?? "local-ollama",
       });
+      advancePromotion(ingestionId, "ingest-gold");
       expireTemporaryPromotion(ingestionId);
       return Response.json({ id: ingestionId, stage: "gold", ...result });
     }

@@ -1,5 +1,5 @@
 {
-  "revision": "ohio-math-seed-v1",
+  "revision": "ohio-math-seed-v2",
   "topics": [
     {
       "id": "ratio",
@@ -9,10 +9,73 @@
       "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
     },
     {
+      "id": "unit-rate",
+      "standardId": "6.RP.A.2",
+      "gradeOrCourse": "Grade 6",
+      "title": "Understand unit rates",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "percent",
+      "standardId": "6.RP.A.3",
+      "gradeOrCourse": "Grade 6",
+      "title": "Solve percent problems",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "fractions",
+      "standardId": "6.NS.A.1",
+      "gradeOrCourse": "Grade 6",
+      "title": "Divide fractions",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "integers",
+      "standardId": "6.NS.C.5",
+      "gradeOrCourse": "Grade 6",
+      "title": "Understand positive and negative numbers",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "expressions",
+      "standardId": "6.EE.A.2",
+      "gradeOrCourse": "Grade 6",
+      "title": "Write and evaluate expressions",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
       "id": "linear",
       "standardId": "7.RP.A.2",
       "gradeOrCourse": "Grade 7",
       "title": "Recognize proportional relationships",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "equations",
+      "standardId": "7.EE.B.4",
+      "gradeOrCourse": "Grade 7",
+      "title": "Solve equations",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "exponents",
+      "standardId": "8.EE.A.1",
+      "gradeOrCourse": "Grade 8",
+      "title": "Work with exponents",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "square-roots",
+      "standardId": "8.EE.A.2",
+      "gradeOrCourse": "Grade 8",
+      "title": "Work with square roots",
+      "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
+    },
+    {
+      "id": "functions",
+      "standardId": "8.F.A.1",
+      "gradeOrCourse": "Grade 8",
+      "title": "Understand functions",
       "sourceUrl": "https://education.ohio.gov/Topics/Learning-in-Ohio/Mathematics"
     }
   ]

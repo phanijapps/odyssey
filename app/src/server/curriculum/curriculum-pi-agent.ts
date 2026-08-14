@@ -1,16 +1,9 @@
 import "server-only";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Agent } from "@earendil-works/pi-agent-core";
-import {
-  createModels,
-  createProvider,
-  type Model,
-} from "@earendil-works/pi-ai";
-import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
 import { parseCurriculumRecord } from "../../../../packages/curriculum/src/curriculum-model";
 
-const MAX_PI_INPUT_CHARACTERS = 60_000;
+const MAX_PI_INPUT_CHARACTERS = 120_000;
 
 type PiStage = "bronze-to-silver" | "silver-to-gold";
 
@@ -99,68 +92,59 @@ function getProfile(stage: PiStage): {
 }
 
 async function completeWithPi(request: PiRequest): Promise<string> {
-  const model = createLocalModel();
-  const models = createModels();
-  models.setProvider(
-    createProvider({
-      id: "curriculum-ollama",
-      name: "Local Ollama",
-      baseUrl: model.baseUrl,
-      auth: { apiKey: { name: "Ollama", resolve: async () => ({ auth: {} }) } },
-      models: [model],
-      api: openAICompletionsApi(),
-    }),
-  );
-  const agent = new Agent({
-    initialState: {
-      systemPrompt: request.systemPrompt,
-      model,
-      thinkingLevel: "off",
-      tools: [],
-    },
-    streamFn: models.streamSimple.bind(models),
-    shouldStopAfterTurn: () => true,
-  });
-  await agent.prompt(request.data);
-  const message = agent.state.messages.findLast(
-    (candidate) => candidate.role === "assistant",
-  );
-  if (!message || message.role !== "assistant")
-    throw new Error("Curriculum Pi did not return a response");
-  const content = message.content
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("");
-  if (!content) throw new Error("Curriculum Pi did not return JSON");
-  return content;
-}
-
-function createLocalModel(): Model<"openai-completions"> {
   const modelId = process.env.PI_MODEL;
   if (!modelId) throw new Error("Curriculum Pi model is not configured");
   const baseUrl = process.env.OLLAMA_OPENAI_URL ?? "http://127.0.0.1:11434/v1";
-  return {
-    id: modelId,
-    name: modelId,
-    api: "openai-completions",
-    provider: "curriculum-ollama",
-    baseUrl,
-    reasoning: false,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 32_768,
-    maxTokens: 2_048,
-    compat: {
-      supportsDeveloperRole: false,
-      supportsReasoningEffort: false,
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
     },
+    signal: AbortSignal.timeout(120_000),
+    body: JSON.stringify({
+      model: modelId,
+      stream: false,
+      max_tokens: 8_192,
+      response_format: { type: "json_object" },
+      temperature: 0,
+      messages: [
+        { role: "system", content: request.systemPrompt },
+        { role: "user", content: request.data },
+      ],
+    }),
+  });
+  if (!response.ok) throw new Error("Curriculum Pi request failed");
+  const payload = (await response.json()) as {
+    choices?: Array<{ message?: { content?: unknown } }>;
   };
+  const choices = payload.choices;
+  if (!Array.isArray(choices) || choices.length === 0)
+    throw new Error("Curriculum Pi did not return a response");
+  const messageContent = choices[0]?.message?.content;
+  if (typeof messageContent !== "string" || !messageContent)
+    throw new Error("Curriculum Pi did not return JSON");
+  return messageContent;
 }
 
 function parsePiJson(input: string): unknown {
+  const trimmed = input.trim();
+  let candidate = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/i, "");
   try {
-    return JSON.parse(input);
+    return JSON.parse(candidate);
   } catch {
+    // Try extracting the outermost JSON object
+    const start = candidate.indexOf("{");
+    const end = candidate.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      candidate = candidate.slice(start, end + 1);
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        // JSON is likely truncated — skip this chunk gracefully
+      }
+    }
     throw new Error("Invalid Pi JSON response");
   }
 }
@@ -222,9 +206,7 @@ function isSilverRecord(input: unknown): input is SilverRecord {
   );
 }
 
-function isRelation(
-  input: unknown,
-): input is {
+function isRelation(input: unknown): input is {
   readonly from: string;
   readonly to: string;
   readonly type: string;

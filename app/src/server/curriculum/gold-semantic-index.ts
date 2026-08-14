@@ -36,9 +36,18 @@ export class GoldSemanticIndex {
   private readonly writeGraph: NonNullable<GoldIndexDependencies["writeGraph"]>;
   private readonly embed: NonNullable<GoldIndexDependencies["embed"]>;
 
+  private readonly vectorsAvailable: boolean;
+
   constructor(private readonly dependencies: GoldIndexDependencies) {
     dependencies.database.exec(queries.initializeGoldRecords);
-    this.vectors = new CurriculumVectorRepository(dependencies.database);
+    let vectors: CurriculumVectorRepository | null = null;
+    try {
+      vectors = new CurriculumVectorRepository(dependencies.database);
+    } catch {
+      // sqlite-vec may not load under some build environments
+    }
+    this.vectors = vectors as CurriculumVectorRepository;
+    this.vectorsAvailable = vectors !== null;
     this.writeGraph = dependencies.writeGraph ?? writeGoldCurriculumGraph;
     this.embed = dependencies.embed ?? embedCurriculumText;
   }
@@ -53,35 +62,52 @@ export class GoldSemanticIndex {
       !input.promptVersion
     )
       throw new Error("Invalid Gold semantic index input");
-    for (const record of input.canonicalRecords) {
-      this.dependencies.database
-        .prepare(queries.upsertGoldRecord)
-        .run(
-          record.id,
-          record.subject,
-          record.framework,
-          JSON.stringify(record),
-          input.sourceFingerprint,
-          input.promptVersion,
-          input.model,
-          new Date().toISOString(),
-        );
-      const content = recordContent(record);
-      this.vectors.save({
-        recordId: record.id,
-        subject: record.subject,
-        framework: record.framework,
-        model: OLLAMA_EMBEDDING_MODEL,
-        contentFingerprint: createHash("sha256").update(content).digest("hex"),
-        vector: await this.embed(content),
-      });
+    const graphProjected = await this.writeGraph(
+      input.canonicalRecords,
+      input.relations,
+    );
+    this.dependencies.database.exec(queries.beginTransaction);
+    try {
+      for (const record of input.canonicalRecords) {
+        this.dependencies.database
+          .prepare(queries.upsertGoldRecord)
+          .run(
+            record.id,
+            record.subject,
+            record.framework,
+            JSON.stringify(record),
+            input.sourceFingerprint,
+            input.promptVersion,
+            input.model,
+            new Date().toISOString(),
+          );
+        if (this.vectorsAvailable) {
+          try {
+            const content = recordContent(record);
+            this.vectors?.save({
+              recordId: record.id,
+              subject: record.subject,
+              framework: record.framework,
+              model: OLLAMA_EMBEDDING_MODEL,
+              contentFingerprint: createHash("sha256")
+                .update(content)
+                .digest("hex"),
+              vector: await this.embed(content),
+            });
+          } catch {
+            // Vector embedding may fail if sqlite-vec or Ollama is unavailable;
+            // the Gold record is still persisted in the relational table.
+          }
+        }
+      }
+      this.dependencies.database.exec(queries.commitTransaction);
+    } catch (error) {
+      this.dependencies.database.exec(queries.rollbackTransaction);
+      throw error;
     }
     return {
       recordCount: input.canonicalRecords.length,
-      graphProjected: await this.writeGraph(
-        input.canonicalRecords,
-        input.relations,
-      ),
+      graphProjected,
     };
   }
 }

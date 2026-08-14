@@ -43,3 +43,35 @@ export async function writeGoldCurriculumGraph(
     return false;
   }
 }
+
+/** Returns Gold record identifiers recalled from the curriculum-scoped graph. */
+export async function findGoldGraphCandidates(
+  query: string,
+): Promise<string[]> {
+  const transport = loadConfiguredEngramTransport() as {
+    recall?: (request: unknown) => Promise<unknown>;
+  } | null;
+  if (!transport?.recall || !query.trim()) return [];
+  try {
+    const response = (await transport.recall({
+      query,
+      requester: { actor: { id: "odyssey-learning", kind: "service" } },
+      scope: { tenant: "odyssey", subject: "curriculum", workspace: "gold" },
+      limit: 20,
+    })) as { items?: unknown };
+    if (!Array.isArray(response.items)) return [];
+    return response.items.flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const content = (item as { content?: unknown }).content;
+      if (typeof content !== "string") return [];
+      try {
+        const record = JSON.parse(content) as { record?: { id?: unknown } };
+        return typeof record.record?.id === "string" ? [record.record.id] : [];
+      } catch {
+        return [];
+      }
+    });
+  } catch {
+    return [];
+  }
+}

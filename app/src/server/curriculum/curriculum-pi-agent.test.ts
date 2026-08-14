@@ -51,7 +51,7 @@ test("rejects malformed agent output and inputs beyond the bounded request size"
   await expect(
     agent.run({
       stage: "bronze-to-silver",
-      input: { source: "x".repeat(60_001) },
+      input: { source: "x".repeat(120_001) },
     }),
   ).rejects.toThrow("Curriculum Pi input exceeds limit");
 });
