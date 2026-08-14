@@ -19,6 +19,7 @@ import {
   selectNextQuestion,
   poolProgress,
   generateLazyQuestion,
+  prefetchNextQuestion,
   type PoolQuestion,
   type QuestionPool,
   type Difficulty,
@@ -145,6 +146,17 @@ export async function POST(request: Request): Promise<Response> {
     let nextHint = "";
 
     if (pool && pool.topicId === body.topicId) {
+      // Standards scoped to the exact standard being practiced (segment [3]).
+      const allDomainStandards = getStandardsForSelection({
+        subject: body.topicId.split("::")[0] ?? "",
+        grade: body.topicId.split("::")[1] ?? "",
+        domain: body.topicId.split("::")[2] ?? "",
+      });
+      const selectedStandard = body.topicId.split("::")[3];
+      const standards = selectedStandard
+        ? allDomainStandards.filter((s) => s.standardCode === selectedStandard)
+        : allDomainStandards;
+
       const adjusted: QuestionPool = adjustDifficulty(
         {
           topicId: pool.topicId,
@@ -175,20 +187,24 @@ export async function POST(request: Request): Promise<Response> {
           batchPosition: updatedPool.batchPosition,
           batchSize: updatedPool.batchSize,
         });
+        // Pre-generate the following question in the background while the
+        // child works on this one, so the next answer is served instantly.
+        prefetchNextQuestion(
+          pool.topicId,
+          adjusted.currentDifficulty,
+          standards,
+          (next) => {
+            const current = getSessionPool(request);
+            if (!current || current.topicId !== pool.topicId) return;
+            if (current.questions.some((q) => q.id === next.id)) return;
+            setSessionPool(request, {
+              ...current,
+              questions: [...current.questions, next],
+            });
+          },
+        );
       } else {
-        // Generate next question lazily via AI, scoped to the exact standard
-        // being practiced (segment [3]) — not the whole domain.
-        const allDomainStandards = getStandardsForSelection({
-          subject: body.topicId.split("::")[0] ?? "",
-          grade: body.topicId.split("::")[1] ?? "",
-          domain: body.topicId.split("::")[2] ?? "",
-        });
-        const selectedStandard = body.topicId.split("::")[3];
-        const standards = selectedStandard
-          ? allDomainStandards.filter(
-              (s) => s.standardCode === selectedStandard,
-            )
-          : allDomainStandards;
+        // Generate next question lazily via AI (standards scoped above).
         const lazy = await generateLazyQuestion(
           pool.topicId,
           adjusted.currentDifficulty,

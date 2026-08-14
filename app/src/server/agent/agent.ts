@@ -140,17 +140,13 @@ export async function requestOllamaLearningQuestion(input: {
         {
           role: "user",
           content: input.standards?.length
-            ? `Practice skill: ${input.standards[0].standardCode} — ${input.standards[0].standardText} (difficulty ${input.level}). <learning-data>${JSON.stringify(
+            ? `Practice skill: ${input.standards[0].standardCode} — ${input.standards[0].standardText} (difficulty ${input.level}).`
+            : `Topic: ${input.topicId} (difficulty ${input.level}). <learning-data>${JSON.stringify(
                 {
                   topicId: input.topicId,
                   level: input.level,
-                  standards: input.standards,
                 },
-              )}</learning-data>`
-            : `<learning-data>${JSON.stringify({
-                topicId: input.topicId,
-                level: input.level,
-              })}</learning-data>`,
+              )}</learning-data>`,
         },
         ...(profileData
           ? [{ role: "user", content: profileData.content }]

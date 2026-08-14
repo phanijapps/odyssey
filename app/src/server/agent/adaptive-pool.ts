@@ -225,6 +225,25 @@ async function makeQuestion(
   return makeBankQuestion(topicId, difficulty, existingTexts, standardText);
 }
 
+/** Pre-generates the next question in the background at the given difficulty
+ *  so answering is instant. Fire-and-forget: errors are swallowed. */
+export function prefetchNextQuestion(
+  topicId: string,
+  difficulty: Difficulty,
+  standards:
+    | readonly { standardCode: string; standardText: string }[]
+    | undefined,
+  onReady: (q: PoolQuestion) => void,
+): void {
+  void makeQuestion(topicId, difficulty, standards, new Set())
+    .then((q) => {
+      if (q) onReady(q);
+    })
+    .catch(() => {
+      // Background prefetch is best-effort.
+    });
+}
+
 /** Generates only the first question (medium) for fast startup.
  *  Remaining questions are generated lazily by generateLazyQuestion. */
 export async function generateQuestionPool(

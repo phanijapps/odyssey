@@ -2,6 +2,7 @@ import {
   createQuestionPool,
   selectNextQuestion,
   poolProgress,
+  prefetchNextQuestion,
 } from "../../../server/agent/adaptive-pool";
 import { getStandardsForSelection } from "../../../server/curriculum/browse";
 import {
@@ -93,6 +94,17 @@ export async function GET(request: Request): Promise<Response> {
       { headers: { "Cache-Control": "no-store" } },
     );
   }
+
+  // Pre-generate the next question in the background so answering is instant.
+  prefetchNextQuestion(topicId, 2, standards, (next) => {
+    const current = getSessionPool(request);
+    if (!current || current.topicId !== topicId) return;
+    if (current.questions.some((q) => q.id === next.id)) return;
+    setSessionPool(request, {
+      ...current,
+      questions: [...current.questions, next],
+    });
+  });
 
   const prog = poolProgress({
     topicId: updatedPool.topicId,
