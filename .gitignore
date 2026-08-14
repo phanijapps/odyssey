@@ -62,3 +62,8 @@ docs/knowledge/*.lock
 docs/knowledge/**/*.lock.stale-*
 docs/knowledge/*.lock.stale-*
 .loop-run/
+
+# data
+*.db
+*.db-shm
+*.db-wal
