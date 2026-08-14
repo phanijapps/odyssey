@@ -150,7 +150,7 @@ function isSafeSvg(svg: string): boolean {
           if (key === "xmlns")
             return name === "svg" && value === "http://www.w3.org/2000/svg";
           if (key === "fill" || key === "stroke")
-            return /^(?:#[0-9a-f]{3,8}|none|transparent|currentColor|[a-z]{3,20})$/i.test(
+            return /^(?:#[0-9a-f]{3,8}|rgba?\([\d.,\s%]+\)|hsla?\([\d.,\s%deg]+\)|none|transparent|currentColor|[a-z]{3,20})$/i.test(
               value,
             );
           if (key === "stroke-width")

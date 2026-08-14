@@ -128,3 +128,13 @@ test("accepts polygon and ellipse diagrams for geometry questions", () => {
     }),
   ).not.toThrow();
 });
+
+test("accepts rgba fills on polygon figures (transformation diagrams)", () => {
+  expect(() =>
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260"><polygon points="50,50 140,50 50,140" fill="rgba(70,130,180,0.3)" stroke="#2c5f8a" stroke-width="2" /><polygon points="230,200 230,110 320,200" fill="rgba(200,80,80,0.3)" stroke="#a03030" stroke-width="2" /><text x="75" y="100" font-size="13" fill="#2c5f8a">Figure 1</text></svg>',
+    }),
+  ).not.toThrow();
+});
