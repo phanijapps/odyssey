@@ -9,4 +9,9 @@ export default defineConfig({
       ),
     },
   },
+  test: {
+    env: {
+      ODYSSEY_DB_PATH: ":memory:",
+    },
+  },
 });

@@ -1,280 +1,358 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { MathText } from "@/components/math-text";
 
-const fallbackTopics = [
-  {
-    id: "ratio",
-    label: "Ratios & rates",
-    grade: "Grade 6",
-    standard: "6.RP.A.1",
-  },
-  {
-    id: "linear",
-    label: "Linear relationships",
-    grade: "Grade 7",
-    standard: "7.RP.A.2",
-  },
-];
-
-const topicQuestions: Record<string, string> = {
-  ratio:
-    "A recipe uses 1 cup of water for every 2 cups of flour. How many cups of flour are needed?",
-  linear: "For y = 2x, what is the coefficient of x?",
+type FlatStandard = {
+  id: string;
+  standardCode: string;
+  standardText: string;
+  domain: string;
+  subject: string;
+  grade: string;
 };
 
 type PracticeFeedback = { kind: "success" | "error"; message: string };
 
 export default function HomePage() {
+  // Auth
   const [signedIn, setSignedIn] = useState(false);
+  const [role, setRole] = useState<"student" | "admin" | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [topicId, setTopicId] = useState("ratio");
-  const activeTopicRef = useRef(topicId);
-  const progressRequestVersion = useRef(0);
-  const questionRequestVersion = useRef(0);
-  const [topics, setTopics] = useState(fallbackTopics);
+
+  // Browse + selection
+  const [allStandards, setAllStandards] = useState<FlatStandard[]>([]);
+  const [selGrade, setSelGrade] = useState("Grade 6");
+  const [selSubject, setSelSubject] = useState("Mathematics");
+  const [activeSkill, setActiveSkill] = useState<FlatStandard | null>(null);
+  const [browseOpen, setBrowseOpen] = useState(false);
+
+  // Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<FlatStandard[]>([]);
+  const [semanticLoading, setSemanticLoading] = useState(false);
+
+  // Practice
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
-  const [canRequestGeneratedPractice, setCanRequestGeneratedPractice] =
-    useState(false);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
-  const [isTopicLoading, setIsTopicLoading] = useState(false);
-  const [progressError, setProgressError] = useState("");
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
+  const [questionFailed, setQuestionFailed] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
   const [level, setLevel] = useState(1);
   const [correctStreak, setCorrectStreak] = useState(0);
-  const [question, setQuestion] = useState(topicQuestions.ratio);
-  const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
-  const [generatedPreview, setGeneratedPreview] = useState<{
-    question: string;
-    diagramSvg: string;
-  } | null>(null);
-  const [memoryState, setMemoryState] = useState<"ready" | "unavailable">(
-    "unavailable",
-  );
-  const [parentOpen, setParentOpen] = useState(false);
-  const [parentMessage, setParentMessage] = useState("");
-  const [parentReply, setParentReply] = useState("");
-  const [parentSummary, setParentSummary] = useState<{
-    topics: Array<{ topicId: string; level: number; attempts: number }>;
-    totalAttempts: number;
-  } | null>(null);
+  const [poolPos, setPoolPos] = useState(0);
+  const [poolTotal, setPoolTotal] = useState(0);
+  const [poolDifficulty, setPoolDifficulty] = useState(2);
+  const progressVersion = useRef(0);
+
+  /* ---- Data loading ---- */
+
+  const loadStandards = useCallback(async () => {
+    try {
+      const res = await fetch("/api/curriculum/browse", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const flat: FlatStandard[] = [];
+      for (const s of data.subjects ?? []) {
+        for (const g of s.grades ?? []) {
+          for (const d of g.domains ?? []) {
+            for (const std of d.standards ?? []) {
+              flat.push({
+                id: std.id,
+                standardCode: std.standardCode,
+                standardText: std.standardText,
+                domain: d.domain,
+                subject: s.subject,
+                grade: g.grade,
+              });
+            }
+          }
+        }
+      }
+      setAllStandards(flat);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     void (async () => {
-      const response = await fetch("/api/session", { cache: "no-store" });
-      if (response.ok) {
-        setIsTopicLoading(true);
-        setSignedIn(true);
-        await loadProgress(topicId);
+      const res = await fetch("/api/session", { cache: "no-store" });
+      if (!res.ok) return;
+      setSignedIn(true);
+      const account = (await res.json()) as { role?: string };
+      setRole((account.role as "student" | "admin") ?? "student");
+      await loadStandards();
+      // Session continuity: resume the last practiced skill if saved.
+      try {
+        const saved = window.localStorage.getItem("odyssey:lastSkill");
+        if (saved) {
+          const skill = JSON.parse(saved) as FlatStandard;
+          const stillExists = allStandardsRef.current.some(
+            (s) => s.id === skill.id,
+          );
+          if (stillExists) {
+            setSelGrade(skill.grade);
+            void selectSkill(skill);
+            return;
+          }
+        }
+      } catch {
+        /* corrupted storage — fall through */
       }
     })();
-  }, []);
+  }, [loadStandards]);
 
-  async function loadProgress(activeTopicId: string) {
-    const requestVersion = ++progressRequestVersion.current;
-    setIsTopicLoading(true);
-    setProgressError("");
-    let loaded = false;
+  const allStandardsRef = useRef<FlatStandard[]>([]);
+  useEffect(() => {
+    allStandardsRef.current = allStandards;
+  }, [allStandards]);
+
+  /* ---- Search (instant client-side typeahead) ---- */
+
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) {
+      setSearchResults([]);
+      return;
+    }
+    const pool = allStandards.filter(
+      (s) => s.grade === selGrade && s.subject === selSubject,
+    );
+    const scored = pool
+      .map((s) => {
+        const text =
+          `${s.standardCode} ${s.domain} ${s.standardText}`.toLowerCase();
+        let score = 0;
+        if (s.standardCode.toLowerCase().startsWith(q)) score += 50;
+        if (text.includes(q)) score += 20;
+        const words = q.split(/\s+/).filter((w) => w.length > 1);
+        for (const w of words) {
+          if (text.includes(w)) score += 5;
+        }
+        return { s, score };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 15);
+    setSearchResults(scored.map((x) => x.s));
+  }, [searchQuery, selGrade, allStandards]);
+
+  async function semanticSearch() {
+    if (!searchQuery.trim()) return;
+    setSemanticLoading(true);
     try {
-      const response = await fetch(
-        `/api/progress?topicId=${encodeURIComponent(activeTopicId)}`,
+      const res = await fetch(
+        `/api/curriculum/search?q=${encodeURIComponent(searchQuery)}&grade=${encodeURIComponent(selGrade)}&semantic=1`,
         { cache: "no-store" },
       );
-      if (!response.ok) return;
-      const progress = (await response.json()) as {
-        level: number;
-        correctStreak: number;
-        nextQuestion?: { question?: string; diagramSvg?: string };
-      };
-      if (
-        activeTopicRef.current !== activeTopicId ||
-        progressRequestVersion.current !== requestVersion
-      )
-        return;
-      setLevel(progress.level);
-      setCorrectStreak(progress.correctStreak);
-      if (progress.nextQuestion?.question)
-        setQuestion(progress.nextQuestion.question);
-      setDiagramSvg(progress.nextQuestion?.diagramSvg ?? null);
-      loaded = Boolean(progress.nextQuestion?.question);
-    } catch {
-      setProgressError(
-        "Your current practice question could not load. Please refresh and try again.",
-      );
-    } finally {
-      if (
-        activeTopicRef.current === activeTopicId &&
-        progressRequestVersion.current === requestVersion
-      ) {
-        if (loaded) setIsTopicLoading(false);
-        else
-          setProgressError(
-            "Your current practice question could not load. Please refresh and try again.",
-          );
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults((data.results ?? []).map((r: FlatStandard) => r));
       }
+    } catch {
+      /* ignore */
+    } finally {
+      setSemanticLoading(false);
     }
   }
 
-  async function signIn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const response = await fetch("/api/session", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    if (response.ok) {
-      setIsTopicLoading(true);
-      setSignedIn(true);
-      setError("");
-      const topicResponse = await fetch("/api/topics", { cache: "no-store" });
-      if (topicResponse.ok) {
-        const catalogTopics = (await topicResponse.json()) as Array<{
-          id: string;
-          title: string;
-          gradeOrCourse: string;
-          standardId: string;
-        }>;
-        setTopics(
-          catalogTopics.map((topic) => ({
-            id: topic.id,
-            label: topic.title,
-            grade: topic.gradeOrCourse,
-            standard: topic.standardId,
-          })),
-        );
+  /* ---- Skill selection → practice ---- */
+
+  async function selectSkill(skill: FlatStandard) {
+    const version = ++progressVersion.current;
+    setActiveSkill(skill);
+    try {
+      window.localStorage.setItem("odyssey:lastSkill", JSON.stringify(skill));
+    } catch {
+      /* storage unavailable */
+    }
+    setFeedback(null);
+    setAnswer("");
+    setQuestionFailed(false);
+    setIsLoadingQuestion(true);
+    setQuestion("Loading…");
+    setDiagramSvg(null);
+    try {
+      const params = new URLSearchParams({
+        subject: skill.subject,
+        grade: skill.grade,
+        domain: skill.domain,
+        standard: skill.standardCode,
+        topicId: `${skill.subject}::${skill.grade}::${skill.domain}::${skill.standardCode}`,
+      });
+      const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
+      if (progressVersion.current !== version) return;
+      if (!res.ok) return;
+      const d = await res.json();
+      setLevel(d.level ?? 1);
+      setCorrectStreak(d.correctStreak ?? 0);
+      if (d.nextQuestion?.question) {
+        setQuestion(d.nextQuestion.question);
+        setDiagramSvg(d.nextQuestion?.diagramSvg ?? null);
+      } else {
+        setQuestion("");
+        setQuestionFailed(true);
       }
-      const memory = await fetch("/api/memory", { cache: "no-store" });
-      if (memory.ok) setMemoryState((await memory.json()).kind);
-      await loadProgress(topicId);
-    } else {
-      setError("We could not sign you in. Check your details and try again.");
+      if (d.poolProgress) {
+        setPoolPos(d.poolProgress.position);
+        setPoolTotal(d.poolProgress.total);
+        setPoolDifficulty(d.poolProgress.difficulty);
+      }
+    } catch {
+      setQuestion("Could not load question. Try another skill.");
+    } finally {
+      if (progressVersion.current === version) setIsLoadingQuestion(false);
     }
   }
 
   async function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmittingAnswer || isTopicLoading) return;
-    const submittedTopicId = topicId;
-    progressRequestVersion.current += 1;
-    const requestVersion = ++questionRequestVersion.current;
+    if (isSubmittingAnswer || !activeSkill) return;
+    const version = progressVersion.current;
     setIsSubmittingAnswer(true);
     try {
-      const response = await fetch("/api/answer", {
+      const topicId = `${activeSkill.subject}::${activeSkill.grade}::${activeSkill.domain}::${activeSkill.standardCode}`;
+      const res = await fetch("/api/answer", {
         method: "POST",
         headers: {
           "content-type": "application/json",
           origin: window.location.origin,
         },
-        body: JSON.stringify({
-          topicId: submittedTopicId,
-          answer,
-        }),
+        body: JSON.stringify({ topicId, answer }),
       });
-      if (!response.ok) {
-        setFeedback({
-          kind: "error",
-          message: "We could not save that answer. Please try again.",
-        });
+      if (progressVersion.current !== version) return;
+      if (!res.ok) {
+        setFeedback({ kind: "error", message: "Could not save answer." });
         return;
       }
-      const payload = (await response.json()) as {
-        level: number;
-        correct: boolean;
-        correctStreak: number;
-        nextQuestion?: { question?: string; diagramSvg?: string };
-      };
-      if (
-        activeTopicRef.current !== submittedTopicId ||
-        questionRequestVersion.current !== requestVersion
-      )
-        return;
-      progressRequestVersion.current += 1;
-      setLevel(payload.level);
-      setCorrectStreak(payload.correctStreak);
+      const d = await res.json();
+      setLevel(d.level);
+      setCorrectStreak(d.correctStreak);
       setFeedback({
-        kind: payload.correct ? "success" : "error",
-        message: payload.correct
-          ? "Nice work — your next question is ready."
-          : "Not quite yet. Try the ratio again.",
+        kind: d.correct ? "success" : "error",
+        message: d.correct
+          ? "Nice work!"
+          : `Not quite. ${d.hint ?? "Try again!"}`,
       });
-      setCanRequestGeneratedPractice(true);
-      setGeneratedPreview(null);
-      if (payload.nextQuestion?.question)
-        setQuestion(payload.nextQuestion.question);
-      setDiagramSvg(payload.nextQuestion?.diagramSvg ?? null);
+      if (d.poolProgress) {
+        setPoolPos(d.poolProgress.position);
+        setPoolTotal(d.poolProgress.total);
+        setPoolDifficulty(d.poolProgress.difficulty);
+      }
+      if (d.nextQuestion?.question) {
+        setQuestion(d.nextQuestion.question);
+        setDiagramSvg(d.nextQuestion?.diagramSvg ?? null);
+      } else {
+        setQuestion("");
+        setQuestionFailed(true);
+      }
       setAnswer("");
     } catch {
-      setFeedback({
-        kind: "error",
-        message: "We could not save that answer. Please try again.",
-      });
+      setFeedback({ kind: "error", message: "Could not save answer." });
     } finally {
-      setIsSubmittingAnswer(false);
+      if (progressVersion.current === version) setIsSubmittingAnswer(false);
     }
   }
 
-  async function requestGeneratedPractice() {
-    const submittedTopicId = topicId;
-    const requestVersion = ++questionRequestVersion.current;
-    setCanRequestGeneratedPractice(false);
-    setGeneratedPreview(null);
-    const response = await fetch("/api/generated-question", {
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const res = await fetch("/api/session", {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        origin: window.location.origin,
-      },
-      body: JSON.stringify({ topicId: submittedTopicId }),
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username, password }),
     });
-    const payload = (await response.json()) as {
-      error?: string;
-      question?: string;
-      diagramSvg?: string;
-    };
-    if (
-      activeTopicRef.current !== submittedTopicId ||
-      questionRequestVersion.current !== requestVersion
-    )
-      return;
-    if (response.ok && payload.question && payload.diagramSvg) {
-      setGeneratedPreview({
-        question: payload.question,
-        diagramSvg: payload.diagramSvg,
-      });
-      setDiagramSvg(payload.diagramSvg);
-      setFeedback({
-        kind: "success",
-        message: "A generated practice question is ready.",
-      });
-      return;
+    if (res.ok) {
+      const account = (await res.json()) as {
+        childId: string;
+        username: string;
+        role: "student" | "admin";
+      };
+      setSignedIn(true);
+      setRole(account.role);
+      setError("");
+      // Offer to save the password in the browser's password manager.
+      try {
+        const w = window as unknown as {
+          PasswordCredential?: new (data: {
+            id: string;
+            password: string;
+            name: string;
+          }) => Credential;
+        };
+        if (w.PasswordCredential && navigator.credentials) {
+          await navigator.credentials.store(
+            new w.PasswordCredential({
+              id: account.username,
+              password,
+              name: account.username,
+            }),
+          );
+        }
+      } catch {
+        /* password manager unavailable */
+      }
+      await loadStandards();
+      try {
+        const saved = window.localStorage.getItem("odyssey:lastSkill");
+        if (saved) {
+          const skill = JSON.parse(saved) as FlatStandard;
+          const stillExists = allStandardsRef.current.some(
+            (s) => s.id === skill.id,
+          );
+          if (stillExists) {
+            setSelGrade(skill.grade);
+            void selectSkill(skill);
+            return;
+          }
+        }
+      } catch {
+        /* fall through */
+      }
+    } else {
+      setError("We could not sign you in. Check your details and try again.");
     }
-    setFeedback({
-      kind: "error",
-      message:
-        payload.error ??
-        "Generated practice is unavailable. Your local practice question is still ready.",
-    });
   }
+
+  /* ---- Derived data ---- */
+
+  const subjects = [...new Set(allStandards.map((s) => s.subject))];
+  const grades = [
+    ...new Set(
+      allStandards.filter((s) => s.subject === selSubject).map((s) => s.grade),
+    ),
+  ].sort();
+  const skillsForGrade = allStandards
+    .filter((s) => s.grade === selGrade && s.subject === selSubject)
+    .sort((a, b) => a.standardCode.localeCompare(b.standardCode));
+
+  // Group skills by domain for the sidebar
+  const skillsByDomain = new Map<string, FlatStandard[]>();
+  for (const s of skillsForGrade) {
+    if (!skillsByDomain.has(s.domain)) skillsByDomain.set(s.domain, []);
+    skillsByDomain.get(s.domain)!.push(s);
+  }
+
+  /* ---- Auth screen ---- */
 
   if (!signedIn) {
     return (
       <main className="shell auth-shell">
-        <section className="auth-card" aria-labelledby="welcome-title">
+        <section className="auth-card">
           <div className="brand-mark">O</div>
           <p className="eyebrow">ODYSSEY LEARNING</p>
-          <h1 id="welcome-title">A calmer way to get better at math.</h1>
-          <p className="lede">
-            Focused practice, one thoughtful question at a time.
-          </p>
+          <h1>A calmer way to get better at math.</h1>
+          <p className="lede">Search a skill, start practicing.</p>
           <form className="stack" onSubmit={signIn}>
             <label>
               Username
               <input
                 value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                autoComplete="username"
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </label>
@@ -283,8 +361,7 @@ export default function HomePage() {
               <input
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </label>
@@ -298,325 +375,263 @@ export default function HomePage() {
             </button>
           </form>
           <p className="hint">
-            Local test account: child / development-password
+            Sign in with your account. Admin? Use the Dashboard after signing
+            in.
           </p>
         </section>
       </main>
     );
   }
 
-  const topic = topics.find((item) => item.id === topicId) ?? topics[0];
+  /* ---- Main practice screen ---- */
+
   return (
-    <main className="shell portal-shell">
-      <header className="topbar">
-        <div className="wordmark">
-          <span className="small-mark">O</span> odyssey
-        </div>
-        <div className="profile-chip">
-          <span className="avatar">C</span> Child learner
-        </div>
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={async () => {
-            const nextOpen = !parentOpen;
-            setParentOpen(nextOpen);
-            if (nextOpen) {
-              const response = await fetch("/api/parent/summary", {
-                cache: "no-store",
-              });
-              if (response.ok) setParentSummary(await response.json());
-            }
+    <main className="ixl-shell">
+      {/* Single horizontal header with all controls */}
+      <header className="ixl-topbar">
+        <span className="small-mark">O</span>
+        <span className="topbar-brand">odyssey</span>
+        <select
+          className="topbar-select"
+          value={selSubject}
+          onChange={(e) => {
+            setSelSubject(e.target.value);
+            setSearchQuery("");
+            const firstGrade = allStandards.find(
+              (s) => s.subject === e.target.value,
+            )?.grade;
+            if (firstGrade) setSelGrade(firstGrade);
           }}
         >
-          Parent view
-        </button>
+          {subjects.map((s) => (
+            <option key={s} value={s}>
+              {s === "Mathematics"
+                ? "Math"
+                : s === "English Language Arts"
+                  ? "ELA"
+                  : s}
+            </option>
+          ))}
+        </select>
+        <select
+          className="topbar-select"
+          value={selGrade}
+          onChange={(e) => {
+            setSelGrade(e.target.value);
+            setSearchQuery("");
+          }}
+        >
+          {grades.map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
+        <div className="topbar-search">
+          <input
+            type="text"
+            placeholder="Search skills…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button
+            className="semantic-btn"
+            onClick={() => void semanticSearch()}
+            disabled={semanticLoading || !searchQuery.trim()}
+            title="AI semantic search"
+          >
+            {semanticLoading ? "…" : "✨"}
+          </button>
+          {/* Inline dropdown results */}
+          {searchQuery.trim() && (
+            <div className="search-dropdown">
+              {searchResults.length > 0 ? (
+                searchResults.map((s) => (
+                  <button
+                    key={s.id}
+                    className="search-result-row"
+                    onClick={() => {
+                      void selectSkill(s);
+                      setSearchQuery("");
+                    }}
+                  >
+                    <span className="result-code">{s.standardCode}</span>
+                    <span className="result-text">{s.standardText}</span>
+                  </button>
+                ))
+              ) : (
+                <p className="search-meta">
+                  No matches. Try ✨ for semantic search, or pick a skill below.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Skill browser toggle */}
         <button
-          className="secondary-button"
-          type="button"
+          className="browse-toggle"
+          onClick={() => setBrowseOpen(!browseOpen)}
+        >
+          {browseOpen ? "Hide skills" : "Browse skills"}
+        </button>
+        <a href="/dashboard" className="ixl-link">
+          Dashboard
+        </a>
+        {role && <span className="role-chip">{role}</span>}
+        <button
+          className="ixl-link"
           onClick={async () => {
             await fetch("/api/session", { method: "DELETE" });
             setSignedIn(false);
-            setParentOpen(false);
+            setRole(null);
           }}
         >
           Sign out
         </button>
       </header>
-      {parentOpen && (
-        <section className="parent-panel" aria-label="Parent progress chat">
-          <p className="eyebrow">PARENT VIEW</p>
-          <h2>Ask about progress</h2>
-          {parentSummary && (
-            <>
-              <p className="lede">
-                {parentSummary.totalAttempts} attempts across{" "}
-                {parentSummary.topics.length} topic
-                {parentSummary.topics.length === 1 ? "" : "s"}.
-              </p>
-              {parentSummary.topics.length > 0 && (
-                <ul className="parent-topic-list">
-                  {parentSummary.topics.map((topic) => (
-                    <li key={topic.topicId}>
-                      <span>{topic.topicId}</span>
-                      <small>
-                        Level {topic.level} · {topic.attempts} attempts
-                      </small>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-          <form
-            className="answer-row"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const response = await fetch("/api/parent/chat", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: parentMessage }),
-              });
-              const payload = (await response.json()) as {
-                reply?: string;
-                error?: string;
-              };
-              setParentReply(
-                payload.reply ??
-                  payload.error ??
-                  "Unable to answer that message",
-              );
-            }}
-          >
-            <label className="sr-only" htmlFor="parent-message">
-              Message
-            </label>
-            <input
-              id="parent-message"
-              value={parentMessage}
-              onChange={(event) => setParentMessage(event.target.value)}
-              placeholder="How is practice going?"
-              maxLength={500}
-              required
-            />
-            <button className="primary-button" type="submit">
-              Ask
-            </button>
-          </form>
-          {parentReply && (
-            <p className="success" role="status">
-              {parentReply}
-            </p>
-          )}
-        </section>
-      )}
-      <section className="portal-grid">
-        <aside className="sidebar" aria-label="Learning navigation">
-          <p className="eyebrow">YOUR PRACTICE</p>
-          <h2>Keep your curiosity moving.</h2>
-          <div className="progress-card">
-            <span className="progress-ring">{level}</span>
-            <div>
-              <strong>Level {level}</strong>
-              <small>{correctStreak} correct in a row</small>
-            </div>
-          </div>
-          <p className="memory-state">
-            <span className="status-dot" /> Profile memory {memoryState}
-          </p>
-        </aside>
-        <section className="practice-panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">MATH · PRACTICE</p>
-              <h1>Let&apos;s warm up.</h1>
-            </div>
-            <span className="step-label">Question 1 · Level {level}</span>
-          </div>
-          <label className="topic-select">
-            Topic
-            <select
-              value={topicId}
-              onChange={(event) => {
-                const nextTopic = event.target.value;
-                activeTopicRef.current = nextTopic;
-                questionRequestVersion.current += 1;
-                setCanRequestGeneratedPractice(false);
-                setTopicId(nextTopic);
-                setQuestion(topicQuestions[nextTopic] ?? topicQuestions.ratio);
-                setDiagramSvg(null);
-                setGeneratedPreview(null);
-                void loadProgress(nextTopic);
-              }}
-            >
-              {topics.map((item) => (
-                <option value={item.id} key={item.id}>
-                  {item.label} · {item.grade}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="question-card">
-            <div className="question-copy">
-              <span className="question-tag">
-                {topic.standard} · {topic.grade}
-              </span>
-              <h2>{question}</h2>
-              {isTopicLoading ? (
-                <p role="status">
-                  {progressError || "Loading your current practice question…"}
-                </p>
-              ) : (
-                <form onSubmit={submitAnswer} className="answer-row">
-                  <label className="sr-only" htmlFor="answer">
-                    Your answer
-                  </label>
-                  <input
-                    id="answer"
-                    inputMode="numeric"
-                    value={answer}
-                    onChange={(event) => setAnswer(event.target.value)}
-                    placeholder="Type your answer"
-                    disabled={isSubmittingAnswer}
-                    required
-                  />
+
+      {/* Collapsible skill browser */}
+      {browseOpen && (
+        <div className="skill-browser">
+          {[...skillsByDomain.entries()].map(([domain, skills]) => (
+            <div key={domain} className="browser-domain">
+              <p className="browser-domain-header">{domain}</p>
+              <div className="browser-skills">
+                {skills.map((s) => (
                   <button
-                    className="primary-button"
-                    type="submit"
-                    disabled={isSubmittingAnswer}
+                    key={s.id}
+                    className={
+                      activeSkill?.id === s.id
+                        ? "browser-skill active"
+                        : "browser-skill"
+                    }
+                    onClick={() => {
+                      void selectSkill(s);
+                      setBrowseOpen(false);
+                    }}
                   >
-                    Check answer
+                    <span className="browser-code">{s.standardCode}</span>
+                    <span className="browser-desc">
+                      <MathText>
+                        {s.standardText.length > 70
+                          ? s.standardText.slice(0, 70) + "…"
+                          : s.standardText}
+                      </MathText>
+                    </span>
                   </button>
-                </form>
-              )}
-              <button
-                className="secondary-button generated-practice-button"
-                type="button"
-                onClick={() => void requestGeneratedPractice()}
-                disabled={
-                  !canRequestGeneratedPractice ||
-                  isSubmittingAnswer ||
-                  isTopicLoading
-                }
-              >
-                Try generated practice
-              </button>
-              {feedback !== null && (
-                <p className={feedback.kind} role="status">
-                  {feedback.message}
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Practice area — centered, full width */}
+      <section className="ixl-practice">
+        {activeSkill ? (
+          <>
+            <div className="practice-header">
+              <div>
+                <p className="eyebrow">{activeSkill.subject.toUpperCase()}</p>
+                <h1 className="practice-skill">{activeSkill.standardCode}</h1>
+                <p className="practice-desc">
+                  <MathText>{activeSkill.standardText}</MathText>
                 </p>
-              )}
-              {generatedPreview !== null && (
-                <section
-                  className="generated-preview"
-                  aria-label="Generated practice preview"
-                >
-                  <p className="eyebrow">GENERATED PREVIEW</p>
-                  <p>{generatedPreview.question}</p>
+              </div>
+              <div className="practice-meta">
+                {poolTotal > 0 && (
+                  <div className="pool-bar">
+                    {Array.from({ length: poolTotal }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`pool-dot ${i < poolPos ? "done" : i === poolPos ? "current" : ""}`}
+                      />
+                    ))}
+                  </div>
+                )}
+                <span className={`diff-badge diff-${poolDifficulty}`}>
+                  {poolDifficulty === 1
+                    ? "Building up"
+                    : poolDifficulty === 2
+                      ? "On track"
+                      : "Challenge"}
+                </span>
+                <span className="streak-badge">🔥 {correctStreak}</span>
+              </div>
+            </div>
+
+            <div className="question-card">
+              <div className="question-copy">
+                <h2 className="question-text">
+                  <MathText>{question}</MathText>
+                </h2>
+                {isLoadingQuestion ? (
+                  <p className="loading-text">Loading your question…</p>
+                ) : (
+                  <form onSubmit={submitAnswer} className="answer-row">
+                    <input
+                      className="answer-input"
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      placeholder="Type your answer"
+                      disabled={isSubmittingAnswer}
+                      autoFocus
+                    />
+                    <button
+                      className="primary-button"
+                      type="submit"
+                      disabled={isSubmittingAnswer}
+                    >
+                      Check
+                    </button>
+                  </form>
+                )}
+                {feedback && (
+                  <p className={`feedback-${feedback.kind}`} role="status">
+                    <MathText>{feedback.message}</MathText>
+                  </p>
+                )}
+              </div>
+              {diagramSvg && (
+                <div className="diagram-card">
                   <img
                     className="generated-diagram"
-                    src={`data:image/svg+xml,${encodeURIComponent(generatedPreview.diagramSvg)}`}
-                    alt={`${topic.label} generated preview diagram`}
+                    src={`data:image/svg+xml,${encodeURIComponent(diagramSvg)}`}
+                    alt="diagram"
                   />
-                </section>
+                </div>
               )}
             </div>
-            <div className="diagram-card" aria-label="Labeled math diagram">
-              {diagramSvg ? (
-                <img
-                  className="generated-diagram"
-                  src={`data:image/svg+xml,${encodeURIComponent(diagramSvg)}`}
-                  alt={`${topic.label} diagram`}
-                />
-              ) : (
-                <svg
-                  viewBox="0 0 240 150"
-                  role="img"
-                  aria-labelledby="diagram-title diagram-desc"
-                >
-                  <title id="diagram-title">
-                    {topicId === "linear"
-                      ? "Linear relationship"
-                      : "Water to flour ratio"}
-                  </title>
-                  <desc id="diagram-desc">
-                    {topicId === "linear"
-                      ? "A line rising two units for every one unit across."
-                      : "One blue block labeled water beside two gold blocks labeled flour."}
-                  </desc>
-                  {topicId === "linear" ? (
-                    <>
-                      <line
-                        x1="30"
-                        y1="120"
-                        x2="210"
-                        y2="120"
-                        className="axis"
-                        stroke="#567063"
-                        strokeWidth="2"
-                      />
-                      <line
-                        x1="50"
-                        y1="135"
-                        x2="50"
-                        y2="20"
-                        className="axis"
-                        stroke="#567063"
-                        strokeWidth="2"
-                      />
-                      <line
-                        x1="50"
-                        y1="110"
-                        x2="140"
-                        y2="30"
-                        className="water"
-                        stroke="#8fc9dc"
-                        strokeWidth="3"
-                      />
-                      <text x="145" y="35">
-                        y = 2x
-                      </text>
-                    </>
-                  ) : (
-                    <>
-                      <rect
-                        x="20"
-                        y="45"
-                        width="60"
-                        height="60"
-                        rx="12"
-                        className="water"
-                      />
-                      <rect
-                        x="95"
-                        y="45"
-                        width="60"
-                        height="60"
-                        rx="12"
-                        className="flour"
-                      />
-                      <rect
-                        x="170"
-                        y="45"
-                        width="50"
-                        height="60"
-                        rx="12"
-                        className="flour"
-                      />
-                      <text x="50" y="130">
-                        water
-                      </text>
-                      <text x="150" y="130">
-                        flour
-                      </text>
-                    </>
-                  )}
-                </svg>
-              )}
-            </div>
+          </>
+        ) : (
+          <div className="empty-practice">
+            <h1>Search a skill to start</h1>
+            <p>Type in the search bar above or browse all skills.</p>
           </div>
-        </section>
+        )}
       </section>
     </main>
+  );
+}
+
+/* ---- Skill row component (kept for browse) ---- */
+
+function SkillRow({
+  skill,
+  active,
+  onClick,
+}: {
+  skill: FlatStandard;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={active ? "skill-row active" : "skill-row"}
+      onClick={onClick}
+    >
+      <span className="skill-code">{skill.standardCode}</span>
+      <span className="skill-text">{skill.standardText}</span>
+    </button>
   );
 }
