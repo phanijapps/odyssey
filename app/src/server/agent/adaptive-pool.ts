@@ -27,7 +27,7 @@ export type QuestionPool = {
 const BATCH_SIZE = 6;
 
 /** Scales diagram label font sizes down so text fits the figure. */
-function scaleDiagramFonts(svg: string, factor = 0.75): string {
+function scaleDiagramFonts(svg: string, factor = 0.9): string {
   return svg.replace(
     /font-size="([\d.]+)(px)?"/g,
     (_m, size: string) =>

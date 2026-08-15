@@ -163,7 +163,7 @@ export async function requestOllamaLearningQuestion(input: {
   let safeDiagram = output.diagramSvg.replace(
     /font-size="([\d.]+)(px)?"/g,
     (_m: string, size: string) =>
-      `font-size="${(Number.parseFloat(size) * 0.75).toFixed(1)}"`,
+      `font-size="${(Number.parseFloat(size) * 0.9).toFixed(1)}"`,
   );
   try {
     validateLearningPayload({
