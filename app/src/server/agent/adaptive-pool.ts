@@ -26,11 +26,20 @@ export type QuestionPool = {
 
 const BATCH_SIZE = 6;
 
+/** Scales diagram label font sizes down so text fits the figure. */
+function scaleDiagramFonts(svg: string, factor = 0.75): string {
+  return svg.replace(
+    /font-size="([\d.]+)(px)?"/g,
+    (_m, size: string) =>
+      `font-size="${(Number.parseFloat(size) * factor).toFixed(1)}"`,
+  );
+}
+
 /** Sanitizes the SVG with a fallback if validation fails. */
 function safeDiagram(raw: string): string {
   try {
     validateLearningPayload({ component: "GeometryDiagram", diagramSvg: raw });
-    return raw;
+    return scaleDiagramFonts(raw);
   } catch {
     // Unusable diagram: return empty so clients render no diagram column
     // rather than a placeholder stub.

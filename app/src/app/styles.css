@@ -1581,9 +1581,9 @@ button {
 /* ---- Question card ---- */
 .question-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 1.05fr);
   align-items: center;
-  gap: 24px;
+  gap: 26px;
   width: 100%;
   background: #fff;
   border: 1px solid #dfe8e0;
@@ -1637,12 +1637,11 @@ button {
   justify-content: center;
   background: #f5f6f2;
   border-radius: 10px;
-  padding: 14px;
-  min-height: 200px;
+  padding: 16px;
+  min-height: 240px;
 }
 .diagram-card img {
   max-width: 100%;
-  max-height: 260px;
   height: auto;
 }
 .empty-practice {
@@ -1661,24 +1660,6 @@ button {
 }
 
 /* ---- Responsive ---- */
-@media (max-width: 900px) {
-  .ixl-body {
-    flex-direction: column;
-  }
-  .ixl-sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 280px;
-    position: relative;
-    top: 0;
-  }
-  .question-card {
-    flex-direction: column;
-  }
-  .diagram-card {
-    width: 100%;
-  }
-}
 
 /* ---- Role chip + empty state ---- */
 .role-chip {
@@ -1790,6 +1771,124 @@ button {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 240px;
+  max-height: 300px;
   object-fit: contain;
+}
+
+/* ================================================================
+   iPad-first responsive layer (10.2" primary: 810x1080 / 1080x810)
+   Order: iPad portrait -> desktop/iPad landscape -> mobile
+   ================================================================ */
+
+/* --- iPad portrait (768-834px): primary target ---
+   Single-column practice; diagram sits under the question at full
+   width so figures get maximum real estate on the narrow axis. */
+@media (min-width: 768px) and (max-width: 900px) {
+  .ixl-practice {
+    padding: 20px 28px 28px;
+    max-width: 100%;
+  }
+  .question-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 22px 24px;
+  }
+  .diagram-card {
+    min-height: 260px;
+    width: 100%;
+  }
+  .generated-diagram {
+    max-height: 280px;
+  }
+  .question-text {
+    font-size: 1.05rem; /* slightly larger for held-at-arm's-length reading */
+  }
+  .answer-input {
+    font-size: 1.05rem;
+    padding: 14px 16px;
+  }
+  .topbar-search input {
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
+  .topbar-select {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+  .practice-desc {
+    max-width: 100%;
+    font-size: 0.92rem;
+  }
+}
+
+/* --- iPad landscape & desktop (>= 1024px): two-column card,
+       larger diagram rail. */
+@media (min-width: 1024px) {
+  .question-card {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 1.05fr);
+    padding: 28px 32px;
+  }
+  .diagram-card {
+    min-height: 280px;
+  }
+  .generated-diagram {
+    max-height: 320px;
+  }
+  .ixl-practice {
+    max-width: 1100px;
+  }
+}
+
+/* --- iPad portrait tweaks for the header: search needs breathing room */
+@media (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
+  .ixl-topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 16px;
+  }
+  .topbar-search {
+    order: 5;
+    flex-basis: 100%;
+    min-width: 100%;
+  }
+  .topbar-search input {
+    width: 100%;
+  }
+}
+
+/* --- Mobile (< 768px): compact stack */
+@media (max-width: 767px) {
+  .ixl-practice {
+    padding: 14px 16px 20px;
+  }
+  .question-card {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 12px;
+  }
+  .diagram-card {
+    min-height: 180px;
+  }
+  .generated-diagram {
+    max-height: 200px;
+  }
+  .question-text {
+    font-size: 0.98rem;
+  }
+  .practice-skill {
+    font-size: 1rem;
+  }
+  .practice-desc {
+    font-size: 0.82rem;
+  }
+  .ixl-topbar {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px;
+  }
+  .topbar-search {
+    flex-basis: 100%;
+    order: 5;
+    min-width: 100%;
+  }
 }
