@@ -14,29 +14,54 @@ type FlatStandard = {
 
 type PracticeFeedback = { kind: "success" | "error"; message: string };
 
+type Mode = "practice" | "test";
+
+type AnswerResult = {
+  correct: boolean;
+  correctAnswer: string;
+  solution: string[];
+  hint: string;
+  points: number;
+  answeredDifficulty: number;
+  testMode: boolean;
+  testPosition: number;
+  testTotal: number;
+};
+
+const GRADE_KEY = "odyssey:grade";
+const SKILL_KEY = "odyssey:lastSkill";
+const MODE_KEY = "odyssey:mode";
+
 export default function HomePage() {
   // Auth
   const [signedIn, setSignedIn] = useState(false);
-  const [role, setRole] = useState<"student" | "admin" | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [role, setRole] = useState<"student" | "admin" | null>(null);
+
+  // First-time setup
+  const [needsGrade, setNeedsGrade] = useState(false);
 
   // Browse + selection
   const [allStandards, setAllStandards] = useState<FlatStandard[]>([]);
-  const [selGrade, setSelGrade] = useState("Grade 6");
+  const [selGrade, setSelGrade] = useState("");
   const [selSubject, setSelSubject] = useState("Mathematics");
   const [activeSkill, setActiveSkill] = useState<FlatStandard | null>(null);
   const [browseOpen, setBrowseOpen] = useState(false);
+
+  // Mode
+  const [mode, setMode] = useState<Mode>("practice");
 
   // Search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FlatStandard[]>([]);
   const [semanticLoading, setSemanticLoading] = useState(false);
 
-  // Practice
+  // Practice state
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
+  const [result, setResult] = useState<AnswerResult | null>(null);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
   const [questionFailed, setQuestionFailed] = useState(false);
@@ -47,7 +72,17 @@ export default function HomePage() {
   const [poolPos, setPoolPos] = useState(0);
   const [poolTotal, setPoolTotal] = useState(0);
   const [poolDifficulty, setPoolDifficulty] = useState(2);
+
+  // Test state
+  const [testScore, setTestScore] = useState(0);
+  const [testIndex, setTestIndex] = useState(0);
+  const [testDone, setTestDone] = useState(false);
+  const [testLog, setTestLog] = useState<
+    { correct: boolean; points: number; difficulty: number }[]
+  >([]);
+
   const progressVersion = useRef(0);
+  const allStandardsRef = useRef<FlatStandard[]>([]);
 
   /* ---- Data loading ---- */
 
@@ -74,6 +109,7 @@ export default function HomePage() {
         }
       }
       setAllStandards(flat);
+      allStandardsRef.current = flat;
     } catch {
       /* ignore */
     }
@@ -87,30 +123,37 @@ export default function HomePage() {
       const account = (await res.json()) as { role?: string };
       setRole((account.role as "student" | "admin") ?? "student");
       await loadStandards();
-      // Session continuity: resume the last practiced skill if saved.
+      // Restore mode + grade; first-time setup when no grade saved.
+      let savedGrade: string | null = null;
       try {
-        const saved = window.localStorage.getItem("odyssey:lastSkill");
-        if (saved) {
-          const skill = JSON.parse(saved) as FlatStandard;
-          const stillExists = allStandardsRef.current.some(
-            (s) => s.id === skill.id,
-          );
-          if (stillExists) {
-            setSelGrade(skill.grade);
-            void selectSkill(skill);
-            return;
-          }
-        }
+        savedGrade = window.localStorage.getItem(GRADE_KEY);
+        const savedMode = window.localStorage.getItem(MODE_KEY);
+        if (savedMode === "test" || savedMode === "practice")
+          setMode(savedMode);
       } catch {
-        /* corrupted storage — fall through */
+        /* storage unavailable */
+      }
+      if (savedGrade) {
+        setSelGrade(savedGrade);
+        resumeLastSkill();
+      } else {
+        setNeedsGrade(true);
       }
     })();
   }, [loadStandards]);
 
-  const allStandardsRef = useRef<FlatStandard[]>([]);
-  useEffect(() => {
-    allStandardsRef.current = allStandards;
-  }, [allStandards]);
+  function resumeLastSkill() {
+    try {
+      const saved = window.localStorage.getItem(SKILL_KEY);
+      if (!saved) return;
+      const skill = JSON.parse(saved) as FlatStandard;
+      if (allStandardsRef.current.some((s) => s.id === skill.id)) {
+        void selectSkill(skill);
+      }
+    } catch {
+      /* corrupted storage */
+    }
+  }
 
   /* ---- Search (instant client-side typeahead) ---- */
 
@@ -123,24 +166,25 @@ export default function HomePage() {
     const pool = allStandards.filter(
       (s) => s.grade === selGrade && s.subject === selSubject,
     );
-    const scored = pool
-      .map((s) => {
-        const text =
-          `${s.standardCode} ${s.domain} ${s.standardText}`.toLowerCase();
-        let score = 0;
-        if (s.standardCode.toLowerCase().startsWith(q)) score += 50;
-        if (text.includes(q)) score += 20;
-        const words = q.split(/\s+/).filter((w) => w.length > 1);
-        for (const w of words) {
-          if (text.includes(w)) score += 5;
-        }
-        return { s, score };
-      })
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 15);
-    setSearchResults(scored.map((x) => x.s));
-  }, [searchQuery, selGrade, allStandards]);
+    setSearchResults(
+      pool
+        .map((s) => {
+          const text =
+            `${s.standardCode} ${s.domain} ${s.standardText}`.toLowerCase();
+          let score = 0;
+          if (s.standardCode.toLowerCase().startsWith(q)) score += 50;
+          if (text.includes(q)) score += 20;
+          for (const w of q.split(/\s+/).filter((w) => w.length > 1)) {
+            if (text.includes(w)) score += 5;
+          }
+          return { s, score };
+        })
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 15)
+        .map((x) => x.s),
+    );
+  }, [searchQuery, selGrade, selSubject, allStandards]);
 
   async function semanticSearch() {
     if (!searchQuery.trim()) return;
@@ -152,7 +196,7 @@ export default function HomePage() {
       );
       if (res.ok) {
         const data = await res.json();
-        setSearchResults((data.results ?? []).map((r: FlatStandard) => r));
+        setSearchResults((data.results ?? []) as FlatStandard[]);
       }
     } catch {
       /* ignore */
@@ -166,17 +210,22 @@ export default function HomePage() {
   async function selectSkill(skill: FlatStandard) {
     const version = ++progressVersion.current;
     setActiveSkill(skill);
-    try {
-      window.localStorage.setItem("odyssey:lastSkill", JSON.stringify(skill));
-    } catch {
-      /* storage unavailable */
-    }
     setFeedback(null);
+    setResult(null);
     setAnswer("");
     setQuestionFailed(false);
+    setTestDone(false);
+    setTestScore(0);
+    setTestIndex(0);
+    setTestLog([]);
     setIsLoadingQuestion(true);
     setQuestion("Loading…");
     setDiagramSvg(null);
+    try {
+      window.localStorage.setItem(SKILL_KEY, JSON.stringify(skill));
+    } catch {
+      /* ignore */
+    }
     try {
       const params = new URLSearchParams({
         subject: skill.subject,
@@ -184,6 +233,7 @@ export default function HomePage() {
         domain: skill.domain,
         standard: skill.standardCode,
         topicId: `${skill.subject}::${skill.grade}::${skill.domain}::${skill.standardCode}`,
+        mode,
       });
       const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
       if (progressVersion.current !== version) return;
@@ -191,17 +241,16 @@ export default function HomePage() {
       const d = await res.json();
       setLevel(d.level ?? 1);
       setCorrectStreak(d.correctStreak ?? 0);
+      setPoolPos(d.poolProgress?.position ?? 0);
+      setPoolTotal(d.poolProgress?.total ?? 0);
+      setPoolDifficulty(d.poolProgress?.difficulty ?? 2);
+      setTestIndex(Math.max(0, (d.poolProgress?.position ?? 1) - 1));
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
-        setDiagramSvg(d.nextQuestion?.diagramSvg ?? null);
+        setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
       } else {
         setQuestion("");
         setQuestionFailed(true);
-      }
-      if (d.poolProgress) {
-        setPoolPos(d.poolProgress.position);
-        setPoolTotal(d.poolProgress.total);
-        setPoolDifficulty(d.poolProgress.difficulty);
       }
     } catch {
       setQuestion("Could not load question. Try another skill.");
@@ -210,9 +259,11 @@ export default function HomePage() {
     }
   }
 
+  /* ---- Answering ---- */
+
   async function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmittingAnswer || !activeSkill) return;
+    if (isSubmittingAnswer || !activeSkill || result) return;
     const version = progressVersion.current;
     setIsSubmittingAnswer(true);
     try {
@@ -230,32 +281,90 @@ export default function HomePage() {
         setFeedback({ kind: "error", message: "Could not save answer." });
         return;
       }
-      const d = await res.json();
+      const d = (await res.json()) as AnswerResult & {
+        level: number;
+        correctStreak: number;
+        nextQuestion?: { question?: string; diagramSvg?: string } | null;
+        poolProgress?: { position: number; total: number; difficulty: number };
+      };
       setLevel(d.level);
       setCorrectStreak(d.correctStreak);
+      setResult(d);
       setFeedback({
         kind: d.correct ? "success" : "error",
         message: d.correct
-          ? "Nice work!"
-          : `Not quite. ${d.hint ?? "Try again!"}`,
+          ? mode === "test"
+            ? `Correct! +${d.points} points`
+            : "Correct!"
+          : `Not quite. The correct answer is ${d.correctAnswer}.`,
       });
+      if (mode === "test") {
+        setTestScore((s) => s + d.points);
+        setTestLog((l) => [
+          ...l,
+          {
+            correct: d.correct,
+            points: d.points,
+            difficulty: d.answeredDifficulty,
+          },
+        ]);
+      }
       if (d.poolProgress) {
         setPoolPos(d.poolProgress.position);
         setPoolTotal(d.poolProgress.total);
         setPoolDifficulty(d.poolProgress.difficulty);
-      }
-      if (d.nextQuestion?.question) {
-        setQuestion(d.nextQuestion.question);
-        setDiagramSvg(d.nextQuestion?.diagramSvg ?? null);
-      } else {
-        setQuestion("");
-        setQuestionFailed(true);
       }
       setAnswer("");
     } catch {
       setFeedback({ kind: "error", message: "Could not save answer." });
     } finally {
       if (progressVersion.current === version) setIsSubmittingAnswer(false);
+    }
+  }
+
+  /** Next: advance to the question the server already prepared. */
+  async function nextQuestion() {
+    if (!activeSkill) return;
+    setResult(null);
+    setFeedback(null);
+    setIsLoadingQuestion(true);
+    setQuestion("Loading…");
+    if (mode === "test" && result) {
+      const nextIndex = result.testPosition; // server counts the just-served one
+      setTestIndex(nextIndex);
+      if (result.testPosition >= result.testTotal) {
+        setTestDone(true);
+        setIsLoadingQuestion(false);
+        setQuestion("");
+        return;
+      }
+    }
+    try {
+      const params = new URLSearchParams({
+        subject: activeSkill.subject,
+        grade: activeSkill.grade,
+        domain: activeSkill.domain,
+        standard: activeSkill.standardCode,
+        topicId: `${activeSkill.subject}::${activeSkill.grade}::${activeSkill.domain}::${activeSkill.standardCode}`,
+        mode,
+      });
+      const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const d = await res.json();
+      if (d.nextQuestion?.question) {
+        setQuestion(d.nextQuestion.question);
+        setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
+      } else if (mode === "test") {
+        setTestDone(true);
+        setQuestion("");
+      } else {
+        setQuestion("");
+        setQuestionFailed(true);
+      }
+    } catch {
+      setQuestion("Could not load the next question.");
+    } finally {
+      setIsLoadingQuestion(false);
     }
   }
 
@@ -275,7 +384,6 @@ export default function HomePage() {
       setSignedIn(true);
       setRole(account.role);
       setError("");
-      // Offer to save the password in the browser's password manager.
       try {
         const w = window as unknown as {
           PasswordCredential?: new (data: {
@@ -298,39 +406,68 @@ export default function HomePage() {
       }
       await loadStandards();
       try {
-        const saved = window.localStorage.getItem("odyssey:lastSkill");
-        if (saved) {
-          const skill = JSON.parse(saved) as FlatStandard;
-          const stillExists = allStandardsRef.current.some(
-            (s) => s.id === skill.id,
-          );
-          if (stillExists) {
-            setSelGrade(skill.grade);
-            void selectSkill(skill);
-            return;
-          }
+        const savedGrade = window.localStorage.getItem(GRADE_KEY);
+        if (savedGrade) {
+          setSelGrade(savedGrade);
+          resumeLastSkill();
+        } else {
+          setNeedsGrade(true);
         }
       } catch {
-        /* fall through */
+        setNeedsGrade(true);
       }
     } else {
       setError("We could not sign you in. Check your details and try again.");
     }
   }
 
+  function pickGrade(g: string) {
+    try {
+      window.localStorage.setItem(GRADE_KEY, g);
+    } catch {
+      /* ignore */
+    }
+    setSelGrade(g);
+    setNeedsGrade(false);
+  }
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    try {
+      window.localStorage.setItem(MODE_KEY, next);
+    } catch {
+      /* ignore */
+    }
+    setResult(null);
+    setFeedback(null);
+    setTestDone(false);
+    setTestScore(0);
+    setTestIndex(0);
+    setTestLog([]);
+    if (activeSkill) void selectSkill(activeSkill);
+  }
+
   /* ---- Derived data ---- */
 
+  const grades = [...new Set(allStandards.map((s) => s.grade))].sort();
   const subjects = [...new Set(allStandards.map((s) => s.subject))];
-  const grades = [
-    ...new Set(
-      allStandards.filter((s) => s.subject === selSubject).map((s) => s.grade),
-    ),
-  ].sort();
+  const gradeChoices = [
+    "Kindergarten",
+    "Grade 1",
+    "Grade 2",
+    "Grade 3",
+    "Grade 4",
+    "Grade 5",
+    "Grade 6",
+    "Grade 7",
+    "Grade 8",
+    "Grades 9-10",
+    "Grades 11-12",
+    "High School",
+  ].filter((g) => grades.includes(g));
   const skillsForGrade = allStandards
     .filter((s) => s.grade === selGrade && s.subject === selSubject)
     .sort((a, b) => a.standardCode.localeCompare(b.standardCode));
-
-  // Group skills by domain for the sidebar
   const skillsByDomain = new Map<string, FlatStandard[]>();
   for (const s of skillsForGrade) {
     if (!skillsByDomain.has(s.domain)) skillsByDomain.set(s.domain, []);
@@ -374,10 +511,33 @@ export default function HomePage() {
               Enter practice
             </button>
           </form>
-          <p className="hint">
-            Sign in with your account. Admin? Use the Dashboard after signing
-            in.
-          </p>
+          <p className="hint">Sign in with your account.</p>
+        </section>
+      </main>
+    );
+  }
+
+  /* ---- First-time setup: pick grade ---- */
+
+  if (needsGrade) {
+    return (
+      <main className="shell auth-shell">
+        <section className="auth-card">
+          <div className="brand-mark">O</div>
+          <p className="eyebrow">WELCOME TO ODYSSEY</p>
+          <h1>What grade are you in?</h1>
+          <p className="lede">We&apos;ll start you there.</p>
+          <div className="grade-picker">
+            {gradeChoices.map((g) => (
+              <button
+                key={g}
+                className="grade-chip"
+                onClick={() => pickGrade(g)}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
         </section>
       </main>
     );
@@ -385,9 +545,10 @@ export default function HomePage() {
 
   /* ---- Main practice screen ---- */
 
+  const testQuestionNumber = Math.min(testIndex + 1, poolTotal || 9);
+
   return (
     <main className="ixl-shell">
-      {/* Single horizontal header with all controls */}
       <header className="ixl-topbar">
         <span className="small-mark">O</span>
         <span className="topbar-brand">odyssey</span>
@@ -418,6 +579,11 @@ export default function HomePage() {
           value={selGrade}
           onChange={(e) => {
             setSelGrade(e.target.value);
+            try {
+              window.localStorage.setItem(GRADE_KEY, e.target.value);
+            } catch {
+              /* ignore */
+            }
             setSearchQuery("");
           }}
         >
@@ -442,7 +608,6 @@ export default function HomePage() {
           >
             {semanticLoading ? "…" : "✨"}
           </button>
-          {/* Inline dropdown results */}
           {searchQuery.trim() && (
             <div className="search-dropdown">
               {searchResults.length > 0 ? (
@@ -467,7 +632,20 @@ export default function HomePage() {
             </div>
           )}
         </div>
-        {/* Skill browser toggle */}
+        <div className="mode-toggle">
+          <button
+            className={mode === "practice" ? "mode-btn active" : "mode-btn"}
+            onClick={() => switchMode("practice")}
+          >
+            Practice
+          </button>
+          <button
+            className={mode === "test" ? "mode-btn active" : "mode-btn"}
+            onClick={() => switchMode("test")}
+          >
+            Test
+          </button>
+        </div>
         <button
           className="browse-toggle"
           onClick={() => setBrowseOpen(!browseOpen)}
@@ -490,7 +668,7 @@ export default function HomePage() {
         </button>
       </header>
 
-      {/* Collapsible skill browser */}
+      {/* Skill browser */}
       {browseOpen && (
         <div className="skill-browser">
           {[...skillsByDomain.entries()].map(([domain, skills]) => (
@@ -512,11 +690,9 @@ export default function HomePage() {
                   >
                     <span className="browser-code">{s.standardCode}</span>
                     <span className="browser-desc">
-                      <MathText>
-                        {s.standardText.length > 70
-                          ? s.standardText.slice(0, 70) + "…"
-                          : s.standardText}
-                      </MathText>
+                      {s.standardText.length > 70
+                        ? s.standardText.slice(0, 70) + "…"
+                        : s.standardText}
                     </span>
                   </button>
                 ))}
@@ -526,7 +702,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Practice area — centered, full width */}
       <section className="ixl-practice">
         {activeSkill ? (
           <>
@@ -534,74 +709,170 @@ export default function HomePage() {
               <div>
                 <p className="eyebrow">{activeSkill.subject.toUpperCase()}</p>
                 <h1 className="practice-skill">{activeSkill.standardCode}</h1>
-                <p className="practice-desc">
-                  <MathText>{activeSkill.standardText}</MathText>
-                </p>
+                <p className="practice-desc">{activeSkill.standardText}</p>
               </div>
               <div className="practice-meta">
-                {poolTotal > 0 && (
-                  <div className="pool-bar">
-                    {Array.from({ length: poolTotal }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`pool-dot ${i < poolPos ? "done" : i === poolPos ? "current" : ""}`}
-                      />
-                    ))}
-                  </div>
+                {mode === "test" ? (
+                  <span className="test-progress">
+                    Question {testQuestionNumber} of {poolTotal || 9}
+                  </span>
+                ) : (
+                  poolTotal > 0 && (
+                    <div className="pool-bar">
+                      {Array.from({ length: poolTotal }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`pool-dot ${i < poolPos ? "done" : i === poolPos ? "current" : ""}`}
+                        />
+                      ))}
+                    </div>
+                  )
                 )}
-                <span className={`diff-badge diff-${poolDifficulty}`}>
-                  {poolDifficulty === 1
-                    ? "Building up"
-                    : poolDifficulty === 2
-                      ? "On track"
-                      : "Challenge"}
-                </span>
-                <span className="streak-badge">🔥 {correctStreak}</span>
+                {mode === "practice" && (
+                  <span className={`diff-badge diff-${poolDifficulty}`}>
+                    {poolDifficulty === 1
+                      ? "Building up"
+                      : poolDifficulty === 2
+                        ? "On track"
+                        : "Challenge"}
+                  </span>
+                )}
+                {mode === "test" && (
+                  <span className="score-badge">Score {testScore}</span>
+                )}
+                {mode === "practice" && (
+                  <span className="streak-badge">🔥 {correctStreak}</span>
+                )}
               </div>
             </div>
 
-            <div className="question-card">
-              <div className="question-copy">
-                <h2 className="question-text">
-                  <MathText>{question}</MathText>
-                </h2>
-                {isLoadingQuestion ? (
-                  <p className="loading-text">Loading your question…</p>
-                ) : (
-                  <form onSubmit={submitAnswer} className="answer-row">
-                    <input
-                      className="answer-input"
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      placeholder="Type your answer"
-                      disabled={isSubmittingAnswer}
-                      autoFocus
-                    />
-                    <button
-                      className="primary-button"
-                      type="submit"
-                      disabled={isSubmittingAnswer}
-                    >
-                      Check
-                    </button>
-                  </form>
-                )}
-                {feedback && (
-                  <p className={`feedback-${feedback.kind}`} role="status">
-                    <MathText>{feedback.message}</MathText>
+            {testDone ? (
+              <div className="question-card test-report">
+                <div className="question-copy">
+                  <h2 className="practice-skill">Test complete!</h2>
+                  <p className="test-score-line">
+                    You scored <strong>{testScore}</strong> out of{" "}
+                    <strong>180</strong> points.
                   </p>
+                  <div className="test-breakdown">
+                    {testLog.map((entry, i) => (
+                      <div key={i} className="test-entry">
+                        <span
+                          className={
+                            entry.correct ? "kg-pred good" : "kg-pred bad"
+                          }
+                        >
+                          Q{i + 1} · Level {entry.difficulty} ·{" "}
+                          {entry.correct ? "✓" : "✗"} +{entry.points}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    className="primary-button"
+                    onClick={() => activeSkill && void selectSkill(activeSkill)}
+                  >
+                    Take a new test
+                  </button>
+                  <button
+                    className="secondary-btn"
+                    onClick={() => switchMode("practice")}
+                  >
+                    Back to practice
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="question-card">
+                <div className="question-copy">
+                  {questionFailed ? (
+                    <div className="retry-panel">
+                      <p className="retry-message">
+                        We couldn&rsquo;t generate a question for this skill
+                        just now. The local model may be busy — try again.
+                      </p>
+                      <button
+                        className="primary-button"
+                        onClick={() =>
+                          activeSkill && void selectSkill(activeSkill)
+                        }
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <h2 className="question-text">
+                        <MathText>{question}</MathText>
+                      </h2>
+                      {isLoadingQuestion ? (
+                        <p className="loading-text">Loading your question…</p>
+                      ) : result ? (
+                        <>
+                          <div
+                            className={`solution-panel ${result.correct ? "good" : "bad"}`}
+                          >
+                            <p className="solution-title">
+                              {result.correct
+                                ? "Correct! Here's how it works:"
+                                : `The correct answer is ${result.correctAnswer}`}
+                            </p>
+                            <ol className="solution-steps">
+                              {result.solution.map((step, i) => (
+                                <li key={i}>
+                                  <MathText>{step}</MathText>
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                          <button
+                            className="primary-button next-btn"
+                            onClick={() => void nextQuestion()}
+                          >
+                            Next question →
+                          </button>
+                        </>
+                      ) : (
+                        <form onSubmit={submitAnswer} className="answer-row">
+                          <input
+                            className="answer-input"
+                            value={answer}
+                            onChange={(e) => setAnswer(e.target.value)}
+                            placeholder="Type your answer"
+                            disabled={isSubmittingAnswer}
+                            autoFocus
+                          />
+                          <button
+                            className="primary-button"
+                            type="submit"
+                            disabled={isSubmittingAnswer || !answer.trim()}
+                          >
+                            Check
+                          </button>
+                        </form>
+                      )}
+                      {feedback && !result && (
+                        <p
+                          className={`feedback-${feedback.kind}`}
+                          role="status"
+                        >
+                          <MathText>{feedback.message}</MathText>
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+                {diagramSvg && (
+                  <div className="diagram-card">
+                    <img
+                      className="generated-diagram"
+                      src={`data:image/svg+xml,${encodeURIComponent(diagramSvg)}`}
+                      alt="diagram"
+                    />
+                  </div>
                 )}
               </div>
-              {diagramSvg && (
-                <div className="diagram-card">
-                  <img
-                    className="generated-diagram"
-                    src={`data:image/svg+xml,${encodeURIComponent(diagramSvg)}`}
-                    alt="diagram"
-                  />
-                </div>
-              )}
-            </div>
+            )}
           </>
         ) : (
           <div className="empty-practice">
@@ -611,27 +882,5 @@ export default function HomePage() {
         )}
       </section>
     </main>
-  );
-}
-
-/* ---- Skill row component (kept for browse) ---- */
-
-function SkillRow({
-  skill,
-  active,
-  onClick,
-}: {
-  skill: FlatStandard;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={active ? "skill-row active" : "skill-row"}
-      onClick={onClick}
-    >
-      <span className="skill-code">{skill.standardCode}</span>
-      <span className="skill-text">{skill.standardText}</span>
-    </button>
   );
 }

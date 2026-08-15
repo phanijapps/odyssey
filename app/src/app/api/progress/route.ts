@@ -1,6 +1,7 @@
 import {
   createQuestionPool,
   selectNextQuestion,
+  selectByPlan,
   poolProgress,
   prefetchNextQuestion,
 } from "../../../server/agent/adaptive-pool";
@@ -9,6 +10,7 @@ import {
   resolveSession,
   setSessionPool,
   getSessionPool,
+  appendSessionPoolQuestion,
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
 
@@ -26,6 +28,7 @@ export async function GET(request: Request): Promise<Response> {
   const grade = url.searchParams.get("grade") ?? "Grade 6";
   const domain = url.searchParams.get("domain") ?? "";
   const standard = url.searchParams.get("standard") ?? "";
+  const mode = url.searchParams.get("mode") === "test" ? "test" : "practice";
   const topicId = url.searchParams.get("topicId") ?? subject.toLowerCase();
 
   const progress = getLearningProgress(session.childId, topicId) ?? {
@@ -47,10 +50,11 @@ export async function GET(request: Request): Promise<Response> {
   const needsNewPool =
     !pool ||
     pool.topicId !== topicId ||
+    (pool.mode ?? "practice") !== mode ||
     !pool.questions.some((q) => !pool!.shownIds.includes(q.id));
 
   if (needsNewPool) {
-    const newPool = await createQuestionPool(topicId, standards);
+    const newPool = await createQuestionPool(topicId, standards, mode);
     pool = {
       topicId: newPool.topicId,
       questions: newPool.questions,
@@ -58,6 +62,8 @@ export async function GET(request: Request): Promise<Response> {
       currentDifficulty: newPool.currentDifficulty,
       batchPosition: newPool.batchPosition,
       batchSize: newPool.batchSize,
+      mode: newPool.mode,
+      ...(newPool.testPlan ? { testPlan: newPool.testPlan } : {}),
     };
     setSessionPool(request, pool);
   }
@@ -70,14 +76,20 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   // Select the next question
-  const { question, pool: updatedPool } = selectNextQuestion({
+  const selectionPool = {
     topicId: pool.topicId,
     questions: pool.questions as never,
     shownIds: pool.shownIds,
     currentDifficulty: pool.currentDifficulty as 1 | 2 | 3,
     batchPosition: pool.batchPosition,
     batchSize: pool.batchSize,
-  });
+    mode,
+    ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
+  } as never;
+  const { question, pool: updatedPool } =
+    mode === "test"
+      ? selectByPlan(selectionPool, pool.shownIds.length)
+      : selectNextQuestion(selectionPool);
 
   setSessionPool(request, {
     topicId: updatedPool.topicId,
@@ -86,7 +98,18 @@ export async function GET(request: Request): Promise<Response> {
     currentDifficulty: updatedPool.currentDifficulty,
     batchPosition: updatedPool.batchPosition,
     batchSize: updatedPool.batchSize,
+    mode,
+    ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
   });
+  // Prefetch the next question: in test mode at the next planned difficulty,
+  // in practice mode at the current difficulty.
+  const nextTestDifficulty =
+    mode === "test" && pool.testPlan
+      ? (pool.testPlan[updatedPool.shownIds.length] as 1 | 2 | 3 | undefined)
+      : undefined;
+  prefetchNextQuestion(topicId, nextTestDifficulty ?? 2, standards, (next) =>
+    appendSessionPoolQuestion(request, next),
+  );
 
   if (!question) {
     return Response.json(
@@ -95,17 +118,7 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 
-  // Pre-generate the next question in the background so answering is instant.
-  prefetchNextQuestion(topicId, 2, standards, (next) => {
-    const current = getSessionPool(request);
-    if (!current || current.topicId !== topicId) return;
-    if (current.questions.some((q) => q.id === next.id)) return;
-    setSessionPool(request, {
-      ...current,
-      questions: [...current.questions, next],
-    });
-  });
-
+  const ROUTE_V = "v3-plan";
   const prog = poolProgress({
     topicId: updatedPool.topicId,
     questions: updatedPool.questions,
@@ -118,6 +131,7 @@ export async function GET(request: Request): Promise<Response> {
   return Response.json(
     {
       ...progress,
+      routeV: ROUTE_V,
       nextQuestion: {
         question: question.question,
         diagramSvg: question.diagramSvg,

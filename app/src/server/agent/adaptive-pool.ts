@@ -11,9 +11,12 @@ export type PoolQuestion = {
   readonly answer: string;
   readonly acceptableAnswers: readonly string[];
   readonly hint: string;
+  readonly solution: readonly string[];
   readonly diagramSvg: string;
   readonly difficulty: Difficulty;
 };
+
+export type PoolMode = "practice" | "test";
 
 export type QuestionPool = {
   readonly topicId: string;
@@ -22,6 +25,9 @@ export type QuestionPool = {
   readonly currentDifficulty: Difficulty;
   readonly batchPosition: number;
   readonly batchSize: number;
+  readonly mode?: PoolMode;
+  /** Test mode only: the fixed difficulty order, e.g. [1,1,1,2,2,2,3,3,3]. */
+  readonly testPlan?: readonly Difficulty[];
 };
 
 const BATCH_SIZE = 6;
@@ -191,6 +197,7 @@ function makeBankQuestion(
     answer: entry.expectedAnswer,
     acceptableAnswers: entry.acceptableAnswers ?? [],
     hint: entry.hint,
+    solution: [entry.hint, `The correct answer is ${entry.expectedAnswer}.`],
     diagramSvg: entry.diagramSvg,
     difficulty,
   };
@@ -223,6 +230,7 @@ async function makeQuestion(
           answer: ai.answer,
           acceptableAnswers: ai.acceptableAnswers,
           hint: ai.hint,
+          solution: ai.solution,
           diagramSvg: safeDiagram(ai.diagramSvg),
           difficulty,
         };
@@ -263,19 +271,41 @@ export async function generateQuestionPool(
   return first ? [first] : [];
 }
 
-/** Creates a new adaptive pool with one question ready. */
+/** Test plan: three questions per level in ascending order. Each level is
+ *  worth 10 / 20 / 30 points, so a test scores out of 180. */
+export function buildTestPlan(): Difficulty[] {
+  return [1, 1, 1, 2, 2, 2, 3, 3, 3] as Difficulty[];
+}
+
+/** Points a correct answer at each level is worth (10 / 20 / 30). */
+export function pointsForDifficulty(difficulty: Difficulty): number {
+  return difficulty === 1 ? 10 : difficulty === 2 ? 20 : 30;
+}
+
+/** Creates a new pool with one question ready. In test mode the first
+ *  question is generated at the plan's first difficulty (easy). */
 export async function createQuestionPool(
   topicId: string,
   standards?: readonly { standardCode: string; standardText: string }[],
+  mode: PoolMode = "practice",
 ): Promise<QuestionPool> {
-  const questions = await generateQuestionPool(topicId, standards);
+  const testPlan = mode === "test" ? buildTestPlan() : undefined;
+  const firstDifficulty: Difficulty = mode === "test" ? testPlan![0] : 2;
+  const first = await makeQuestion(
+    topicId,
+    firstDifficulty,
+    standards,
+    new Set(),
+  );
   return {
     topicId,
-    questions,
+    questions: first ? [first] : [],
     shownIds: [],
-    currentDifficulty: 2,
+    currentDifficulty: firstDifficulty,
     batchPosition: 0,
-    batchSize: BATCH_SIZE,
+    batchSize: mode === "test" ? testPlan!.length : BATCH_SIZE,
+    mode,
+    ...(testPlan ? { testPlan } : {}),
   };
 }
 
@@ -319,6 +349,34 @@ export function selectNextQuestion(pool: QuestionPool): {
       ...pool,
       shownIds: [...pool.shownIds, question.id],
       batchPosition: pool.batchPosition + 1,
+    },
+  };
+}
+
+/** Test mode: select the next unseen question at the planned difficulty,
+ *  following the fixed plan order. Falls back to any unseen question when
+ *  the plan is exhausted. Practice callers use selectNextQuestion instead. */
+export function selectByPlan(
+  pool: QuestionPool,
+  planIndex: number,
+): { question: PoolQuestion | null; pool: QuestionPool } {
+  const unseen = pool.questions.filter((q) => !pool.shownIds.includes(q.id));
+  if (unseen.length === 0) return { question: null, pool };
+  const planned = pool.testPlan?.[planIndex] as Difficulty | undefined;
+  const candidates = planned
+    ? unseen.filter((q) => q.difficulty === planned)
+    : unseen;
+  // In test mode never fall back to a different difficulty — return null so
+  // the caller lazily generates the planned one.
+  if (candidates.length === 0) return { question: null, pool };
+  const pick = candidates[0];
+  return {
+    question: pick,
+    pool: {
+      ...pool,
+      shownIds: [...pool.shownIds, pick.id],
+      batchPosition: pool.batchPosition + 1,
+      currentDifficulty: planned ?? pool.currentDifficulty,
     },
   };
 }

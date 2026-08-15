@@ -4,6 +4,7 @@ import {
   grantGeneratedPracticeAllowance,
   requireMutationProof,
   setSessionPool,
+  appendSessionPoolQuestion,
 } from "../../../server/identity/identity";
 import {
   getLearningProgress,
@@ -17,6 +18,7 @@ import {
 import {
   adjustDifficulty,
   selectNextQuestion,
+  selectByPlan,
   poolProgress,
   generateLazyQuestion,
   prefetchNextQuestion,
@@ -157,21 +159,53 @@ export async function POST(request: Request): Promise<Response> {
         ? allDomainStandards.filter((s) => s.standardCode === selectedStandard)
         : allDomainStandards;
 
-      const adjusted: QuestionPool = adjustDifficulty(
-        {
-          topicId: pool.topicId,
-          questions: pool.questions as never,
-          shownIds: pool.shownIds,
-          currentDifficulty: pool.currentDifficulty as 1 | 2 | 3,
-          batchPosition: pool.batchPosition,
-          batchSize: pool.batchSize,
-        },
-        result.correct,
-      );
+      const poolMode = (pool.mode ?? "practice") as "practice" | "test";
+      // Index the plan by how many questions have been SERVED (shownIds
+      // includes the one just answered), so the next question follows the
+      // plan order: 1,1,1,2,2,2,3,3,3.
+      const planDifficulty = pool.testPlan?.[pool.shownIds.length] as
+        | 1
+        | 2
+        | 3
+        | undefined;
+      // Practice adapts on correctness; test follows the fixed plan order.
+      const adjusted: QuestionPool =
+        poolMode === "test" && planDifficulty
+          ? ({
+              topicId: pool.topicId,
+              questions: pool.questions as never,
+              shownIds: pool.shownIds,
+              currentDifficulty: planDifficulty,
+              batchPosition: pool.batchPosition,
+              batchSize: pool.batchSize,
+              mode: poolMode,
+              ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
+            } as QuestionPool)
+          : adjustDifficulty(
+              {
+                topicId: pool.topicId,
+                questions: pool.questions as never,
+                shownIds: pool.shownIds,
+                currentDifficulty: pool.currentDifficulty as 1 | 2 | 3,
+                batchPosition: pool.batchPosition,
+                batchSize: pool.batchSize,
+                mode: poolMode,
+                ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
+              } as QuestionPool,
+              result.correct,
+            );
 
-      // Try to get next from pool, or generate lazily
-      const { question: pooledQ, pool: updatedPool } =
-        selectNextQuestion(adjusted);
+      // Test mode follows the fixed plan order; practice adapts.
+      const selectionPool = {
+        ...adjusted,
+        ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
+      } as QuestionPool;
+      const sel =
+        poolMode === "test"
+          ? selectByPlan(selectionPool, pool.shownIds.length)
+          : selectNextQuestion(selectionPool);
+      const pooledQ = sel.question;
+      const updatedPool = sel.pool;
 
       if (pooledQ) {
         nextQuestion = {
@@ -183,9 +217,11 @@ export async function POST(request: Request): Promise<Response> {
           topicId: updatedPool.topicId,
           questions: updatedPool.questions,
           shownIds: updatedPool.shownIds,
-          currentDifficulty: updatedPool.currentDifficulty,
+          currentDifficulty: adjusted.currentDifficulty,
           batchPosition: updatedPool.batchPosition,
           batchSize: updatedPool.batchSize,
+          mode: poolMode,
+          ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
         });
         // Pre-generate the following question in the background while the
         // child works on this one, so the next answer is served instantly.
@@ -193,21 +229,14 @@ export async function POST(request: Request): Promise<Response> {
           pool.topicId,
           adjusted.currentDifficulty,
           standards,
-          (next) => {
-            const current = getSessionPool(request);
-            if (!current || current.topicId !== pool.topicId) return;
-            if (current.questions.some((q) => q.id === next.id)) return;
-            setSessionPool(request, {
-              ...current,
-              questions: [...current.questions, next],
-            });
-          },
+          (next) => appendSessionPoolQuestion(request, next),
         );
       } else {
         // Generate next question lazily via AI (standards scoped above).
         const lazy = await generateLazyQuestion(
           pool.topicId,
-          adjusted.currentDifficulty,
+          (poolMode === "test" ? planDifficulty : undefined) ??
+            adjusted.currentDifficulty,
           standards,
           pool.questions as never,
         );
@@ -225,6 +254,8 @@ export async function POST(request: Request): Promise<Response> {
             currentDifficulty: adjusted.currentDifficulty,
             batchPosition: adjusted.batchPosition + 1,
             batchSize: pool.batchSize,
+            mode: poolMode,
+            ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
           });
         }
       }
@@ -261,9 +292,27 @@ export async function POST(request: Request): Promise<Response> {
       : null;
 
     grantGeneratedPracticeAllowance(request, body.topicId);
+    const answeredDifficulty =
+      activeQuestion?.difficulty ??
+      (pool?.questions.find((q) => q.id === pool?.shownIds.at(-1))
+        ?.difficulty as number | undefined) ??
+      2;
     return Response.json({
       ...result,
       hint: feedbackHint,
+      solution: activeQuestion?.solution ?? [],
+      correctAnswer: activeQuestion?.answer ?? "",
+      answeredDifficulty,
+      points: result.correct
+        ? answeredDifficulty === 1
+          ? 10
+          : answeredDifficulty === 2
+            ? 20
+            : 30
+        : 0,
+      testMode: (pool?.mode ?? "practice") === "test",
+      testPosition: pool?.batchPosition ?? 0,
+      testTotal: pool?.batchSize ?? 6,
       memoryWritten,
       memoryRecalled,
       nextQuestion,

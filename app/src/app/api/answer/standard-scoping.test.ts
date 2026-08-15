@@ -36,6 +36,7 @@ test("next question stays on the selected standard across answers", async () => 
         answer: "2",
         acceptableAnswers: [],
         hint: "Rise over run.",
+        solution: ["Slope = rise / run.", "Slope = 4 / 2 = 2."],
         diagramSvg:
           '<svg xmlns="http://www.w3.org/2000/svg" aria-label="d" viewBox="0 0 100 60"><line x1="10" y1="50" x2="90" y2="10" stroke="#333333" stroke-width="2" /></svg>',
         difficulty: 2,

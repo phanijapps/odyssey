@@ -158,6 +158,7 @@ test("accepts complete provider response fixtures with answer", () => {
         answer: "2",
         acceptableAnswers: [],
         hint: "Divide to find the answer.",
+        solution: ["Set up the rate.", "Divide to find 2."],
         diagramSvg:
           '<svg xmlns="http://www.w3.org/2000/svg" aria-label="diagram" />',
       }),
@@ -166,6 +167,7 @@ test("accepts complete provider response fixtures with answer", () => {
       answer: "2",
       acceptableAnswers: [],
       hint: "Divide to find the answer.",
+      solution: ["Set up the rate.", "Divide to find 2."],
       diagramSvg:
         '<svg xmlns="http://www.w3.org/2000/svg" aria-label="diagram" />',
     });
@@ -279,7 +281,7 @@ test("parses only a complete raw JSON completion", () => {
 
 test("constrains generated output to the reviewed question and SVG schema", () => {
   const instruction = getGeneratedOutputInstruction("ratio");
-  expect(instruction).toContain("five keys");
+  expect(instruction).toContain("six keys");
   expect(instruction).toContain("xmlns exactly as http://www.w3.org/2000/svg");
   const withStandard = getGeneratedOutputInstruction("ratio", [
     { standardCode: "6.RP.1", standardText: "Understand ratio concepts." },

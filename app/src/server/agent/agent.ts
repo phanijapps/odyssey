@@ -101,6 +101,7 @@ export async function requestOllamaLearningQuestion(input: {
   answer: string;
   acceptableAnswers: string[];
   hint: string;
+  solution: string[];
   diagramSvg: string;
 }> {
   assertOllamaIntegrationConfiguration();
@@ -179,6 +180,7 @@ export async function requestOllamaLearningQuestion(input: {
     answer: output.answer,
     acceptableAnswers: output.acceptableAnswers,
     hint: output.hint,
+    solution: output.solution,
     diagramSvg: safeDiagram,
   };
 }
@@ -195,12 +197,13 @@ export function getGeneratedOutputInstruction(
   return [
     standardLine,
     "Return JSON only; no prose and no markdown.",
-    'Return exactly five keys: "question", "answer", "acceptableAnswers", "hint", and "diagramSvg".',
+    'Return exactly six keys: "question", "answer", "acceptableAnswers", "hint", "solution", and "diagramSvg".',
     "Do NOT create questions about other skills, even if they are similar or easier to write.",
     '"question" must be a new practice question for this standard, 20-400 chars, no HTML tags.',
     '"answer" must be the correct answer as a simple string (a number, expression, or word).',
     '"acceptableAnswers" must be an array of alternative correct answer strings (may be empty).',
     '"hint" must be a one-sentence hint to help a student who gets it wrong.',
+    '"solution" must be an array of 2 to 5 short steps (strings) showing how to solve the problem from the given values to the final answer; each step under 120 characters.',
     "Do not include words like ignore, instruction, system message, assistant, or prompt.",
     "diagramSvg must be one compact labeled SVG using only svg, rect, circle, ellipse, line, polygon, polyline, text, title, and desc. Draw every figure with a solid visible fill or stroke (hex colors like #4682b4); never use rgba or translucent fills, and never use g, path, or style. Keep all labels small: font-size 9 to 11, with short labels so text never dominates the figure.",
     "Use xmlns exactly as http://www.w3.org/2000/svg on the outer svg. Do not use style, class, href, URL values, data URIs, path, g, or an XML declaration.",
@@ -214,6 +217,7 @@ export function validateGeneratedLearningResponse(_output: unknown): {
   answer: string;
   acceptableAnswers: string[];
   hint: string;
+  solution: string[];
   diagramSvg: string;
 } {
   if (!_output || typeof _output !== "object" || Array.isArray(_output))
@@ -224,6 +228,7 @@ export function validateGeneratedLearningResponse(_output: unknown): {
     "answer",
     "acceptableAnswers",
     "hint",
+    "solution",
     "diagramSvg",
   ];
   if (
@@ -234,6 +239,10 @@ export function validateGeneratedLearningResponse(_output: unknown): {
     !Array.isArray(output.acceptableAnswers) ||
     !output.acceptableAnswers.every((v) => typeof v === "string") ||
     typeof output.hint !== "string" ||
+    !Array.isArray(output.solution) ||
+    output.solution.length < 1 ||
+    output.solution.length > 5 ||
+    !output.solution.every((v) => typeof v === "string") ||
     typeof output.diagramSvg !== "string"
   )
     throw new Error("Invalid Ollama response");
@@ -244,6 +253,7 @@ export function validateGeneratedLearningResponse(_output: unknown): {
     answer: output.answer,
     acceptableAnswers: output.acceptableAnswers,
     hint: output.hint,
+    solution: output.solution.map((s: string) => s.slice(0, 200)),
     diagramSvg: output.diagramSvg,
   };
 }

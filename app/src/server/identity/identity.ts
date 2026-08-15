@@ -417,6 +417,7 @@ type SessionPool = {
     answer: string;
     acceptableAnswers: readonly string[];
     hint: string;
+    solution: readonly string[];
     diagramSvg: string;
     difficulty: number;
   }[];
@@ -424,6 +425,8 @@ type SessionPool = {
   currentDifficulty: number;
   batchPosition: number;
   batchSize: number;
+  mode?: "practice" | "test";
+  testPlan?: readonly number[];
 };
 
 /** Stores the active AI-generated question's answer in the session. */
@@ -464,6 +467,37 @@ export function setSessionPool(request: Request, pool: SessionPool): void {
   learningDb
     .prepare("UPDATE auth_sessions SET question_pool = ? WHERE token_hash = ?")
     .run(JSON.stringify(pool), session.token_hash);
+}
+
+/** Atomically appends one question to the session pool without touching
+ *  shownIds/position -- safe against concurrent prefetch vs. main saves. */
+export function appendSessionPoolQuestion(
+  request: Request,
+  q: {
+    id: string;
+    question: string;
+    answer: string;
+    acceptableAnswers: readonly string[];
+    hint: string;
+    solution: readonly string[];
+    diagramSvg: string;
+    difficulty: number;
+  },
+): void {
+  const session = activeSession(request);
+  if (!session) return;
+  const current = session.question_pool
+    ? (JSON.parse(session.question_pool) as SessionPool)
+    : null;
+  if (!current) return;
+  if (current.questions.some((e) => e.id === q.id)) return;
+  const merged: SessionPool = {
+    ...current,
+    questions: [...current.questions, q],
+  };
+  learningDb
+    .prepare("UPDATE auth_sessions SET question_pool = ? WHERE token_hash = ?")
+    .run(JSON.stringify(merged), session.token_hash);
 }
 
 /** Reads the adaptive question pool from the session. */
