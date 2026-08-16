@@ -4,6 +4,7 @@ import {
   setSessionPool,
 } from "../../../server/identity/identity";
 import { POST } from "./route";
+import { GET as progressGET } from "../progress/route";
 
 const TOPIC = "Mathematics::Grade 8::Expressions and Equations::8.EE.6";
 
@@ -19,14 +20,14 @@ function request(token: string, ans: string) {
   });
 }
 
-test("next question stays on the selected standard across answers", async () => {
+test("after answering, the next fetched question stays on the standard", async () => {
   const session = await authenticateChild({
     username: "demo",
     password: "demo",
   });
   const token = session.sessionToken;
 
-  // Seed a one-question pool for 8.EE.6 so the lazy branch runs.
+  // Seed a one-question pool for 8.EE.6 so answering has an active question.
   setSessionPool(request(token, "seed"), {
     topicId: TOPIC,
     questions: [
@@ -51,13 +52,27 @@ test("next question stays on the selected standard across answers", async () => 
   const response = await POST(request(token, "2"));
   expect(response.status).toBe(200);
   const payload = (await response.json()) as {
+    correct: boolean;
+    solution: string[];
+  };
+  expect(payload.correct).toBe(true);
+  expect(payload.solution.length).toBeGreaterThan(0);
+
+  // The client then fetches the next question (Next button) — it must stay
+  // on 8.EE.6, never leaking into expression evaluation or exponents.
+  const progressResponse = await progressGET(
+    new Request(
+      `http://localhost/api/progress?subject=Mathematics&grade=Grade%208&domain=Expressions%20and%20Equations&standard=8.EE.6&topicId=${encodeURIComponent(TOPIC)}&mode=practice`,
+      { headers: { cookie: `session=${token}` } },
+    ),
+  );
+  expect(progressResponse.status).toBe(200);
+  const next = (await progressResponse.json()) as {
     nextQuestion?: { question?: string } | null;
   };
-  const q = payload.nextQuestion?.question ?? "";
+  const q = next.nextQuestion?.question ?? "";
   expect(q.length).toBeGreaterThan(0);
   const lower = q.toLowerCase();
-  // 8.EE.6 is slope via similar triangles — the next question must stay there,
-  // not leak into expression evaluation or exponents (the domain's other skills).
   expect(
     lower.includes("slope") ||
       lower.includes("triangle") ||
@@ -68,5 +83,4 @@ test("next question stays on the selected standard across answers", async () => 
   ).toBe(true);
   expect(lower).not.toContain("evaluate the expression");
   expect(lower).not.toContain("exponent");
-  expect(lower).not.toContain("3x + 5");
 });

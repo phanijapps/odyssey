@@ -4,6 +4,7 @@ import {
   selectByPlan,
   poolProgress,
   prefetchNextQuestion,
+  generateLazyQuestion,
 } from "../../../server/agent/adaptive-pool";
 import { getStandardsForSelection } from "../../../server/curriculum/browse";
 import {
@@ -16,6 +17,7 @@ import { getLearningProgress } from "../../../server/learning/learning";
 
 /** Returns the signed-in child's progress and the next question from the adaptive pool. */
 export async function GET(request: Request): Promise<Response> {
+  const ROUTE_V = "v5-testfix";
   const token = request.headers
     .get("cookie")
     ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
@@ -47,11 +49,12 @@ export async function GET(request: Request): Promise<Response> {
 
   // Check for an existing pool, or create a new one
   let pool = getSessionPool(request);
+  // Recreate only when the pool is missing or the topic/mode changed. An
+  // exhausted-looking pool is NOT recreated: in test mode selectByPlan
+  // returns null and the caller lazily generates the planned difficulty;
+  // recreating here would wipe shownIds and restart the plan from zero.
   const needsNewPool =
-    !pool ||
-    pool.topicId !== topicId ||
-    (pool.mode ?? "practice") !== mode ||
-    !pool.questions.some((q) => !pool!.shownIds.includes(q.id));
+    !pool || pool.topicId !== topicId || (pool.mode ?? "practice") !== mode;
 
   if (needsNewPool) {
     const newPool = await createQuestionPool(topicId, standards, mode);
@@ -111,6 +114,42 @@ export async function GET(request: Request): Promise<Response> {
     appendSessionPoolQuestion(request, next),
   );
 
+  if (!question && mode === "test" && pool.testPlan) {
+    // No question banked at the planned difficulty yet — generate it now.
+    const planned = pool.testPlan[pool.shownIds.length] as 1 | 2 | 3;
+    const lazy = await generateLazyQuestion(
+      topicId,
+      planned,
+      standards,
+      updatedPool.questions as never,
+    );
+    if (lazy) {
+      const served = {
+        ...updatedPool,
+        questions: [...updatedPool.questions, lazy],
+        shownIds: [...updatedPool.shownIds, lazy.id],
+        batchPosition: updatedPool.batchPosition + 1,
+        currentDifficulty: planned,
+      };
+      setSessionPool(request, {
+        ...served,
+        ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
+      });
+      const prog2 = poolProgress(served);
+      return Response.json(
+        {
+          ...progress,
+          routeV: ROUTE_V,
+          nextQuestion: {
+            question: lazy.question,
+            diagramSvg: lazy.diagramSvg,
+          },
+          poolProgress: prog2,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+  }
   if (!question) {
     return Response.json(
       { ...progress, nextQuestion: null, poolExhausted: true },
@@ -118,7 +157,6 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 
-  const ROUTE_V = "v3-plan";
   const prog = poolProgress({
     topicId: updatedPool.topicId,
     questions: updatedPool.questions,

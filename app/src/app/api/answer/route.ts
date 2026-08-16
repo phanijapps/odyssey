@@ -195,86 +195,23 @@ export async function POST(request: Request): Promise<Response> {
               result.correct,
             );
 
-      // Test mode follows the fixed plan order; practice adapts.
-      const selectionPool = {
-        ...adjusted,
-        ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
-      } as QuestionPool;
-      const sel =
-        poolMode === "test"
-          ? selectByPlan(selectionPool, pool.shownIds.length)
-          : selectNextQuestion(selectionPool);
-      const pooledQ = sel.question;
-      const updatedPool = sel.pool;
+      // The client fetches the next question explicitly via /api/progress
+      // (the Next button). Answering records the result and prefetches; it
+      // never marks a question shown, so both modes advance one slot per
+      // Next-click.
+      const pooledQ: PoolQuestion | null = null;
+      const updatedPool: QuestionPool = adjusted;
 
-      if (pooledQ) {
-        nextQuestion = {
-          question: pooledQ.question,
-          diagramSvg: pooledQ.diagramSvg,
-        };
-        nextHint = pooledQ.hint;
-        setSessionPool(request, {
-          topicId: updatedPool.topicId,
-          questions: updatedPool.questions,
-          shownIds: updatedPool.shownIds,
-          currentDifficulty: adjusted.currentDifficulty,
-          batchPosition: updatedPool.batchPosition,
-          batchSize: updatedPool.batchSize,
-          mode: poolMode,
-          ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
-        });
-        // Pre-generate the following question in the background while the
-        // child works on this one, so the next answer is served instantly.
-        prefetchNextQuestion(
-          pool.topicId,
-          adjusted.currentDifficulty,
-          standards,
-          (next) => appendSessionPoolQuestion(request, next),
-        );
-      } else {
-        // Generate next question lazily via AI (standards scoped above).
-        const lazy = await generateLazyQuestion(
-          pool.topicId,
-          (poolMode === "test" ? planDifficulty : undefined) ??
-            adjusted.currentDifficulty,
-          standards,
-          pool.questions as never,
-        );
-        if (lazy) {
-          nextQuestion = {
-            question: lazy.question,
-            diagramSvg: lazy.diagramSvg,
-          };
-          nextHint = lazy.hint;
-          // Add to pool and mark as shown
-          setSessionPool(request, {
-            topicId: pool.topicId,
-            questions: [...pool.questions, lazy],
-            shownIds: [...pool.shownIds, lazy.id],
-            currentDifficulty: adjusted.currentDifficulty,
-            batchPosition: adjusted.batchPosition + 1,
-            batchSize: pool.batchSize,
-            mode: poolMode,
-            ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
-          });
-        }
-      }
-    }
-
-    // Fallback: if no pool or pool exhausted, use the question bank
-    if (!nextQuestion) {
-      const { requestLearningFixture } =
-        await import("../../../server/agent/agent");
-      const fallback = await requestLearningFixture({
-        childId,
-        topicId: body.topicId,
-        level: result.level,
-        attemptCount: result.attemptCount,
-      });
-      nextQuestion = {
-        question: fallback.question,
-        diagramSvg: fallback.diagramSvg,
-      };
+      // Record-only: the client requests the next question explicitly.
+      // Prefetch at the planned (test) or current (practice) difficulty so
+      // /api/progress serves instantly on the Next click.
+      prefetchNextQuestion(
+        pool.topicId,
+        ((poolMode === "test" ? planDifficulty : undefined) ??
+          adjusted.currentDifficulty) as Difficulty,
+        standards,
+        (next) => appendSessionPoolQuestion(request, next),
+      );
     }
 
     const feedbackHint = result.correct ? "" : hint || nextHint;
