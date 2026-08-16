@@ -2,8 +2,8 @@ import "server-only";
 import { requestOllamaLearningQuestion } from "../../../server/agent/agent";
 import {
   consumeGeneratedPracticeAllowance,
-  requireMutationProof,
-  setActiveAiQuestion,
+  issueGeneratedPracticeAssignment,
+  requireLearnerMutationProof,
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
 import { validateLearningPayload } from "../../../server/validation/payloads";
@@ -23,7 +23,7 @@ export async function POST(request: Request): Promise<Response> {
   let childId: string;
   let topicId: string;
   try {
-    requireMutationProof(request);
+    requireLearnerMutationProof(request);
     const body = await request.json();
     if (
       !body ||
@@ -58,17 +58,24 @@ export async function POST(request: Request): Promise<Response> {
       component: "GeometryDiagram",
       diagramSvg: question.diagramSvg,
     });
-    setActiveAiQuestion(request, {
+    const assignment = issueGeneratedPracticeAssignment(request, {
       topicId,
       question: question.question,
       answer: question.answer,
       acceptableAnswers: question.acceptableAnswers,
       hint: question.hint,
-    });
-    return Response.json({
-      question: question.question,
+      solution: question.solution,
       diagramSvg: question.diagramSvg,
     });
+    if (!assignment) throw new Error("Practice assignment unavailable");
+    return Response.json(
+      {
+        question: question.question,
+        diagramSvg: question.diagramSvg,
+        assignmentToken: assignment.assignmentToken,
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch {
     return unavailableResponse();
   }

@@ -227,12 +227,6 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    void loadGold();
-    void loadParent();
-    void loadKg();
-  }, [loadGold, loadParent]);
-
   const loadKg = useCallback(async () => {
     try {
       const res = await fetch("/api/knowledge", { cache: "no-store" });
@@ -241,6 +235,12 @@ export default function DashboardPage() {
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    void loadGold();
+    void loadParent();
+    void loadKg();
+  }, [loadGold, loadParent, loadKg]);
 
   const kgSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -274,6 +274,7 @@ export default function DashboardPage() {
       form.append("file", file);
       const res = await fetch("/api/curriculum/ingestions", {
         method: "POST",
+        headers: { origin: window.location.origin },
         body: form,
       });
       const body = (await res.json()) as Workflow & { error?: string };
@@ -297,7 +298,10 @@ export default function DashboardPage() {
         `/api/curriculum/ingestions/${workflow.id}/actions`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            origin: window.location.origin,
+          },
           body: JSON.stringify({
             action: stageAction[workflow.stage].value,
           }),
@@ -319,7 +323,10 @@ export default function DashboardPage() {
   async function deleteRecord(id: string) {
     const res = await fetch("/api/curriculum/gold", {
       method: "DELETE",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        origin: window.location.origin,
+      },
       body: JSON.stringify({ recordId: id }),
     });
     if (res.ok) {
@@ -1090,7 +1097,10 @@ export default function DashboardPage() {
                       <button
                         className="link-btn-inline"
                         onClick={async () => {
-                          await fetch("/api/knowledge", { method: "POST" });
+                          await fetch("/api/knowledge", {
+                            method: "POST",
+                            headers: { origin: window.location.origin },
+                          });
                           await loadKg();
                         }}
                       >

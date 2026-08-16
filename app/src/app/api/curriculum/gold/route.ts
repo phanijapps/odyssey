@@ -1,6 +1,9 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "../../../../server/identity/identity";
+import {
+  requireAdminMutationProof,
+  requireAdminRead,
+} from "../../../../server/identity/identity";
 import {
   listGoldRecords,
   getGoldStats,
@@ -10,6 +13,14 @@ import {
 
 /** Returns Gold records with optional filters, plus aggregate stats and topics. */
 export function GET(request: NextRequest): NextResponse {
+  try {
+    requireAdminRead(request);
+  } catch {
+    return NextResponse.json(
+      { error: "Admin access required" },
+      { status: 403 },
+    );
+  }
   const params = request.nextUrl.searchParams;
   const subject = params.get("subject") ?? undefined;
   const grade = params.get("grade") ?? undefined;
@@ -36,7 +47,7 @@ export function GET(request: NextRequest): NextResponse {
 /** Deletes a single Gold record by record id. */
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    requireAdmin(request);
+    requireAdminMutationProof(request);
   } catch {
     return NextResponse.json(
       { error: "Admin access required" },

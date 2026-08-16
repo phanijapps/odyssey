@@ -5,11 +5,17 @@ import {
   getTemporaryPromotionView,
 } from "../../../../server/curriculum/promotion-store";
 import { validateCurriculumUpload } from "../../../../server/curriculum/source-importer";
+import { requireAdminMutationProof } from "../../../../server/identity/identity";
 
 export const runtime = "nodejs";
 
 /** Receives one local curriculum source and creates a temporary Bronze workflow. */
 export async function POST(request: Request): Promise<Response> {
+  try {
+    requireAdminMutationProof(request);
+  } catch {
+    return Response.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     const form = await request.formData();
     const file = form.get("file");

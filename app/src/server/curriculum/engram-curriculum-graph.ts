@@ -1,5 +1,5 @@
 import "server-only";
-import type { CurriculumRecord } from "../../../../packages/curriculum/src/curriculum-model";
+import type { CurriculumRecord } from "./curriculum-model";
 import { loadConfiguredEngramTransport } from "../memory/engram-memory";
 
 export type CurriculumRelation = {

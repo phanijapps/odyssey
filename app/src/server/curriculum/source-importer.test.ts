@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { CurriculumRecord } from "../../../../packages/curriculum/src/curriculum-model";
+import type { CurriculumRecord } from "./curriculum-model";
 import {
   importCurriculumSource,
   validateCurriculumUpload,

@@ -16,14 +16,18 @@ function request(token: string, ans: string) {
       cookie: `session=${token}`,
       origin: "http://localhost",
     },
-    body: JSON.stringify({ topicId: TOPIC, answer: ans }),
+    body: JSON.stringify({
+      topicId: TOPIC,
+      answer: ans,
+      assignmentToken: "a".repeat(43),
+    }),
   });
 }
 
 test("after answering, the next fetched question stays on the standard", async () => {
   const session = await authenticateChild({
-    username: "demo",
-    password: "demo",
+    username: "test-learner",
+    password: "test-learner-password",
   });
   const token = session.sessionToken;
 
@@ -47,6 +51,8 @@ test("after answering, the next fetched question stays on the standard", async (
     currentDifficulty: 2,
     batchPosition: 1,
     batchSize: 6,
+    mode: "practice",
+    activeAssignment: { questionId: "seed-1", token: "a".repeat(43) },
   });
 
   const response = await POST(request(token, "2"));

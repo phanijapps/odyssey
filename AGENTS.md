@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> **This is the canonical agent context file.** `CLAUDE.md` is a symlink to this file.
+> **This is the canonical agent context file.** `CLAUDE.md` points readers to this file.
 > Cursor, Codex, and Copilot also read it (via their own discovery rules); Gemini CLI
 > reads it via the `context.fileName` bridge the `gemini` adapter writes to `.gemini/settings.json`.
 >
@@ -9,7 +9,6 @@
 
 ## What this repo is
 
-<!-- ONE sentence. Replace this. -->
 A monorepo for Odyssey Learning — a local-first child math-practice application
 for grades 6–12.
 
@@ -68,7 +67,7 @@ For each kind of decision, there is exactly one place it lives:
 | How will we build it, step by step?       | `docs/specs/<feature>/plan.md`       |
 | How is the code organized today?          | `docs/architecture/`                 |
 | What is the product doing today?          | `docs/product/` (roadmap, changelog) |
-| How do users use the product?             | `docs/guides/` (Diátaxis: tutorials, how-to, reference, explanation) |
+| How do users use the product?             | No user-guide collection exists yet; add `docs/guides/` when one is needed. |
 | How do agents do `<repeating task>`?      | A skill file (`SKILL.md` with frontmatter); your IDE handles discovery |
 
 If you can't find the answer in one of these places, **the answer doesn't
@@ -236,4 +235,4 @@ Flag drift in your PR — don't silently work around it. AGENTS.md vs. reality
 drift is the biggest cause of agent quality decay. Substantive changes to
 this file go through RFC; small fixes are normal PRs.
 
-> Working on this repo specifically? See [`AGENTS.local.md`](AGENTS.local.md).
+> Working on this repo specifically? Read `AGENTS.local.md` when it is present.

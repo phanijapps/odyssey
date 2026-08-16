@@ -1,8 +1,23 @@
 import { expect, test } from "vitest";
 import { createTemporaryBronzePromotion } from "../../../../../server/curriculum/promotion-store";
+import { authenticateChild } from "../../../../../server/identity/identity";
 import { GET } from "./route";
 
-test("returns a safe temporary workflow view without source bytes", async () => {
+async function adminRequest(path = "http://localhost"): Promise<Request> {
+  const session = await authenticateChild({
+    username: "test-admin",
+    password: "test-admin-password",
+  });
+  return new Request(path, {
+    headers: { cookie: `session=${session.sessionToken}` },
+  });
+}
+
+const context = (ingestionId: string) => ({
+  params: Promise.resolve({ ingestionId }),
+});
+
+test("returns a safe temporary workflow view to a steward without source bytes", async () => {
   createTemporaryBronzePromotion({
     id: "workflow-status",
     upload: {
@@ -16,9 +31,7 @@ test("returns a safe temporary workflow view without source bytes", async () => 
     bytes: new Uint8Array([123, 125]),
   });
 
-  const response = await GET(new Request("http://localhost"), {
-    params: Promise.resolve({ ingestionId: "workflow-status" }),
-  });
+  const response = await GET(await adminRequest(), context("workflow-status"));
 
   expect(response.status).toBe(200);
   await expect(response.json()).resolves.toEqual({
@@ -35,9 +48,28 @@ test("returns a safe temporary workflow view without source bytes", async () => 
   });
 });
 
-test("returns not found after temporary workflow expiry", async () => {
-  const response = await GET(new Request("http://localhost"), {
-    params: Promise.resolve({ ingestionId: "missing-workflow" }),
+test("rejects anonymous and learner ingestion reads", async () => {
+  expect(
+    (await GET(new Request("http://localhost"), context("workflow-status")))
+      .status,
+  ).toBe(403);
+  const learner = await authenticateChild({
+    username: "test-learner",
+    password: "test-learner-password",
   });
+  expect(
+    (
+      await GET(
+        new Request("http://localhost", {
+          headers: { cookie: `session=${learner.sessionToken}` },
+        }),
+        context("workflow-status"),
+      )
+    ).status,
+  ).toBe(403);
+});
+
+test("returns not found after temporary workflow expiry to a steward", async () => {
+  const response = await GET(await adminRequest(), context("missing-workflow"));
   expect(response.status).toBe(404);
 });

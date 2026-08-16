@@ -3,8 +3,8 @@ import { createHash } from "node:crypto";
 import { lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { isAbsolute, join, relative } from "node:path";
-import { getSeedCurriculumCatalog } from "../../../../packages/curriculum/src/catalog";
+import { isAbsolute, join, relative, sep } from "node:path";
+import { getSeedCurriculumCatalog } from "../curriculum/catalog";
 
 const seededVocabulary = new Set<string>();
 
@@ -40,31 +40,27 @@ function canonicalPath(candidate: string): string {
   }
 }
 
+function assertPathIsConfined(root: string, candidate: string): void {
+  const canonicalRoot = canonicalPath(root);
+  const canonicalCandidate = canonicalPath(candidate);
+  const pathFromRoot = relative(canonicalRoot, canonicalCandidate);
+  if (
+    !isAbsolute(canonicalRoot) ||
+    !isAbsolute(canonicalCandidate) ||
+    pathFromRoot === ".." ||
+    pathFromRoot.startsWith(`..${sep}`) ||
+    isAbsolute(pathFromRoot)
+  )
+    throw new Error("PATH_ESCAPE");
+}
+
 function assertArtifactIsConfined(input: {
   approvedRoot: string;
   sourceRoot: string;
   addonPath: string;
 }): void {
-  const root = canonicalPath(input.approvedRoot);
-  const source = canonicalPath(input.sourceRoot);
-  const addon = canonicalPath(input.addonPath);
-  if (
-    !isAbsolute(source) ||
-    !isAbsolute(addon) ||
-    relative(root, source).startsWith("..") ||
-    relative(root, addon).startsWith("..")
-  )
-    throw new Error("PATH_ESCAPE");
-}
-
-function assertPathIsConfined(root: string, candidate: string): void {
-  const canonicalRoot = canonicalPath(root);
-  const canonicalCandidate = canonicalPath(candidate);
-  if (
-    !isAbsolute(canonicalCandidate) ||
-    relative(canonicalRoot, canonicalCandidate).startsWith("..")
-  )
-    throw new Error("PATH_ESCAPE");
+  assertPathIsConfined(input.approvedRoot, input.sourceRoot);
+  assertPathIsConfined(input.approvedRoot, input.addonPath);
 }
 
 function sha256(path: string): string {
@@ -157,7 +153,8 @@ export function verifyConfiguredEngramArtifact(
 ): { revision: string } {
   assertArtifactIsConfined(artifact);
   assertPathIsConfined(artifact.sourceRoot, artifact.packagePath);
-  const runtimeRoot = join(artifact.sourceRoot, "packages", "node", "dist");
+  const sourceRoot = canonicalPath(artifact.sourceRoot);
+  const runtimeRoot = join(sourceRoot, "packages", "node", "dist");
   if (
     canonicalPath(artifact.packagePath) !==
     canonicalPath(join(runtimeRoot, "index.js"))
@@ -265,21 +262,50 @@ export function getConfiguredEngramArtifact(): {
     : null;
 }
 
-/** Loads the optional local transport only on the server after configuration. */
-export function loadConfiguredEngramTransport(): unknown | null {
+export type EngramNativeAddon = {
+  NativeBeliefEngine?: new (dbPath: string) => unknown;
+  NativeKnowledgeEngine?: new (dbPath: string) => unknown;
+};
+
+type EngramNodePackage = {
+  createNativeMemoryTransport?: (options: { dbPath?: string }) => unknown;
+  createNativeProviderTransport?: (options: { configJson: string }) => unknown;
+};
+
+/** Loads one verified entry point from the configured local Engram artifact. */
+function loadConfiguredEngramModule<T>(
+  entryPoint: (artifact: ConfiguredEngramArtifact) => string,
+): { artifact: ConfiguredEngramArtifact; module: T } | null {
   const artifact = getConfiguredEngramArtifact();
   if (!artifact) return null;
   try {
     verifyConfiguredEngramArtifact(artifact);
     const loadModule = createRequire(import.meta.url) as unknown as (
       moduleId: string,
-    ) => unknown;
-    const nodePackage = loadModule(artifact.packagePath) as {
-      createNativeMemoryTransport?: (options: { dbPath?: string }) => unknown;
-      createNativeProviderTransport?: (options: {
-        configJson: string;
-      }) => unknown;
-    };
+    ) => T;
+    return { artifact, module: loadModule(entryPoint(artifact)) };
+  } catch {
+    return null;
+  }
+}
+
+/** Loads the verified native addon shared by knowledge-graph consumers. */
+export function loadConfiguredEngramAddon(): EngramNativeAddon | null {
+  return (
+    loadConfiguredEngramModule<EngramNativeAddon>(
+      (artifact) => artifact.addonPath,
+    )?.module ?? null
+  );
+}
+
+/** Loads the optional local transport only on the server after configuration. */
+export function loadConfiguredEngramTransport(): unknown | null {
+  const loaded = loadConfiguredEngramModule<EngramNodePackage>(
+    (artifact) => artifact.packagePath,
+  );
+  if (!loaded) return null;
+  const { artifact, module: nodePackage } = loaded;
+  try {
     if (typeof nodePackage.createNativeProviderTransport === "function") {
       const configJson =
         process.env.ENGRAM_CONFIG_JSON ??
@@ -308,7 +334,10 @@ export function loadConfiguredEngramTransport(): unknown | null {
   }
 }
 
-/** Writes only the derived learning signal; raw answers never cross this boundary. */
+/**
+ * Writes only a disposable derived learning signal; raw answers never cross this
+ * boundary and SQLite remains the rebuild source.
+ */
 export async function writeLearningSignal(
   childId: string,
   signal: LearningProfileSignal,
@@ -333,7 +362,7 @@ export async function writeLearningSignal(
       },
       idempotencyKey: `${childId}:${signal.topicId}:${signal.acceptedLevel}:${signal.correct}`,
       kind: "observation",
-      policy: { retention: "durable", visibility: "private" },
+      policy: { retention: "ephemeral", visibility: "private" },
       provenance: {
         actor: { id: "odyssey-learning", kind: "service" },
         observedAt,

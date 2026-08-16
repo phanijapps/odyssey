@@ -1,31 +1,13 @@
 import {
-  getSessionPool,
-  getActiveAiQuestion,
-  grantGeneratedPracticeAllowance,
-  requireMutationProof,
-  setSessionPool,
   appendSessionPoolQuestion,
+  grantGeneratedPracticeAllowance,
+  requireLearnerMutationProof,
 } from "../../../server/identity/identity";
 import {
-  getLearningProgress,
-  submitAnswer,
+  getTopicDetail,
+  submitPracticeAssignment,
 } from "../../../server/learning/learning";
-import {
-  getLearningFixtureAcceptableAnswers,
-  getLearningFixtureExpectedAnswer,
-  getLearningFixtureHint,
-} from "../../../server/agent/agent";
-import {
-  adjustDifficulty,
-  selectNextQuestion,
-  selectByPlan,
-  poolProgress,
-  generateLazyQuestion,
-  prefetchNextQuestion,
-  type PoolQuestion,
-  type QuestionPool,
-  type Difficulty,
-} from "../../../server/agent/adaptive-pool";
+import { prefetchNextQuestion } from "../../../server/agent/adaptive-pool";
 import {
   projectLearningSignal,
   recallLearningContext,
@@ -37,76 +19,61 @@ import {
   putMasteryBelief,
 } from "../../../server/memory/knowledge-graph";
 
+type AnswerSubmission = {
+  topicId: string;
+  answer: string;
+  assignmentToken: string;
+};
+
+/** Parses the only accepted public Practice answer DTO. */
+function parseAnswerSubmission(body: unknown): AnswerSubmission {
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    !Object.keys(body).every(
+      (key) =>
+        key === "topicId" || key === "answer" || key === "assignmentToken",
+    )
+  )
+    throw new Error("Invalid answer submission");
+  const candidate = body as Record<string, unknown>;
+  if (
+    typeof candidate.topicId !== "string" ||
+    candidate.topicId.length === 0 ||
+    candidate.topicId.length > 100 ||
+    typeof candidate.answer !== "string" ||
+    candidate.answer.length === 0 ||
+    candidate.answer.length > 100 ||
+    typeof candidate.assignmentToken !== "string" ||
+    !/^[A-Za-z0-9_-]{32,}$/.test(candidate.assignmentToken)
+  )
+    throw new Error("Invalid answer submission");
+  return {
+    topicId: candidate.topicId,
+    answer: candidate.answer,
+    assignmentToken: candidate.assignmentToken,
+  };
+}
+
+/** Consumes exactly one server-issued Practice assignment. */
 export async function POST(request: Request): Promise<Response> {
   try {
-    const { childId } = requireMutationProof(request);
-    const body = await request.json();
-    if (
-      !body ||
-      typeof body !== "object" ||
-      Array.isArray(body) ||
-      !Object.keys(body).every(
-        (key) => key === "topicId" || key === "answer",
-      ) ||
-      typeof body.topicId !== "string" ||
-      typeof body.answer !== "string" ||
-      body.topicId.length === 0 ||
-      body.topicId.length > 100 ||
-      body.answer.length === 0 ||
-      body.answer.length > 100
-    )
-      throw new Error("Invalid answer submission");
-
-    const currentProgress = getLearningProgress(childId, body.topicId);
-    const attemptCount = currentProgress?.attemptCount ?? 0;
-
-    // Get the active question from the pool
-    const pool = getSessionPool(request);
-    let expectedAnswer: string;
-    let acceptableAnswers: readonly string[];
-    let hint = "";
-
-    // The last shown question is the one being answered
-    const lastShownId = pool?.shownIds.at(-1);
-    const activeQuestion = pool?.questions.find((q) => q.id === lastShownId);
-
-    if (activeQuestion && pool?.topicId === body.topicId) {
-      expectedAnswer = activeQuestion.answer;
-      acceptableAnswers = activeQuestion.acceptableAnswers;
-      hint = activeQuestion.hint;
-    } else {
-      // Fallback to question bank
-      expectedAnswer = getLearningFixtureExpectedAnswer({
-        topicId: body.topicId,
-        attemptCount,
-      });
-      acceptableAnswers = getLearningFixtureAcceptableAnswers({
-        topicId: body.topicId,
-        attemptCount,
-      });
-      hint = getLearningFixtureHint({
-        topicId: body.topicId,
-        attemptCount,
-      });
-    }
-
-    const result = await submitAnswer({
+    const { childId, sessionTokenHash } = requireLearnerMutationProof(request);
+    const body = parseAnswerSubmission(await request.json());
+    const result = submitPracticeAssignment({
       childId,
+      sessionTokenHash,
       topicId: body.topicId,
       answer: body.answer,
-      expectedAnswer,
-      acceptableAnswers,
-      nextLevel: 1,
+      assignmentToken: body.assignmentToken,
     });
 
-    // Capture the learning pattern into the knowledge graph (best-effort)
-    const standardsList = getStandardsForSelection({
-      subject: body.topicId.split("::")[0] ?? "",
-      grade: body.topicId.split("::")[1] ?? "",
-      domain: body.topicId.split("::")[2] ?? "",
-    });
-    const matchedStandard = standardsList.find(
-      (s) => s.standardCode === (body.topicId.split("::")[3] ?? ""),
+    const [subject = "", grade = "", domain = "", standardCode = ""] =
+      body.topicId.split("::");
+    const standards = getStandardsForSelection({ subject, grade, domain });
+    const matchedStandard = standards.find(
+      (standard) => standard.standardCode === standardCode,
     );
     if (matchedStandard) {
       recordLearningAttempt({
@@ -114,14 +81,11 @@ export async function POST(request: Request): Promise<Response> {
         standardId: matchedStandard.standardCode,
         standardCode: matchedStandard.standardCode,
         correct: result.correct,
-        difficulty: pool?.currentDifficulty ?? 2,
+        difficulty: result.answeredDifficulty,
         topicId: body.topicId,
       });
-      // Update mastery belief from SQLite stats
-      const { getTopicDetail } =
-        await import("../../../server/learning/learning");
       const detail = getTopicDetail(childId, body.topicId);
-      if (detail && detail.attempts > 0) {
+      if (detail && detail.attempts > 0)
         putMasteryBelief({
           childId,
           standardId: matchedStandard.standardCode,
@@ -129,7 +93,6 @@ export async function POST(request: Request): Promise<Response> {
           correctRate: detail.correct / detail.attempts,
           attempts: detail.attempts,
         });
-      }
     }
 
     const memoryWritten = await writeLearningSignal(
@@ -143,119 +106,35 @@ export async function POST(request: Request): Promise<Response> {
     );
     const memoryRecalled = await recallLearningContext(childId);
 
-    // Adjust difficulty and generate next question lazily
-    let nextQuestion: { question: string; diagramSvg: string } | null = null;
-    let nextHint = "";
-
-    if (pool && pool.topicId === body.topicId) {
-      // Standards scoped to the exact standard being practiced (segment [3]).
-      const allDomainStandards = getStandardsForSelection({
-        subject: body.topicId.split("::")[0] ?? "",
-        grade: body.topicId.split("::")[1] ?? "",
-        domain: body.topicId.split("::")[2] ?? "",
-      });
-      const selectedStandard = body.topicId.split("::")[3];
-      const standards = selectedStandard
-        ? allDomainStandards.filter((s) => s.standardCode === selectedStandard)
-        : allDomainStandards;
-
-      const poolMode = (pool.mode ?? "practice") as "practice" | "test";
-      // Index the plan by how many questions have been SERVED (shownIds
-      // includes the one just answered), so the next question follows the
-      // plan order: 1,1,1,2,2,2,3,3,3.
-      const planDifficulty = pool.testPlan?.[pool.shownIds.length] as
-        | 1
-        | 2
-        | 3
-        | undefined;
-      // Practice adapts on correctness; test follows the fixed plan order.
-      const adjusted: QuestionPool =
-        poolMode === "test" && planDifficulty
-          ? ({
-              topicId: pool.topicId,
-              questions: pool.questions as never,
-              shownIds: pool.shownIds,
-              currentDifficulty: planDifficulty,
-              batchPosition: pool.batchPosition,
-              batchSize: pool.batchSize,
-              mode: poolMode,
-              ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
-            } as QuestionPool)
-          : adjustDifficulty(
-              {
-                topicId: pool.topicId,
-                questions: pool.questions as never,
-                shownIds: pool.shownIds,
-                currentDifficulty: pool.currentDifficulty as 1 | 2 | 3,
-                batchPosition: pool.batchPosition,
-                batchSize: pool.batchSize,
-                mode: poolMode,
-                ...(pool.testPlan ? { testPlan: pool.testPlan } : {}),
-              } as QuestionPool,
-              result.correct,
-            );
-
-      // The client fetches the next question explicitly via /api/progress
-      // (the Next button). Answering records the result and prefetches; it
-      // never marks a question shown, so both modes advance one slot per
-      // Next-click.
-      const pooledQ: PoolQuestion | null = null;
-      const updatedPool: QuestionPool = adjusted;
-
-      // Record-only: the client requests the next question explicitly.
-      // Prefetch at the planned (test) or current (practice) difficulty so
-      // /api/progress serves instantly on the Next click.
-      prefetchNextQuestion(
-        pool.topicId,
-        ((poolMode === "test" ? planDifficulty : undefined) ??
-          adjusted.currentDifficulty) as Difficulty,
-        standards,
-        (next) => appendSessionPoolQuestion(request, next),
-      );
-    }
-
-    const feedbackHint = result.correct ? "" : hint || nextHint;
-    // Compute progress from the updated pool state
-    const updatedSessionPool = getSessionPool(request);
-    const prog = updatedSessionPool
-      ? poolProgress({
-          topicId: updatedSessionPool.topicId,
-          questions: updatedSessionPool.questions as never,
-          shownIds: updatedSessionPool.shownIds,
-          currentDifficulty: updatedSessionPool.currentDifficulty as 1 | 2 | 3,
-          batchPosition: updatedSessionPool.batchPosition,
-          batchSize: updatedSessionPool.batchSize,
-        })
-      : null;
-
+    // The durable transaction has already cleared the old assignment and
+    // persisted this difficulty before a best-effort next-question prefetch.
+    prefetchNextQuestion(
+      body.topicId,
+      result.nextPracticeDifficulty,
+      standardCode
+        ? standards.filter((standard) => standard.standardCode === standardCode)
+        : standards,
+      (next) => appendSessionPoolQuestion(request, next),
+    );
     grantGeneratedPracticeAllowance(request, body.topicId);
-    const answeredDifficulty =
-      activeQuestion?.difficulty ??
-      (pool?.questions.find((q) => q.id === pool?.shownIds.at(-1))
-        ?.difficulty as number | undefined) ??
-      2;
+
+    const { nextPracticeDifficulty: _nextPracticeDifficulty, ...response } =
+      result;
     return Response.json({
-      ...result,
-      hint: feedbackHint,
-      solution: activeQuestion?.solution ?? [],
-      correctAnswer: activeQuestion?.answer ?? "",
-      answeredDifficulty,
+      ...response,
       points: result.correct
-        ? answeredDifficulty === 1
+        ? result.answeredDifficulty === 1
           ? 10
-          : answeredDifficulty === 2
+          : result.answeredDifficulty === 2
             ? 20
             : 30
         : 0,
-      testMode: (pool?.mode ?? "practice") === "test",
-      testPosition: pool?.batchPosition ?? 0,
-      testTotal: pool?.batchSize ?? 6,
       memoryWritten,
       memoryRecalled,
-      nextQuestion,
-      poolProgress: prog,
+      nextQuestion: null,
     });
   } catch {
+    // Do not disclose whether a token was stale, fabricated, or already used.
     return Response.json({ error: "Unable to save answer" }, { status: 400 });
   }
 }

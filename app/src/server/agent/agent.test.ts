@@ -3,12 +3,12 @@ import {
   assertAgentRequestBudget,
   buildAgentProfileData,
   getOllamaOpenAIUrl,
-  getOpenAIChatCompletionContent,
   getGeneratedOutputInstruction,
   parseOpenAICompletionJson,
   getLearningFixtureExpectedAnswer,
   redactAgentAudit,
   requestLearningFixture,
+  requestOllamaLearningQuestion,
   validateGeneratedLearningResponse,
   validateGeneratedQuestionText,
 } from "./agent";
@@ -258,15 +258,30 @@ test("uses only the local Ollama OpenAI-compatible endpoint", () => {
   }
 });
 
-test("accepts only one bounded OpenAI-compatible assistant completion", () => {
-  expect(
-    getOpenAIChatCompletionContent({
-      choices: [{ message: { content: '{"answer":2}' } }],
-    }),
-  ).toBe('{"answer":2}');
-  expect(() => getOpenAIChatCompletionContent({ choices: [] })).toThrow(
-    "Invalid Ollama response",
-  );
+test("rejects a non-loopback endpoint before requesting a learning completion", async () => {
+  const previousUrl = process.env.OLLAMA_OPENAI_URL;
+  const previousIntegration = process.env.OLLAMA_INTEGRATION;
+  const previousProvider = process.env.PI_PROVIDER;
+  const previousModel = process.env.PI_MODEL;
+  try {
+    process.env.OLLAMA_OPENAI_URL = "http://example.test/v1";
+    process.env.OLLAMA_INTEGRATION = "1";
+    process.env.PI_PROVIDER = "ollama";
+    process.env.PI_MODEL = "test-model";
+    await expect(
+      requestOllamaLearningQuestion({ topicId: "ratio", level: 1 }),
+    ).rejects.toThrow("Invalid Ollama OpenAI URL");
+  } finally {
+    if (previousUrl === undefined) delete process.env.OLLAMA_OPENAI_URL;
+    else process.env.OLLAMA_OPENAI_URL = previousUrl;
+    if (previousIntegration === undefined)
+      delete process.env.OLLAMA_INTEGRATION;
+    else process.env.OLLAMA_INTEGRATION = previousIntegration;
+    if (previousProvider === undefined) delete process.env.PI_PROVIDER;
+    else process.env.PI_PROVIDER = previousProvider;
+    if (previousModel === undefined) delete process.env.PI_MODEL;
+    else process.env.PI_MODEL = previousModel;
+  }
 });
 
 test("parses only a complete raw JSON completion", () => {

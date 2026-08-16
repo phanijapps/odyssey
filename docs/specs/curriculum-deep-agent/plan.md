@@ -20,12 +20,12 @@ temporary source → source manifest → curriculum-document skill
                   Engram memory / knowledge-graph projection (ADR-0003)
 ```
 
-The framework stays server-only under `app/src/server/curriculum/`. Pure source
-and promotion contracts remain in `packages/curriculum/`. Application code
-creates the manifest before a model runs; the model receives that safe manifest
-only. Each model read window is capped at three pages and 12,000 characters, and
-page batches use independent model contexts. The browser sees only safe
-manifests, traces, candidates, and status—not source bytes or tools.
+The framework and its source and promotion contracts stay server-only under
+`app/src/server/curriculum/`. Application code creates the manifest before a
+model runs; the model receives that safe manifest only. Each model read window is
+capped at three pages and 12,000 characters, and page batches use independent
+model contexts. The browser sees only safe manifests, traces, candidates, and
+status—not source bytes or tools.
 
 ## Tasks
 

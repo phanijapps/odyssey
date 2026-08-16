@@ -1,6 +1,5 @@
 import "server-only";
 import { questionBank, type QuestionBankEntry } from "./question-bank";
-import { validateLearningPayload } from "../validation/payloads";
 import { isOllamaConfigured, requestOllamaLearningQuestion } from "./agent";
 
 export type Difficulty = 1 | 2 | 3;
@@ -31,27 +30,6 @@ export type QuestionPool = {
 };
 
 const BATCH_SIZE = 6;
-
-/** Scales diagram label font sizes down so text fits the figure. */
-function scaleDiagramFonts(svg: string, factor = 0.9): string {
-  return svg.replace(
-    /font-size="([\d.]+)(px)?"/g,
-    (_m, size: string) =>
-      `font-size="${(Number.parseFloat(size) * factor).toFixed(1)}"`,
-  );
-}
-
-/** Sanitizes the SVG with a fallback if validation fails. */
-function safeDiagram(raw: string): string {
-  try {
-    validateLearningPayload({ component: "GeometryDiagram", diagramSvg: raw });
-    return scaleDiagramFonts(raw);
-  } catch {
-    // Unusable diagram: return empty so clients render no diagram column
-    // rather than a placeholder stub.
-    return "";
-  }
-}
 
 /** Maps curriculum-skill keywords (from a standard's text) to bank topics.
  *  A bank question about the wrong skill is worse than no question, so this
@@ -231,7 +209,7 @@ async function makeQuestion(
           acceptableAnswers: ai.acceptableAnswers,
           hint: ai.hint,
           solution: ai.solution,
-          diagramSvg: safeDiagram(ai.diagramSvg),
+          diagramSvg: ai.diagramSvg,
           difficulty,
         };
       } catch {

@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { DatabaseSync } from "node:sqlite";
-import type { CurriculumRecord } from "../../../../packages/curriculum/src/curriculum-model";
+import type { DatabaseSync } from "node:sqlite";
+import type { CurriculumRecord } from "./curriculum-model";
 import {
   OLLAMA_EMBEDDING_MODEL,
   embedCurriculumText,
@@ -12,6 +12,7 @@ import {
 } from "./engram-curriculum-graph";
 import queries from "./sqlite-queries.json";
 import { CurriculumVectorRepository } from "./vector-repository";
+import { migrateDatabase, openDatabase } from "../persistence/sqlite";
 
 type GoldPersistenceInput = {
   readonly canonicalRecords: readonly CurriculumRecord[];
@@ -32,21 +33,21 @@ type GoldIndexDependencies = {
 
 /** Persists canonical Gold, projects its graph, and indexes its local vectors. */
 export class GoldSemanticIndex {
-  private readonly vectors: CurriculumVectorRepository;
+  private readonly vectors: CurriculumVectorRepository | null;
   private readonly writeGraph: NonNullable<GoldIndexDependencies["writeGraph"]>;
   private readonly embed: NonNullable<GoldIndexDependencies["embed"]>;
 
   private readonly vectorsAvailable: boolean;
 
   constructor(private readonly dependencies: GoldIndexDependencies) {
-    dependencies.database.exec(queries.initializeGoldRecords);
+    migrateDatabase(dependencies.database);
     let vectors: CurriculumVectorRepository | null = null;
     try {
       vectors = new CurriculumVectorRepository(dependencies.database);
     } catch {
       // sqlite-vec may not load under some build environments
     }
-    this.vectors = vectors as CurriculumVectorRepository;
+    this.vectors = vectors;
     this.vectorsAvailable = vectors !== null;
     this.writeGraph = dependencies.writeGraph ?? writeGoldCurriculumGraph;
     this.embed = dependencies.embed ?? embedCurriculumText;
@@ -95,8 +96,8 @@ export class GoldSemanticIndex {
               vector: await this.embed(content),
             });
           } catch {
-            // Vector embedding may fail if sqlite-vec or Ollama is unavailable;
-            // the Gold record is still persisted in the relational table.
+            // An updated Gold record must not retain a stale retrieval projection.
+            this.vectors?.remove(record.id);
           }
         }
       }
@@ -115,10 +116,7 @@ export class GoldSemanticIndex {
 /** Opens the local durable Gold database used by the one-port application. */
 export function createLocalGoldSemanticIndex(): GoldSemanticIndex {
   return new GoldSemanticIndex({
-    database: new DatabaseSync(
-      process.env.ODYSSEY_CURRICULUM_DB_PATH ?? "odyssey-curriculum.db",
-      { allowExtension: true },
-    ),
+    database: openDatabase("curriculum"),
   });
 }
 

@@ -1,38 +1,63 @@
 import "server-only";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { migrateDatabase, openDatabase } from "../persistence/sqlite";
 
-export const learningDb = new DatabaseSync(
-  process.env.ODYSSEY_DB_PATH ?? "odyssey-learning.db",
-);
+/** Shared learning connection; the persistence owner configures and migrates it. */
+export const learningDb = openDatabase("learning");
 
-learningDb.exec(`
-CREATE TABLE IF NOT EXISTS learning_progress (
-  child_id TEXT NOT NULL, topic_id TEXT NOT NULL, level INTEGER NOT NULL,
-  correct_streak INTEGER NOT NULL, updated_at TEXT NOT NULL,
-  PRIMARY KEY (child_id, topic_id)
-);
-CREATE TABLE IF NOT EXISTS learning_attempts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, child_id TEXT NOT NULL,
-  topic_id TEXT NOT NULL, correct INTEGER NOT NULL,
-  level_before INTEGER NOT NULL, level_after INTEGER NOT NULL,
-  created_at TEXT NOT NULL
-);`);
-
-/** Redacts historical answer text from a pre-privacy local attempt schema. */
-export function redactLegacyAttemptAnswers(database: DatabaseSync): boolean {
-  const hasRawAnswerColumn = (
-    database.prepare("PRAGMA table_info(learning_attempts)").all() as Array<{
+function hasColumn(
+  database: DatabaseSync,
+  table: string,
+  column: string,
+): boolean {
+  return (
+    database.prepare(`PRAGMA table_info(${table})`).all() as Array<{
       name: string;
     }>
-  ).some((column) => column.name === "answer");
-  if (!hasRawAnswerColumn) return false;
+  ).some((candidate) => candidate.name === column);
+}
+
+/** @deprecated Startup migrations are owned by the persistence module. */
+export function migrateLastSubmissionOrdinal(database: DatabaseSync): boolean {
+  const missing = !hasColumn(
+    database,
+    "test_sessions",
+    "last_submission_ordinal",
+  );
+  migrateDatabase(database);
+  return missing;
+}
+
+/** @deprecated Startup migrations are owned by the persistence module. */
+export function migrateTestSessionStatusForPartial(
+  database: DatabaseSync,
+): boolean {
+  const schema = database
+    .prepare(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'test_sessions'",
+    )
+    .get() as { sql: string } | undefined;
+  const requiresMigration = Boolean(
+    schema && !/['"]partial['"]/i.test(schema.sql),
+  );
+  migrateDatabase(database);
+  return requiresMigration;
+}
+
+/** Redacts legacy answer values without changing the current retention policy. */
+export function redactLegacyAttemptAnswers(database: DatabaseSync): boolean {
+  if (!hasColumn(database, "learning_attempts", "answer")) return false;
   database
     .prepare("UPDATE learning_attempts SET answer = ? WHERE answer <> ?")
     .run("[redacted]", "[redacted]");
   return true;
 }
 
-const hasLegacyRawAnswerColumn = redactLegacyAttemptAnswers(learningDb);
+const hasLegacyRawAnswerColumn = hasColumn(
+  learningDb,
+  "learning_attempts",
+  "answer",
+);
 
 /** Builds a parameterized write that never stores a child's raw answer. */
 export function createLearningAttemptWrite(

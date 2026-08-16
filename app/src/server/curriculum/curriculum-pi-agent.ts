@@ -1,7 +1,8 @@
 import "server-only";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseCurriculumRecord } from "../../../../packages/curriculum/src/curriculum-model";
+import { parseCurriculumRecord } from "./curriculum-model";
+import { completeWithLocalOllama } from "../pi-completion";
 
 const MAX_PI_INPUT_CHARACTERS = 120_000;
 
@@ -94,36 +95,12 @@ function getProfile(stage: PiStage): {
 async function completeWithPi(request: PiRequest): Promise<string> {
   const modelId = process.env.PI_MODEL;
   if (!modelId) throw new Error("Curriculum Pi model is not configured");
-  const baseUrl = process.env.OLLAMA_OPENAI_URL ?? "http://127.0.0.1:11434/v1";
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    signal: AbortSignal.timeout(120_000),
-    body: JSON.stringify({
-      model: modelId,
-      stream: false,
-      max_tokens: 8_192,
-      response_format: { type: "json_object" },
-      temperature: 0,
-      messages: [
-        { role: "system", content: request.systemPrompt },
-        { role: "user", content: request.data },
-      ],
-    }),
+  return completeWithLocalOllama({
+    systemPrompt: request.systemPrompt,
+    messages: [request.data],
+    timeoutMs: 120_000,
+    maxTokens: 8_192,
   });
-  if (!response.ok) throw new Error("Curriculum Pi request failed");
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: unknown } }>;
-  };
-  const choices = payload.choices;
-  if (!Array.isArray(choices) || choices.length === 0)
-    throw new Error("Curriculum Pi did not return a response");
-  const messageContent = choices[0]?.message?.content;
-  if (typeof messageContent !== "string" || !messageContent)
-    throw new Error("Curriculum Pi did not return JSON");
-  return messageContent;
 }
 
 function parsePiJson(input: string): unknown {

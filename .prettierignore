@@ -1,4 +1,5 @@
 .agents/
+.claude/
 AGENTS.md
 docs/architecture/README.md
 docs/CONVENTIONS.md

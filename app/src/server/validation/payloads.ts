@@ -1,3 +1,5 @@
+import "server-only";
+
 /** Validates strict learning and rendering payloads before every sink. */
 export function validateLearningPayload(_input: unknown): void {
   if (!_input || typeof _input !== "object") throw new Error("Invalid payload");
@@ -11,6 +13,24 @@ export function validateLearningPayload(_input: unknown): void {
   )
     return;
   throw new Error("Invalid payload");
+}
+
+/** Normalizes and validates a provider diagram, or fails closed. */
+export function sanitizeGeneratedDiagramSvg(raw: string): string {
+  const normalized = raw.replace(
+    /font-size="([\d.]+)(px)?"/g,
+    (_match: string, size: string) =>
+      `font-size="${(Number.parseFloat(size) * 0.9).toFixed(1)}"`,
+  );
+  try {
+    validateLearningPayload({
+      component: "GeometryDiagram",
+      diagramSvg: normalized,
+    });
+    return normalized;
+  } catch {
+    return "";
+  }
 }
 
 /** Validates the finite application-owned A2UI component catalog. */

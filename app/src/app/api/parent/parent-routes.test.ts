@@ -21,8 +21,8 @@ test("parent summary and chat reject missing sessions", async () => {
 
 test("parent chat returns aggregate progress for the authenticated child", async () => {
   const session = await authenticateChild({
-    username: "demo",
-    password: "demo",
+    username: "test-learner",
+    password: "test-learner-password",
   });
   const request = new Request("http://localhost/api/parent/chat", {
     method: "POST",

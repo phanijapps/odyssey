@@ -1,138 +1,120 @@
 # Architecture Overview
 
-> The map of this monorepo. Read this first when exploring. Updated whenever
-> the directory layout or major dependencies change.
+> The living map of the monorepo. Read this first, then see
+> [`application.md`](application.md) for the runtime, data flow, and route
+> contracts. Historical decisions remain in [`../adr/`](../adr/) and
+> [`../rfc/`](../rfc/); they are not descriptions of the running system.
 
 ## Layout
 
-```
+```text
 .
-├── AGENTS.md             # canonical agent context (CLAUDE.md is a symlink)
-├── app/                  # single deployable Next.js child-learning application
-├── packages/             # shared libraries (consumed by apps and other packages)
-│   └── <package-name>/
-├── tools/                # build, dev, and ops tooling — not shipped to users
+├── AGENTS.md             # canonical contributor instructions
+├── CLAUDE.md             # points to AGENTS.md
+├── app/                  # the one deployable Next.js application
+│   └── src/
+│       ├── app/          # pages, browser UI, and App Router handlers
+│       ├── components/   # reusable browser components
+│       └── server/       # server-only policy and runtime modules
+├── tools/hooks/          # repository hooks
 ├── docs/
-│   ├── CHARTER.md        # mission, scope, principles (one page)
-│   ├── CONVENTIONS.md    # how we work
-│   ├── adr/              # architecture decisions (frozen history)
-│   ├── rfc/              # proposals (governance)
-│   ├── specs/            # feature specs and plans
-│   ├── architecture/     # this directory — current code structure (for contributors)
-│   ├── product/          # current product state (roadmap, changelog) — for maintainers
-│   └── guides/           # user-facing docs (Diátaxis: tutorials, how-to, reference, explanation)
-├── .claude/
-│   ├── skills/           # agent workflows for repeating tasks (each skill owns its templates under `assets/`)
-│   ├── agents/           # subagent definitions
-│   └── commands/         # custom slash commands
-└── .github/              # CI, issue and PR templates
+│   ├── architecture/     # living implementation map
+│   ├── adr/              # frozen decision records
+│   ├── rfc/              # frozen proposal records
+│   ├── specs/            # feature records and active plans
+│   ├── product/          # living product state and release history
+│   └── knowledge/        # curated engineering lessons
+├── .agents/skills/       # project-owned agent workflows
+├── .codex/               # reviewer definitions and hook configuration
+└── workspace.toml        # work coordination
 ```
 
-## Apps and packages
+There is no `packages/` source boundary. The former curriculum package was
+collapsed into `app/src/server/curriculum/` because it has one deployable
+consumer.
 
-- `app/` — Next.js child-learning application. Depends on React, Next.js, and
-  the server-only Pi Mono runtime. Entry point: `app/src/app/page.tsx`.
-- `packages/curriculum/` — reusable, typed curriculum parsing and progression
-  contracts. Entry points: `packages/curriculum/src/catalog.ts` and
-  `packages/curriculum/src/progression.ts`.
+## Runtime shape
 
-## Curriculum ingestion
+One Next.js process serves browser pages and same-origin route handlers. Route
+handlers validate their transport input, establish the caller's server-side
+session scope where required, and call focused `src/server/` modules. Browser
+code does not import those modules.
 
-Curriculum sources use a source-neutral gated pipeline: Bronze is a raw
-document/feed awaiting steward approval; approved Bronze is ingested to Silver,
-where a dedicated Pi agent synthesizes a normalized candidate; approved Silver
-is ingested to Gold. Gold is the approved canonical curriculum and the only
-layer used for question generation or semantic retrieval. Its semantic layer
-combines knowledge-graph relations, local vectors, hybrid search, and reranking.
-Source adapters may understand a particular document format or standards
-framework, but the workflow and canonical records remain subject-neutral.
+`@earendil-works/pi-ai` is used only by `src/server/pi-completion.ts` for
+bounded, stateless text completion against the configured local OpenAI-compatible
+Ollama endpoint. It has no tools, agent loop, filesystem access, database access,
+or authorization authority. `pi-agent-core` and A2UI are not runtime
+architecture boundaries; generated output is application data validated before
+use, not agent-authored UI.
 
-## Personas and access
+See [`application.md`](application.md#runtime-and-data-flow) for the full flow.
 
-| Persona                | Primary use                   | Allowed capabilities                                                     | Excluded capabilities                             |
-| ---------------------- | ----------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------- |
-| Learner                | Practice a subject            | Answer questions, view diagrams/explanations, view own progress          | Parent data, curriculum sources, approvals        |
-| Parent/Guardian        | Support one child             | View linked-child progress, read guided outcomes, send bounded questions | Curriculum edits, source approval, other children |
-| Curriculum Steward     | Govern curriculum             | Submit Bronze sources, review Silver, approve Gold, map topics/targets   | Child answers, session data, agent self-approval  |
-| Extraction Pi agent    | Normalize sources             | Bronze → Silver under a bounded parser/tool set                          | Gold approval, browser actions, child data        |
-| Formalization Pi agent | Formalize approved candidates | Approved Silver → Gold draft                                             | Gold approval, browser actions, child data        |
+## Data ownership
 
-The application enforces every human permission and promotion transition;
-agents provide data transformations only. Steward ingestion is a compact,
-desktop-only workflow for now; iPad validation applies to child practice. The
-pipeline is synchronous in this local-first slice and may become event-driven in
-a later architecture change.
+- `src/server/persistence/sqlite.ts` is the sole owner of SQLite connection
+  policy and ordered migrations. It opens the learning and curriculum stores;
+  promotion state shares the curriculum store.
+- `src/server/learning/` owns formative practice state, attempts, and
+  assessment records. Assessment results are retained separately from practice
+  progression; history returns a redacted timeline.
+- `src/server/curriculum/` owns the reviewed catalog, Bronze → Silver → Gold
+  workflow, Gold queries, and local vector index.
+- `src/server/memory/` owns optional native profile-memory and knowledge-graph
+  projections. They receive only derived learning signals and do not replace
+  SQLite as the authoritative learning store.
 
-## Practice flow (learner experience)
+## Retention and erasure
 
-The practice page (`/`) is an IXL-style single-page experience:
+- **Learner history — retained.** SQLite practice progression, redacted practice
+  attempts, and terminal assessment records are retained locally. There is no
+  automatic history purge, and no reset/export feature exists yet.
+- **Active assessments — retained.** An active assessment is never selected for
+  automatic deletion; it remains resumable until the learner explicitly reaches
+  a terminal lifecycle state.
+- **Authentication session state — short-lived.** A session row (including its
+  plaintext generated-question pool and assignment token) is deleted
+  opportunistically on authentication/session activity after 30 minutes idle or
+  eight hours absolute age. This is request-driven cleanup, not a scheduled
+  daemon.
+- **Curriculum workflow artifacts — temporary.** Bronze, Silver, and pending
+  Gold handoff data expire after 24 hours and are purged on the next workflow
+  operation; the artifacts are also deleted immediately after successful Gold
+  finalization. Approved Gold records are not in this temporary class.
+- **Derived projections — disposable.** Native profile-memory, knowledge-graph,
+  and local vector data are non-authoritative projections. They may be lost or
+  rebuilt from SQLite learning records and reviewed Gold data where their
+  current adapters support rebuilding; no automatic deletion or user reset is
+  introduced by this policy.
 
-1. **Header controls** — subject dropdown, grade dropdown, and a search bar with
-   instant typeahead across all standards. A ✨ button triggers AI semantic
-   search via Ollama embeddings for fuzzy queries.
-2. **Skill browsing** — a collapsible "Browse skills" grid groups all standards
-   by domain for the selected subject + grade.
-3. **Adaptive question pool** — selecting a skill generates one question
-   immediately (medium difficulty); each subsequent question is generated
-   lazily after the child answers, so the first question appears in ~3 seconds.
-   Difficulty adapts: wrong → easier, correct → harder. No question repeats
-   within a batch of 6.
-4. **AI question generation** — questions, answers, acceptable alternative
-   answers, and hints are generated by the local Ollama model (`glm-5.2:cloud`),
-   scoped to the Gold standards for the selected skill. The reviewed question
-   bank (`question-bank.ts`) is the fallback when AI is unavailable.
-5. **Math rendering** — the `MathText` component renders plain-text math
-   notation (exponents `x^2`, fractions `1/2`, subscripts) as formatted HTML.
+## Retrieval and generation
 
-Key APIs: `/api/progress` (loads the pool + first question), `/api/answer`
-(checks the answer, adjusts difficulty, generates the next question),
-`/api/curriculum/browse` (subject → grade → domain → standards tree),
-`/api/curriculum/search` (text + semantic search).
+Browse and ordinary search read the reviewed curriculum tree. Semantic search
+embeds a query locally, asks the local SQLite vector projection for bounded
+nearest records, and falls back to text ranking when that projection is
+unavailable. The graph is a separate optional projection; it is not a retrieval
+or reranking stage.
 
-## Knowledge graph (Engram)
+Practice and assessment obtain a server-owned question from the reviewed bank
+when available. When local generation is enabled, the server supplies scoped
+standard data to the Pi AI completion boundary, validates the structured result
+and SVG, and otherwise falls back to a matching reviewed question or reports
+unavailability. Generated content never promotes curriculum records.
 
-Odyssey uses Engram's Rust-backed knowledge engine (`NativeKnowledgeEngine` +
-`NativeBeliefEngine`) to persist a learning knowledge graph:
+## Access and routes
 
-- **Curriculum entities** — every Gold standard is a `concept` entity in the
-  curriculum scope, with prerequisite relationships within each domain.
-- **Learning patterns** — each answer records a `task` entity in the child's
-  scoped graph, with a `masteredStep` or `struggledOn` relationship to the
-  standard.
-- **Mastery beliefs** — accuracy per standard is stored as a belief with
-  confidence scaled by attempt count.
-
-The graph lives in `odyssey-knowledge-graph.db` and is loaded through the
-`ENGRAM_ADDON_PATH` env var (native addon built from the local Engram
-workspace). Seeding is idempotent: `POST /api/knowledge` re-seeds from Gold.
-The dashboard's Knowledge Graph tab provides search over entities and
-relationships across both scopes.
-
-## Dashboards
-
-- `/dashboard` — Mantis-style admin layout with five sections: Overview
-  (curriculum stats), Browse Gold (filterable record browser), Ingest Source
-  (Bronze → Silver → Gold pipeline), Parent Portal (progress stats, per-topic
-  accuracy bars, queryable chat, recent activity), and Knowledge Graph
-  (entity/relationship search + re-seed).
-
-## Conventions you'll see across packages
-
-- The application and its server behavior run through one Next.js process and
-  one local port.
-- `app/` owns runtime integrations; reusable curriculum logic stays in
-  `packages/curriculum/`.
+Route handlers enforce the actual current session and same-origin mutation
+checks. Learner practice and assessment reads are learner-scoped; their
+mutations require the shared learner mutation proof. Curriculum administration
+requires the admin role. Browse, topic, search, and memory-availability reads
+are currently open. Parent-named routes are scoped to whichever signed-in
+session calls them; the implementation does not currently define a separate
+parent role. The complete public route inventory is in
+[`application.md`](application.md#public-route-contracts).
 
 ## Where to start
 
-<!--
-A short, opinionated path for someone new to the repo. Example:
-
-1. Read [`docs/CHARTER.md`](../CHARTER.md) — the project's mission and scope.
-2. Read this file (architecture overview).
-3. Skim [`docs/product/roadmap.md`](../product/roadmap.md) for current direction.
-4. Read the child-math-practice spec and plan beside `app/` and
-   `packages/curriculum/`.
-5. Look at the latest 3 ADRs in `docs/adr/` to see the kinds of decisions
-   we record.
--->
+1. Read [`docs/CHARTER.md`](../CHARTER.md) for mission and scope.
+2. Read this overview, [`reference.md`](reference.md), and
+   [`application.md`](application.md).
+3. Read the active feature's `spec.md` and `plan.md` in [`../specs/`](../specs/).
+4. Follow the applicable nested `AGENTS.md` guidance before changing code.

@@ -4,8 +4,12 @@ import {
   getQuestionByIndex,
   type QuestionBankEntry,
 } from "./question-bank";
-import { validateLearningPayload } from "../validation/payloads";
+import { sanitizeGeneratedDiagramSvg } from "../validation/payloads";
 import { assertLearningAction } from "../learning/learning-actions";
+import { completeWithLocalOllama } from "../pi-completion";
+import { getOllamaOpenAIUrl } from "../ollama-openai-url";
+
+export { getOllamaOpenAIUrl } from "../ollama-openai-url";
 
 /** Extracts a numeric value from a string answer for tolerant comparison. */
 function extractNumber(input: string): number | null {
@@ -117,64 +121,26 @@ export async function requestOllamaLearningQuestion(input: {
     maxTokens: 2_048,
     maxCostUsd: 0,
   });
-  const response = await fetch(`${getOllamaOpenAIUrl()}/chat/completions`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${process.env.PI_API_KEY ?? "ollama"}`,
-      "content-type": "application/json",
-    },
-    signal: AbortSignal.timeout(60_000),
-    body: JSON.stringify({
-      model: process.env.PI_MODEL,
-      stream: false,
-      max_tokens: 4_096,
-      response_format: { type: "json_object" },
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: getGeneratedOutputInstruction(
-            input.topicId,
-            input.standards,
-          ),
-        },
-        {
-          role: "user",
-          content: input.standards?.length
-            ? `Practice skill: ${input.standards[0].standardCode} — ${input.standards[0].standardText} (difficulty ${input.level}).`
-            : `Topic: ${input.topicId} (difficulty ${input.level}). <learning-data>${JSON.stringify(
-                {
-                  topicId: input.topicId,
-                  level: input.level,
-                },
-              )}</learning-data>`,
-        },
-        ...(profileData
-          ? [{ role: "user", content: profileData.content }]
-          : []),
-      ],
-    }),
+  const content = await completeWithLocalOllama({
+    systemPrompt: getGeneratedOutputInstruction(input.topicId, input.standards),
+    messages: [
+      input.standards?.length
+        ? `Practice skill: ${input.standards[0].standardCode} — ${input.standards[0].standardText} (difficulty ${input.level}).`
+        : `Topic: ${input.topicId} (difficulty ${input.level}). <learning-data>${JSON.stringify(
+            {
+              topicId: input.topicId,
+              level: input.level,
+            },
+          )}</learning-data>`,
+      ...(profileData ? [profileData.content] : []),
+    ],
+    timeoutMs: 15_000,
+    maxTokens: 2_048,
   });
-  if (!response.ok) throw new Error("Ollama request failed");
-  const content = getOpenAIChatCompletionContent(await response.json());
   const output = validateGeneratedLearningResponse(
-    parseOpenAICompletionJson(content),
+    parseOpenAICompletionJson(assertOllamaCompletionContentLimit(content)),
   );
-  // Use the AI diagram if it passes validation, otherwise use a clean fallback
-  let safeDiagram = output.diagramSvg.replace(
-    /font-size="([\d.]+)(px)?"/g,
-    (_m: string, size: string) =>
-      `font-size="${(Number.parseFloat(size) * 0.9).toFixed(1)}"`,
-  );
-  try {
-    validateLearningPayload({
-      component: "GeometryDiagram",
-      diagramSvg: safeDiagram,
-    });
-  } catch {
-    // Unusable diagram: return empty so clients render no diagram column.
-    safeDiagram = "";
-  }
+  const safeDiagram = sanitizeGeneratedDiagramSvg(output.diagramSvg);
   return {
     question: output.question,
     answer: output.answer,
@@ -271,34 +237,9 @@ export function validateGeneratedQuestionText(_question: string): void {
     throw new Error("Invalid generated question");
 }
 
-/** Returns the confined OpenAI-compatible endpoint for the local Ollama service. */
-export function getOllamaOpenAIUrl(): string {
-  const url = new URL(
-    process.env.OLLAMA_OPENAI_URL ?? "http://127.0.0.1:11434/v1",
-  );
-  if (
-    url.protocol !== "http:" ||
-    !["127.0.0.1", "localhost", "::1"].includes(url.hostname) ||
-    url.port !== "11434" ||
-    !["/v1", "/v1/"].includes(url.pathname) ||
-    url.search ||
-    url.hash
-  )
-    throw new Error("Invalid Ollama OpenAI URL");
-  return url.toString().replace(/\/$/, "");
-}
-
-/** Extracts only the assistant content from an OpenAI-compatible completion. */
-export function getOpenAIChatCompletionContent(payload: unknown): string {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload))
-    throw new Error("Invalid Ollama response");
-  const choices = (payload as { choices?: unknown }).choices;
-  if (!Array.isArray(choices) || choices.length !== 1)
-    throw new Error("Invalid Ollama response");
-  const content = (choices[0] as { message?: { content?: unknown } })?.message
-    ?.content;
-  if (typeof content !== "string" || content.length > 8_192)
-    throw new Error("Invalid Ollama response");
+/** Retains the legacy response-size boundary before parsing model JSON. */
+function assertOllamaCompletionContentLimit(content: string): string {
+  if (content.length > 8_192) throw new Error("Invalid Ollama response");
   return content;
 }
 
@@ -403,26 +344,15 @@ export function buildAgentProfileData(_profileContext: unknown): {
 /** Probes the cloud model with a deterministic response outside production budget. */
 export async function probeOllamaModel(): Promise<number> {
   assertOllamaIntegrationConfiguration();
-  const response = await fetch(`${getOllamaOpenAIUrl()}/chat/completions`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${process.env.PI_API_KEY ?? "ollama"}`,
-      "content-type": "application/json",
-    },
-    signal: AbortSignal.timeout(60_000),
-    body: JSON.stringify({
-      model: process.env.PI_MODEL,
-      stream: false,
-      max_tokens: 512,
-      response_format: { type: "json_object" },
-      temperature: 0,
-      messages: [{ role: "user", content: 'Return JSON only: {"answer":2}' }],
-    }),
+  const content = await completeWithLocalOllama({
+    systemPrompt: "",
+    messages: ['Return JSON only: {"answer":2}'],
+    timeoutMs: 60_000,
+    maxTokens: 512,
   });
-  if (!response.ok) throw new Error("Ollama request failed");
-  const output = JSON.parse(
-    getOpenAIChatCompletionContent(await response.json()),
-  ) as { answer?: unknown };
+  const output = JSON.parse(assertOllamaCompletionContentLimit(content)) as {
+    answer?: unknown;
+  };
   if (output?.answer !== 2) throw new Error("Invalid Ollama response");
   return output.answer;
 }

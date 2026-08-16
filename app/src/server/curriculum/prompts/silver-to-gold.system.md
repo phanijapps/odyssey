@@ -13,7 +13,8 @@ Each canonicalRecord MUST have exactly these fields:
 - "cluster": the standard cluster heading
 - "standardCode": the official standard code (e.g. "6.RP.A.1")
 - "standardText": the official standard text (copy from officialText)
-- "source": an object with exactly "documentId" (string) and "page" (positive integer)
+- "source": an object with exactly "documentId" (the matching approved Silver
+  recordId) and "page" (the matching Silver source page)
 - "topics": an array of topic strings
 - "assessmentTargets": an array of assessment target strings
 

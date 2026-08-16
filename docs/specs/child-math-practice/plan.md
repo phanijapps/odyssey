@@ -5,12 +5,10 @@
 
 ## Approach
 
-Create a pnpm workspace with one Next.js app under `app/` and one shared
-curriculum package under `packages/`. The app owns its SQLite database,
-credentials, server-side Pi Mono adapter, validation, child UI, and a server-only
-Engram profile-memory adapter. The package
-holds catalog contracts and deterministic progression rules used by both the
-learning service and agent adapter. Use Node's `node:sqlite` API and built-in
+Create a pnpm workspace with one Next.js app under `app/`. The app owns its
+SQLite database, credentials, server-side Pi AI completion boundary, validation, child UI,
+server-only Engram profile-memory adapter, and application-only curriculum
+catalog contracts. Use Node's `node:sqlite` API and built-in
 password primitives to avoid extra local persistence or authentication
 dependencies. The riskiest work is proving that untrusted agent payloads remain
 bounded before the UI renders them. A local Engram source is configured outside
@@ -42,13 +40,13 @@ The application uses the Next.js App Router for pages and server actions. It
 uses a local `node:sqlite` repository behind focused identity and learning
 services. A server-only Engram adapter opens its own local memory store from a
 validated native artifact and is never exposed as a browser or agent tool.
-`@earendil-works/pi-agent-core` is wrapped in a server-only adapter;
-a deterministic fixture supplies structured events until a provider is chosen.
+`@earendil-works/pi-ai` provides a server-only, stateless local completion
+boundary; the reviewed question bank supplies the local path until a provider is chosen.
 Traces to: all ACs · no external contract.
 
 ### Data & schema
 
-The curriculum package defines the versioned JSON catalog and schema for a
+The app's curriculum module defines the versioned JSON catalog and schema for a
 standard identifier, grade or course, topic, source URL, and revision metadata.
 The app owns SQLite tables for child accounts, sessions, attempts, current
 level, and progression decisions. Password records contain a salted derived key
@@ -62,9 +60,9 @@ reviewed catalog. Traces to: AC 2–4, 13–14.
 
 `app/` owns routes, server actions, repositories, and UI. The topic selector,
 question card, diagram panel, answer controls, and progress indicator are
-separate components. `packages/curriculum` owns catalog parsing and progression
-rules shared by the learning service and agent adapter. Focused Engram source,
-vocabulary, projection, and retrieval modules isolate native loading from the
+separate components. `app/src/server/curriculum/` owns catalog parsing shared
+by the learning service and agent adapter. Focused Engram source, vocabulary,
+projection, and retrieval modules isolate native loading from the
 application policy. Each validation concern has its own focused module. Traces
 to: AC 1–7, 13–14.
 
@@ -107,8 +105,8 @@ Traces to: AC 7.
 
 ### Dependencies & integration
 
-Pi Mono core and the locally built `@engram/node` artifact are server-only
-dependencies. A developer-only local-source configuration, ignored by Git,
+`@earendil-works/pi-ai` and the locally built `@engram/node` artifact are
+server-only dependencies. A developer-only local-source configuration, ignored by Git,
 selects the Engram source; a preflight verifies its generated contracts, native
 addon, and recorded revision before use. Node's built-in SQLite module avoids a
 database driver for application data. A model provider and external MCP
@@ -121,23 +119,22 @@ integrations are deliberately unconfigured. Traces to: AC 4–6, 13–14.
 **Depends on:** none
 
 **Touches:** package.json, pnpm-lock.yaml, pnpm-workspace.yaml, .gitignore,
-.env.example, app/**, packages/curriculum/**, AGENTS.md,
-docs/architecture/overview.md
+.env.example, app/\*\*, AGENTS.md, docs/architecture/overview.md
 
 **Tests:**
 
 - Goal-based: the workspace installs, typechecks, and starts the Next.js app on
   one configured port (AC 1).
-- Goal-based: application and package imports resolve without creating a second
-  runtime or deployable package (AC 1).
+- Goal-based: application imports resolve without creating a second runtime or
+  deployable package (AC 1).
 - Goal-based: the dependency-audit command documented in `AGENTS.md` passes and
-  `pnpm-lock.yaml` records the intended Pi dependency with integrity metadata
+  `pnpm-lock.yaml` records the intended `@earendil-works/pi-ai` dependency with integrity metadata
   (AC 15).
 
 **Approach:**
 
-- Add the root workspace manifest, the Next.js application in `app/`, and the
-  focused curriculum package with only its public entry point.
+- Add the root workspace manifest and the Next.js application in `app/`, with
+  focused application-owned curriculum modules.
 - Set Node and package-manager constraints and document the actual install,
   lint, typecheck, test, and start commands in `AGENTS.md`.
 - Add test tooling and activate the pre-written red TDD stubs named in T2–T5.
@@ -147,33 +144,30 @@ docs/architecture/overview.md
 
 **Done when:** the app starts locally through one command, workspace typecheck
 and the dependency-audit command documented in `AGENTS.md` pass, and the
-architecture overview maps `app/` and `packages/curriculum/`.
+architecture overview maps the `app/` application and its curriculum modules.
 
-### T2: Make the curriculum catalog and bounded progression deterministic
+### T2: Make the curriculum catalog deterministic
 
 **Depends on:** T1
 
-**Touches:** packages/curriculum/\*\*
+**Touches:** app/src/server/curriculum/catalog.ts,
+app/src/server/curriculum/catalog.test.ts, app/src/server/curriculum/data/topics.json
 
 **Tests:**
 
 - TDD: malformed catalog records and unknown source metadata are rejected
   (AC 3, 9).
-- TDD: a next-level recommendation outside the current level or adjacent level
-  is rejected (AC 4).
 
-**Stub:** `packages/curriculum/src/catalog.test.ts` and
-`packages/curriculum/src/progression.test.ts` are pre-written red stubs.
+**Stub:** `app/src/server/curriculum/catalog.test.ts` is a pre-written red stub.
 **stub:** true
 
 **Approach:**
 
-- Define typed catalog and progression contracts plus a small reviewed Ohio
-  seed catalog.
-- Export pure parsing and progression validation functions for the app and
-  agent adapter.
+- Define typed catalog contracts plus a small reviewed Ohio seed catalog.
+- Keep the parser available to the app and agent adapter through its server
+  module.
 
-**Done when:** catalog and progression tests pass without a running app.
+**Done when:** catalog tests pass through the app test suite.
 
 ### T3: Add SQLite identity and learning-progress services
 
@@ -253,7 +247,7 @@ stub for AC 12–14. **stub:** true
 policy-limited profile write and retrieval, vocabulary validation, idempotent
 seeding, and unavailable-artifact recovery.
 
-### T5: Bound Pi Mono outputs, A2UI, and SVG diagrams
+### T5: Bound Pi AI outputs, A2UI, and SVG diagrams
 
 **Depends on:** T2, T3, T4
 
@@ -264,8 +258,8 @@ seeding, and unavailable-artifact recovery.
 - TDD: unknown tools, components, fields, unsafe SVG markup, and out-of-range
   difficulty recommendations are rejected before persistence or rendering
   (AC 4, 7, 9, 10).
-- TDD: the deterministic Pi-compatible fixture emits an approved question and
-  diagram request through the same adapter boundary (AC 3, 7, 8).
+- TDD: the reviewed local question bank supplies an approved question and
+  diagram for the local path (AC 3, 7, 8).
 - TDD: agent context is child-scoped and delimited, while request, retry,
   timeout, token, and cost limits reject excess work; retrieved Engram profile
   context is bounded, typed, provenance/version checked, and delimited as data
@@ -279,8 +273,8 @@ seeding, and unavailable-artifact recovery.
 
 **Approach:**
 
-- Add a server-only Pi Mono adapter with three registered learning actions and
-  a provider-unavailable implementation, explicit context delimiting, and
+- Add a server-only, stateless Pi AI completion boundary with a
+  provider-unavailable implementation, explicit context delimiting, and
   request, retry, token, and cost bounds.
 - Define a small A2UI catalog and strict SVG/payload validators.
 

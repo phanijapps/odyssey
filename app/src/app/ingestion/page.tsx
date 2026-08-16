@@ -70,6 +70,7 @@ export default function IngestionPage() {
       form.append("file", file);
       const response = await fetch("/api/curriculum/ingestions", {
         method: "POST",
+        headers: { origin: window.location.origin },
         body: form,
       });
       const body = (await response.json()) as Workflow & { error?: string };
@@ -94,7 +95,10 @@ export default function IngestionPage() {
         `/api/curriculum/ingestions/${workflow.id}/actions`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            origin: window.location.origin,
+          },
           body: JSON.stringify({ action: actions[workflow.stage].value }),
         },
       );

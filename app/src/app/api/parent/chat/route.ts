@@ -1,6 +1,6 @@
 import { resolveSession } from "../../../../server/identity/identity";
 import { getParentProgressSummary } from "../../../../server/learning/learning";
-import { getSeedCurriculumCatalog } from "../../../../../../packages/curriculum/src/catalog";
+import { getSeedCurriculumCatalog } from "../../../../server/curriculum/catalog";
 
 /** Builds a natural-language reply from the child's structured progress data. */
 function buildReply(

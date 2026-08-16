@@ -11,11 +11,12 @@ import {
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
-import { getSeedCurriculumCatalog } from "../../../../packages/curriculum/src/catalog";
+import { getSeedCurriculumCatalog } from "../curriculum/catalog";
 import {
   openProfileMemory,
   parseRetrievedProfileMemory,
   getProfileMemoryState,
+  loadConfiguredEngramAddon,
   loadConfiguredEngramTransport,
   prepareProfileContext,
   projectLearningSignal,
@@ -256,6 +257,12 @@ test("preflights the configured source revision and generated artifacts", () => 
     expect(verifyConfiguredEngramArtifact(artifact)).toEqual({
       revision: artifact.expectedRevision,
     });
+    expect(() =>
+      verifyConfiguredEngramArtifact({
+        ...artifact,
+        addonPath: join(approvedRoot, "..", "escaped", "engram_node.node"),
+      }),
+    ).toThrow("PATH_ESCAPE");
     const environmentKeys = [
       "ENGRAM_APPROVED_ROOT",
       "ENGRAM_SOURCE_ROOT",
@@ -283,6 +290,7 @@ test("preflights the configured source revision and generated artifacts", () => 
     configureArtifact(artifact);
     try {
       expect(loadConfiguredEngramTransport()).toEqual({ opened: true });
+      expect(loadConfiguredEngramAddon()).toBeNull();
       writeFileSync(
         ignoredHelperPath,
         "exports.createTransport = () => ({ opened: false });\n",

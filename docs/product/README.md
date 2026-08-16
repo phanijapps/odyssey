@@ -12,12 +12,11 @@
 - [`changelog.md`](changelog.md) — user-visible changes by release,
   in [Keep a Changelog](https://keepachangelog.com/) format. Updated
   every PR that changes user-visible behavior.
-- [`personas.md`](personas.md) — who we're building for. Optional;
-  add only if it's actively used to make decisions.
-- [`release-checklist.md`](release-checklist.md) — manual-QA rows
-  CI cannot exercise. Copy each spec's section into the release PR
-  description before tagging. Optional; add the file the first time a
-  spec needs out-of-band verification.
+- [`briefs/`](briefs/) — product brief(s) that constrain related specs.
+- [`persona-mockups.html`](persona-mockups.html) — retained persona design
+  artifact.
+
+Add a persona document or release checklist only when it is actively used.
 
 ## What does NOT live here
 
@@ -25,7 +24,7 @@
 - **What we're proposing to change** → [`../rfc/`](../rfc/) (governance).
 - **What an individual feature does** → [`../specs/<feature>/spec.md`](../specs/).
 - **The mission and scope of the project** → [`../CHARTER.md`](../CHARTER.md).
-- **How users actually use the product** → [`../guides/`](../guides/) (Diátaxis-organized user docs).
+- **How users actually use the product** → a future `docs/guides/` collection, when user documentation is needed.
 
 ## The product/ layer is *living*
 

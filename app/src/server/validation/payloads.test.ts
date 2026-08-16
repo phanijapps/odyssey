@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import {
+  sanitizeGeneratedDiagramSvg,
   serializeSafeDiagnostic,
   validateA2UIPayload,
   validateLearningPayload,
@@ -99,6 +100,26 @@ test("STUB: AC9 rejects untyped input before persistence or rendering", () => {
     { component: "ProgressIndicator", level: 0, correctStreak: 0 },
   ])
     expect(() => validateA2UIPayload(payload)).toThrow("Invalid A2UI payload");
+});
+
+test("scales a valid generated diagram exactly once", () => {
+  const diagramSvg = sanitizeGeneratedDiagramSvg(
+    '<svg xmlns="http://www.w3.org/2000/svg"><text x="1" y="1" font-size="10px">x</text></svg>',
+  );
+
+  expect(diagramSvg).toContain('font-size="9.0"');
+  expect(diagramSvg).not.toContain('font-size="8.1"');
+  expect(() =>
+    validateLearningPayload({ component: "GeometryDiagram", diagramSvg }),
+  ).not.toThrow();
+});
+
+test("fails closed for an unsafe generated diagram", () => {
+  expect(
+    sanitizeGeneratedDiagramSvg(
+      '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+    ),
+  ).toBe("");
 });
 
 // STUB: AC16

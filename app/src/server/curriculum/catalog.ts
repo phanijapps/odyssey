@@ -41,4 +41,4 @@ export function parseCurriculumCatalog(_input: unknown): CurriculumCatalog {
 export function getSeedCurriculumCatalog(): CurriculumCatalog {
   return parseCurriculumCatalog(topics);
 }
-import topics from "../data/topics.json";
+import topics from "./data/topics.json";

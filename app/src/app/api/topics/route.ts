@@ -1,4 +1,4 @@
-import { getSeedCurriculumCatalog } from "../../../../../packages/curriculum/src/catalog";
+import { getSeedCurriculumCatalog } from "../../../server/curriculum/catalog";
 
 export function GET(): Response {
   return Response.json(getSeedCurriculumCatalog().topics);

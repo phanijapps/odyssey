@@ -1,4 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
+import { withGoldDatabase } from "./gold-database";
 
 type BrowseSubject = {
   readonly subject: string;
@@ -24,13 +24,6 @@ type BrowseNode = {
   readonly subjects: readonly BrowseSubject[];
 };
 
-/** Opens the Gold curriculum database. */
-function goldDb(): DatabaseSync {
-  return new DatabaseSync(
-    process.env.ODYSSEY_CURRICULUM_DB_PATH ?? "odyssey-curriculum.db",
-  );
-}
-
 /** Normalizes subject names to a clean label. */
 function normalizeSubject(raw: string): string {
   const lower = raw.toLowerCase();
@@ -44,8 +37,7 @@ function normalizeSubject(raw: string): string {
 
 /** Returns the browseable curriculum tree from Gold records. */
 export function getBrowseTree(): BrowseNode {
-  const db = goldDb();
-  try {
+  return withGoldDatabase((db) => {
     const rows = db
       .prepare("SELECT content_json FROM gold_curriculum_records")
       .all() as Array<{ content_json: string }>;
@@ -101,9 +93,7 @@ export function getBrowseTree(): BrowseNode {
     }));
 
     return { subjects };
-  } finally {
-    db.close();
-  }
+  });
 }
 
 /** Sorts grade labels in natural educational order. */
@@ -139,8 +129,7 @@ export function getStandardsForSelection(input: {
   readonly grade: string;
   readonly domain: string;
 }): { standardCode: string; standardText: string; topics: string[] }[] {
-  const db = goldDb();
-  try {
+  return withGoldDatabase((db) => {
     const rows = db
       .prepare("SELECT content_json FROM gold_curriculum_records")
       .all() as Array<{ content_json: string }>;
@@ -158,7 +147,5 @@ export function getStandardsForSelection(input: {
         standardText: r.standardText ?? "",
         topics: Array.isArray(r.topics) ? r.topics : [],
       }));
-  } finally {
-    db.close();
-  }
+  });
 }

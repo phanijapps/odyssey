@@ -1,5 +1,8 @@
 import "server-only";
-import { requireAdmin } from "../../../server/identity/identity";
+import {
+  requireAdminMutationProof,
+  requireAdminRead,
+} from "../../../server/identity/identity";
 import {
   seedCurriculumGraph,
   graphStats,
@@ -9,6 +12,11 @@ import { searchKnowledgeGraph } from "../../../server/memory/knowledge-graph-sea
 
 /** Returns knowledge-graph stats, or searches with ?q=. */
 export function GET(request: Request): Response {
+  try {
+    requireAdminRead(request);
+  } catch {
+    return Response.json({ error: "Admin access required" }, { status: 403 });
+  }
   const url = new URL(request.url);
   const query = url.searchParams.get("q");
   const childId = url.searchParams.get("childId") ?? "child-1";
@@ -21,7 +29,7 @@ export function GET(request: Request): Response {
 /** Seeds the curriculum knowledge graph from Gold records. */
 export function POST(request: Request): Response {
   try {
-    requireAdmin(request);
+    requireAdminMutationProof(request);
   } catch {
     return Response.json({ error: "Admin access required" }, { status: 403 });
   }

@@ -1,5 +1,11 @@
 import { getBrowseTree } from "../../../../server/curriculum/browse";
+import { withGoldDatabase } from "../../../../server/curriculum/gold-database";
 import { embedCurriculumText } from "../../../../server/curriculum/ollama-embeddings";
+import { CurriculumVectorRepository } from "../../../../server/curriculum/vector-repository";
+
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 50;
+const MAX_SEMANTIC_CANDIDATES = MAX_LIMIT;
 
 type FlatStandard = {
   subject: string;
@@ -11,11 +17,8 @@ type FlatStandard = {
   searchText: string;
 };
 
-let cachedStandards: FlatStandard[] | null = null;
-
-/** Flattens the browse tree into a searchable list. */
+/** Flattens the current browse tree into a searchable list. */
 function getFlatStandards(): FlatStandard[] {
-  if (cachedStandards) return cachedStandards;
   const tree = getBrowseTree();
   const flat: FlatStandard[] = [];
   for (const subject of tree.subjects) {
@@ -36,8 +39,15 @@ function getFlatStandards(): FlatStandard[] {
       }
     }
   }
-  cachedStandards = flat;
   return flat;
+}
+
+/** Parses one user-supplied result limit without allowing unbounded retrieval. */
+function parseLimit(raw: string | null): number {
+  if (raw === null) return DEFAULT_LIMIT;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed)) return DEFAULT_LIMIT;
+  return Math.min(Math.max(parsed, 1), MAX_LIMIT);
 }
 
 /** Scores a standard against a query using simple text matching. */
@@ -65,7 +75,7 @@ export async function GET(request: Request): Promise<Response> {
   const query = url.searchParams.get("q") ?? "";
   const grade = url.searchParams.get("grade") ?? "";
   const semantic = url.searchParams.get("semantic") === "1";
-  const limit = Math.min(Number(url.searchParams.get("limit") ?? 20), 50);
+  const limit = parseLimit(url.searchParams.get("limit"));
 
   let standards = getFlatStandards();
   if (grade) standards = standards.filter((s) => s.grade === grade);
@@ -85,44 +95,45 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   if (semantic) {
-    // Semantic search via Ollama embeddings
     try {
       const queryEmbedding = await embedCurriculumText(query);
-      const scored = await Promise.all(
-        standards.slice(0, 200).map(async (std) => {
-          const stdEmbedding = await embedCurriculumText(
-            `${std.standardCode} ${std.standardText}`,
-          );
-          const dot = queryEmbedding.reduce(
-            (sum, a, i) => sum + a * stdEmbedding[i],
-            0,
-          );
-          const normQ = Math.sqrt(
-            queryEmbedding.reduce((s, a) => s + a * a, 0),
-          );
-          const normS = Math.sqrt(stdEmbedding.reduce((s, a) => s + a * a, 0));
-          return { std, score: dot / (normQ * normS) };
+      const currentStandards = new Map(
+        standards.map((standard) => [standard.id, standard]),
+      );
+      const matches = withGoldDatabase((database) =>
+        new CurriculumVectorRepository(database).findNearest({
+          vector: queryEmbedding,
+          limit: MAX_SEMANTIC_CANDIDATES,
         }),
       );
-      const results = scored
-        .filter((s) => s.score > 0.3)
-        .sort((a, b) => b.score - a.score)
+      const results = matches
+        .flatMap((match) => {
+          const standard = currentStandards.get(match.recordId);
+          return standard
+            ? [
+                {
+                  standard,
+                  score: Math.round((1 / (1 + match.distance)) * 100) / 100,
+                },
+              ]
+            : [];
+        })
         .slice(0, limit);
       return Response.json({
-        results: results.map((r) => ({
-          id: r.std.id,
-          standardCode: r.std.standardCode,
-          standardText: r.std.standardText,
-          domain: r.std.domain,
-          subject: r.std.subject,
-          grade: r.std.grade,
-          score: Math.round(r.score * 100) / 100,
+        results: results.map(({ standard, score }) => ({
+          id: standard.id,
+          standardCode: standard.standardCode,
+          standardText: standard.standardText,
+          domain: standard.domain,
+          subject: standard.subject,
+          grade: standard.grade,
+          score,
         })),
         total: results.length,
         semantic: true,
       });
     } catch {
-      // Fall through to text search
+      // Fall through to text search when the local embedding projection is unavailable.
     }
   }
 

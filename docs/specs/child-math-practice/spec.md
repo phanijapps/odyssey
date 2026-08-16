@@ -136,8 +136,8 @@ native-binding behavior use TDD and local integration checks.
       concepts to the reviewed curriculum catalog. Seed writes are idempotent,
       scope and policy are enforced on every memory read or write, and neither the
       agent nor child input can alter the vocabulary at runtime.
-- [ ] The Pi dependency is locked with integrity metadata and the configured
-      dependency audit passes before the implementation is accepted.
+- [ ] The `@earendil-works/pi-ai` dependency is locked with integrity metadata
+      and the configured dependency audit passes before the implementation is accepted.
 - [ ] Logs and client errors exclude passwords, session tokens, provider
       credentials, raw child answers, and raw prompts; persisted audit records keep
       only purpose-bound learning and validation fields.
@@ -147,8 +147,8 @@ native-binding behavior use TDD and local integration checks.
 
 ## Assumptions
 
-- Technical: Node 24.19.0 supports Pi Mono core 0.84.1's runtime requirement
-  (source: local runtime probe and `npm view` on 2026-08-08).
+- Technical: Node 24.19.0 supports `@earendil-works/pi-ai` 0.84.1's runtime
+  requirement (source: local runtime probe and `npm view` on 2026-08-08).
 - Technical: local SQLite uses Node's built-in `node:sqlite` API (source:
   https://nodejs.org/api/sqlite.html).
 - Product: first content is a small reviewed seed of a versioned grades 6–12
@@ -156,12 +156,12 @@ native-binding behavior use TDD and local integration checks.
 - Product: a seeded local child account is the initial identity flow and the
   agent may recommend only an adjacent difficulty level (source: user
   confirmation 2026-08-08).
-- Process: the app is in `app/`, reusable code is in focused `packages/`, and
-  one Next.js process exposes the local experience (source: RFC-0001 and user
-  confirmation 2026-08-08).
-- Technical: no model provider is configured; a deterministic Pi-compatible
-  local fixture exercises agent boundaries and the approved-diagram happy path
-  until one is selected (source: user confirmation 2026-08-08).
+- Process: the app and its focused server curriculum modules are in `app/`,
+  and one Next.js process exposes the local experience (source: RFC-0001 and
+  user confirmation 2026-08-08).
+- Technical: no model provider is configured; the reviewed local question bank
+  exercises the practice and approved-diagram happy path until one is selected
+  (source: user confirmation 2026-08-08).
 - Technical: a locally built `@engram/node` artifact supplies the initial
   Engram integration. Its source location is developer configuration rather
   than committed repository data; the server preflight records the verified

@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import type { CurriculumRecord } from "../../../../packages/curriculum/src/curriculum-model";
+import type { CurriculumRecord } from "./curriculum-model";
 import {
   OLLAMA_EMBEDDING_MODEL,
   embedCurriculumText,

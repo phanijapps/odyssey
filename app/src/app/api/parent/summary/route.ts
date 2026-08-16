@@ -1,6 +1,6 @@
 import { resolveSession } from "../../../../server/identity/identity";
 import { getParentProgressSummary } from "../../../../server/learning/learning";
-import { getSeedCurriculumCatalog } from "../../../../../../packages/curriculum/src/catalog";
+import { getSeedCurriculumCatalog } from "../../../../server/curriculum/catalog";
 
 /** Returns a rich parent-facing progress summary with accuracy and history. */
 export function GET(request: Request): Response {

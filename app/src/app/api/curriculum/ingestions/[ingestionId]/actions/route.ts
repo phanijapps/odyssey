@@ -10,6 +10,7 @@ import {
   generateSilverCandidate,
 } from "../../../../../../server/curriculum/curriculum-promotion-service";
 import { createLocalGoldSemanticIndex } from "../../../../../../server/curriculum/gold-semantic-index";
+import { requireAdminMutationProof } from "../../../../../../server/identity/identity";
 
 type RouteContext = { params: Promise<{ ingestionId: string }> };
 
@@ -24,6 +25,11 @@ export async function POST(
   context: RouteContext,
 ): Promise<Response> {
   const { ingestionId } = await context.params;
+  try {
+    requireAdminMutationProof(request);
+  } catch {
+    return Response.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     const action = await parseAction(request);
     if (action === "expire") {

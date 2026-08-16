@@ -1,5 +1,8 @@
 import "server-only";
-import { DatabaseSync } from "node:sqlite";
+import { createHash } from "node:crypto";
+import type { DatabaseSync } from "node:sqlite";
+import { withGoldDatabase } from "./gold-database";
+import { CurriculumVectorRepository } from "./vector-repository";
 
 export type GoldRecordSummary = {
   readonly id: string;
@@ -34,13 +37,6 @@ export type GoldStats = {
   }[];
 };
 
-/** Opens the Gold curriculum database. */
-function goldDb(): DatabaseSync {
-  return new DatabaseSync(
-    process.env.ODYSSEY_CURRICULUM_DB_PATH ?? "odyssey-curriculum.db",
-  );
-}
-
 /** Parses a content_json row into a GoldRecordSummary. */
 function parseGoldRow(row: { content_json: string }): GoldRecordSummary | null {
   try {
@@ -71,8 +67,7 @@ export function listGoldRecords(filter?: {
   readonly search?: string;
   readonly limit?: number;
 }): GoldRecordSummary[] {
-  const db = goldDb();
-  try {
+  return withGoldDatabase((db) => {
     let sql = "SELECT record_id, content_json FROM gold_curriculum_records";
     const conditions: string[] = [];
     const params: (string | number)[] = [];
@@ -112,15 +107,12 @@ export function listGoldRecords(filter?: {
     return rows
       .map((row) => parseGoldRow({ content_json: row.content_json }))
       .filter((r): r is GoldRecordSummary => r !== null);
-  } finally {
-    db.close();
-  }
+  });
 }
 
 /** Returns aggregate statistics about Gold records. */
 export function getGoldStats(): GoldStats {
-  const db = goldDb();
-  try {
+  return withGoldDatabase((db) => {
     const rows = db
       .prepare("SELECT content_json FROM gold_curriculum_records")
       .all() as Array<{ content_json: string }>;
@@ -163,9 +155,7 @@ export function getGoldStats(): GoldStats {
         .map(([source, count]) => ({ source, count }))
         .sort((a, b) => b.count - a.count),
     };
-  } finally {
-    db.close();
-  }
+  });
 }
 
 /** Returns all distinct topic tags across Gold records. */
@@ -173,8 +163,7 @@ export function getGoldTopics(): {
   readonly topic: string;
   readonly count: number;
 }[] {
-  const db = goldDb();
-  try {
+  return withGoldDatabase((db) => {
     const rows = db
       .prepare("SELECT content_json FROM gold_curriculum_records")
       .all() as Array<{ content_json: string }>;
@@ -191,35 +180,140 @@ export function getGoldTopics(): {
     return [...topicMap.entries()]
       .map(([topic, count]) => ({ topic, count }))
       .sort((a, b) => b.count - a.count);
-  } finally {
-    db.close();
-  }
+  });
 }
 
 /** Deletes a single Gold record by id. */
 export function deleteGoldRecord(recordId: string): boolean {
-  const db = goldDb();
-  try {
-    const result = db
-      .prepare("DELETE FROM gold_curriculum_records WHERE record_id = ?")
-      .run(recordId);
-    return (result.changes as number) > 0;
-  } finally {
-    db.close();
-  }
+  return withGoldDatabase(
+    (db) => deleteGoldRecords(db, "record_id = ?", [recordId]) > 0,
+  );
 }
 
 /** Deletes all Gold records from a specific source file. */
 export function deleteGoldBySource(sourceFingerprint: string): number {
-  const db = goldDb();
+  return withGoldDatabase((db) =>
+    deleteGoldRecords(db, "source_fingerprint = ?", [sourceFingerprint]),
+  );
+}
+
+/** Removes Gold rows and makes their vector projections unreachable together. */
+function deleteGoldRecords(
+  db: DatabaseSync,
+  condition: string,
+  parameters: readonly string[],
+): number {
+  const recordIds = db
+    .prepare(`SELECT record_id FROM gold_curriculum_records WHERE ${condition}`)
+    .all(...parameters) as Array<{ record_id: string }>;
+  if (!recordIds.length) return 0;
+
+  let vectors: CurriculumVectorRepository | null = null;
+  try {
+    vectors = new CurriculumVectorRepository(db);
+  } catch {
+    // A host without sqlite-vec cannot serve semantic retrieval. Removing the
+    // metadata still prevents any old vector row from resolving to Gold.
+  }
+
+  const hasEmbeddingRecords = Boolean(
+    db
+      .prepare(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'curriculum_embedding_records'",
+      )
+      .get(),
+  );
+  db.exec("BEGIN IMMEDIATE");
   try {
     const result = db
-      .prepare(
-        "DELETE FROM gold_curriculum_records WHERE source_fingerprint = ?",
-      )
-      .run(sourceFingerprint);
+      .prepare(`DELETE FROM gold_curriculum_records WHERE ${condition}`)
+      .run(...parameters);
+    for (const { record_id: recordId } of recordIds) {
+      if (vectors) vectors.remove(recordId);
+      else if (hasEmbeddingRecords)
+        db.prepare(
+          "DELETE FROM curriculum_embedding_records WHERE record_id = ?",
+        ).run(recordId);
+    }
+    db.exec("COMMIT");
     return result.changes as number;
-  } finally {
-    db.close();
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
   }
+}
+
+/** A reviewed Gold record frozen into a server-owned assessment selection. */
+export type ResolvedGoldRecord = {
+  readonly recordId: string;
+  readonly subject: string;
+  readonly grade: string;
+  readonly content: GoldRecordSummary;
+  readonly contentJson: string;
+  readonly contentFingerprint: string;
+};
+
+/**
+ * Resolves selected opaque Gold primary keys without traversing the browse tree.
+ * The returned JSON is the exact reviewed content that an assessment snapshots.
+ */
+export function resolveGoldRecordsForAssessment(
+  recordIds: readonly string[],
+): ResolvedGoldRecord[] {
+  if (
+    recordIds.length < 1 ||
+    recordIds.length > 3 ||
+    recordIds.some((id) => !id || !id.trim()) ||
+    new Set(recordIds).size !== recordIds.length
+  )
+    throw new Error("Invalid selected Gold records");
+
+  return withGoldDatabase((db) => {
+    const placeholders = recordIds.map(() => "?").join(", ");
+    const rows = db
+      .prepare(
+        `SELECT record_id, content_json
+         FROM gold_curriculum_records
+         WHERE record_id IN (${placeholders})`,
+      )
+      .all(...recordIds) as Array<{ record_id: string; content_json: string }>;
+    if (rows.length !== recordIds.length)
+      throw new Error("Invalid selected Gold records");
+
+    const recordsById = new Map<string, ResolvedGoldRecord>();
+    for (const row of rows) {
+      const content = parseGoldRow({ content_json: row.content_json });
+      if (
+        !content ||
+        !content.subject.toLowerCase().includes("math") ||
+        !content.gradeOrCourse ||
+        content.gradeOrCourse === "unknown"
+      )
+        throw new Error("Invalid selected Gold records");
+      recordsById.set(row.record_id, {
+        recordId: row.record_id,
+        subject: content.subject,
+        grade: content.gradeOrCourse,
+        content,
+        contentJson: row.content_json,
+        contentFingerprint: createHash("sha256")
+          .update(row.content_json)
+          .digest("hex"),
+      });
+    }
+
+    const ordered = recordIds.map((id) => recordsById.get(id));
+    if (ordered.some((record) => !record))
+      throw new Error("Invalid selected Gold records");
+    const selected = ordered as ResolvedGoldRecord[];
+    if (
+      selected.some(
+        (record) =>
+          record.subject !== selected[0].subject ||
+          record.grade !== selected[0].grade,
+      )
+    )
+      throw new Error("Invalid selected Gold records");
+    return selected;
+  });
 }

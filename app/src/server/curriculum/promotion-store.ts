@@ -4,14 +4,14 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { DatabaseSync } from "node:sqlite";
+import { openDatabase } from "../persistence/sqlite";
 import {
   approveBronze,
   approveSilver,
   ingestGold,
   ingestSilver,
   type CurriculumPromotion,
-} from "../../../../packages/curriculum/src/promotion-workflow";
+} from "./promotion-workflow";
 import type { CurriculumUpload } from "./source-importer";
 import type { SilverCandidate, GoldCandidate } from "./curriculum-pi-agent";
 
@@ -34,39 +34,38 @@ export type TemporaryPromotionView = {
 };
 
 /** Durable SQLite-backed store for curriculum promotion workflows. */
-const ingestionDb = new DatabaseSync(
-  process.env.ODYSSEY_CURRICULUM_DB_PATH ??
-    process.env.ODYSSEY_DB_PATH ??
-    "odyssey-curriculum.db",
-);
+const ingestionDb = openDatabase("promotion");
 
-ingestionDb.exec(`
-CREATE TABLE IF NOT EXISTS promotion_workflows (
-  id TEXT PRIMARY KEY,
-  stage TEXT NOT NULL,
-  bronze_json TEXT,
-  source_bytes BLOB,
-  silver_json TEXT,
-  gold_json TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-)`);
+/** Temporary Bronze, Silver, and pre-persistence Gold artifacts expire after one day. */
+export const TEMPORARY_PROMOTION_RETENTION_MS = 24 * 60 * 60 * 1_000;
+
+/** Removes expired temporary workflow artifacts during a normal workflow request. */
+export function purgeExpiredTemporaryPromotions(now = Date.now()): number {
+  return ingestionDb
+    .prepare("DELETE FROM promotion_workflows WHERE expires_at <= ?")
+    .run(now).changes as number;
+}
 
 /** Holds unapproved Bronze and Silver workflow state, persisted across restarts. */
 export function createBronzePromotion(id: string): CurriculumPromotion {
   if (!id) throw new Error("Invalid curriculum promotion");
+  purgeExpiredTemporaryPromotions();
   const existing = ingestionDb
     .prepare("SELECT id FROM promotion_workflows WHERE id = ?")
     .get(id);
   if (existing) throw new Error("Invalid curriculum promotion");
   const promotion: CurriculumPromotion = { id, stage: "bronze" };
   ingestionDb
-    .prepare("INSERT INTO promotion_workflows (id, stage) VALUES (?, ?)")
-    .run(id, "bronze");
+    .prepare(
+      "INSERT INTO promotion_workflows (id, stage, expires_at) VALUES (?, ?, ?)",
+    )
+    .run(id, "bronze", Date.now() + TEMPORARY_PROMOTION_RETENTION_MS);
   return promotion;
 }
 
 /** Restores all workflow state from the durable store into memory. */
 function loadWorkflow(id: string): TemporaryCurriculumWorkflow | undefined {
+  purgeExpiredTemporaryPromotions();
   const row = ingestionDb
     .prepare(
       "SELECT stage, bronze_json, source_bytes, silver_json, gold_json FROM promotion_workflows WHERE id = ?",
@@ -172,13 +171,17 @@ export async function getApprovedBronzeForSilver(id: string): Promise<{
   };
 }
 
-/** Saves a schema-validated Silver candidate in the durable workflow. */
-export function saveSilverCandidate(id: string, silver: SilverCandidate): void {
+/** Atomically records complete Silver output with its state transition. */
+export function completeSilverPromotion(
+  id: string,
+  silver: SilverCandidate,
+): CurriculumPromotion {
   const workflow = loadWorkflow(id);
-  if (!workflow || workflow.promotion.stage !== "silver")
-    throw new Error("Silver ingestion unavailable");
-  const updated = { ...workflow, silver };
-  saveWorkflow(id, updated);
+  if (!workflow || workflow.promotion.stage !== "bronze-approved")
+    throw new Error("Bronze approval required");
+  const promotion = ingestSilver(workflow.promotion);
+  saveWorkflow(id, { ...workflow, promotion, silver });
+  return promotion;
 }
 
 /** Returns separately approved Silver plus its Bronze provenance for Gold formalization. */
@@ -226,8 +229,12 @@ export function advancePromotion(
         : action === "approve-silver"
           ? approveSilver(current)
           : ingestGold(current);
-  const updated = { ...workflow, promotion: next };
-  saveWorkflow(id, updated);
+  if (next.stage === "gold") {
+    // Gold has been persisted by the caller; no Bronze/Silver/Gold handoff remains.
+    expireTemporaryPromotion(id);
+    return next;
+  }
+  saveWorkflow(id, { ...workflow, promotion: next });
   return next;
 }
 

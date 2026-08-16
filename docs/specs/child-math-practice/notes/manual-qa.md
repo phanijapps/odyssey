@@ -1,8 +1,8 @@
 # Child math practice manual QA
 
-Use the local development seed credentials shown by the application (`child` /
-`development-password`). Do not record a real child name, password, answer, or
-local filesystem path here.
+Use the locally configured development sign-in fixture shown by the application.
+Do not record account identifiers, passwords, raw answers, prompts, or local
+filesystem paths here.
 
 ## Test environment
 
@@ -11,19 +11,22 @@ local filesystem path here.
 - Node version: 24.19.0
 - Engram state: unavailable (no local native artifact configured)
 - Engram build prerequisite: Cargo and Rust 1.85+ when compiling the native package
-- Optional native integration: `ENGRAM_INTEGRATION=1 pnpm test`
-- Optional Ollama integration: `OLLAMA_INTEGRATION=1 PI_PROVIDER=ollama PI_MODEL=minimax-m2.7:cloud pnpm --filter child-math-app test -- --run src/server/agent/ollama.integration.test.ts`
+- Optional native integration: run the documented integration test with its
+  local environment configured; do not record environment values here.
+- Optional model integration: run the documented integration test with its local
+  environment configured; do not record provider or model configuration here.
 
 ## Child learning flow
 
 ### M1 — One-port startup and sign-in
 
-- [ ] Start with `pnpm dev` and open `http://localhost:3000`. Confirm the child
-      portal loads from the same process that serves the application.
+- [ ] Start with `ODYSSEY_ENABLE_DEVELOPMENT_FIXTURE_ACCOUNTS=1 pnpm dev` and
+      open `http://localhost:3000`. Confirm the child portal loads from the same
+      process that serves the application.
 - [ ] Submit an invalid username/password. Confirm the error is generic and no
       account details appear in the URL, page source, or browser console.
-- [ ] Sign in with `child` / `development-password`. Confirm the practice view
-      opens and the browser remains on the same origin and port.
+- [ ] Sign in with the locally configured development fixture. Confirm the
+      practice view opens and the browser remains on the same origin and port.
 
 ### M2 — Topic and standards context
 
@@ -116,8 +119,10 @@ local filesystem path here.
 - Browser fixture-hydration smoke: pass — switching topics temporarily hid the answer form while the persisted fixture loaded, then rendered the current linear question and re-enabled answer entry.
 - Browser sign-in hydration smoke: pass — immediately after submitting local seed credentials, the answer form was absent until the persisted fixture loaded, then rendered the current linear question and enabled answer entry.
 - Browser provider-unavailable smoke: pass — signed in with the local seed, confirmed `Try generated practice` was disabled until an answer was accepted, then selected it without provider configuration and observed the recoverable availability message while the local ratio question remained visible.
-- Ollama integration smoke: pass — `OLLAMA_INTEGRATION=1 PI_PROVIDER=ollama PI_MODEL=minimax-m2.7:cloud pnpm --filter child-math-app test -- --run src/server/agent/ollama.integration.test.ts` completed with the cloud-model probe passing.
-- Ollama generated-content limitation: Minimax `minimax-m2.7:cloud` emitted its reasoning trace without a complete JSON answer within the enforced 512-token, 15-second request envelope. The generated-preview action therefore remains recoverably unavailable for this provider configuration; do not relax those bounds without a reviewed change.
+- Model integration smoke: pass — the locally configured integration probe
+  completed successfully. Provider and model configuration are redacted.
+- Generated-content limitation: one configured model emitted a reasoning trace
+  without a complete JSON answer within the enforced request envelope. The generated-preview action therefore remains recoverably unavailable for this provider configuration; do not relax those bounds without a reviewed change.
 - Overall: pending user browser execution (M1–M6)
 - Failed case and observed result: not run in this environment
 - Follow-up issue: wire and verify a local Engram artifact before marking M5 ready.

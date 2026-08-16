@@ -1,4 +1,5 @@
 import "server-only";
+import { loadConfiguredEngramAddon } from "./engram-memory";
 import { isKnowledgeGraphAvailable } from "./knowledge-graph";
 
 type KnowledgeEngine = {
@@ -6,20 +7,15 @@ type KnowledgeEngine = {
   listRelationshipsJson(requestJson: string): string;
 };
 
-/** Lazily loads the knowledge engine through the same loader as knowledge-graph.ts. */
+/** Lazily opens the verified knowledge addon used by knowledge-graph.ts. */
 function engine(): KnowledgeEngine | null {
   if (!isKnowledgeGraphAvailable()) return null;
   try {
-    // eslint-disable-next-line no-eval
-    const req = eval("require") as (id: string) => unknown;
-    const addonPath = process.env.ENGRAM_ADDON_PATH;
-    if (!addonPath) return null;
-    const addon = req(addonPath) as {
-      NativeKnowledgeEngine: new (path: string) => KnowledgeEngine;
-    };
+    const addon = loadConfiguredEngramAddon();
+    if (!addon?.NativeKnowledgeEngine) return null;
     return new addon.NativeKnowledgeEngine(
       process.env.ENGRAM_DB_PATH ?? "odyssey-knowledge-graph.db",
-    );
+    ) as KnowledgeEngine;
   } catch {
     return null;
   }

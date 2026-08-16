@@ -1,20 +1,25 @@
-# App dependencies
+# App contributor guide
 
-- `next`, `react`, and `react-dom` provide the single local web application.
-- `@earendil-works/pi-agent-core` is the approved server-only agent runtime;
-  do not expose it to browser code.
-- `server-only` enforces that agent and native-memory modules cannot be imported
-  into client components.
-- `vitest` runs deterministic contract tests and `typescript` checks the app
-  boundary. The local Engram artifact is configured outside Git and is not an
-  npm dependency.
+`app/` is the single Next.js deployable. Run its checks with:
 
-<!-- BEGIN:nextjs-agent-rules -->
+```bash
+pnpm --dir app test
+pnpm --dir app typecheck
+pnpm --dir app build
+```
 
-# This is NOT the Next.js you know
+## Boundaries
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+- Keep browser components under `src/app/` and `src/components/`; server code is
+  under `src/server/` or route handlers and must retain `server-only` boundaries.
+- Derive learner identity from the server-owned session. Validate route input and
+  generated payloads before persistence or rendering.
+- SQLite owns local state. Keep test, practice, identity, curriculum, and agent
+  responsibilities in their focused server modules; do not create a second service.
+- Pi and native integrations stay server-only, bounded, and without authority to
+  write arbitrary records or choose authorization.
+- Reuse an abstraction only after two callers need the same policy. Preserve
+  transaction and learner-scope checks when consolidating data access.
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+Read `../AGENTS.md` and `../docs/architecture/reference.md` before structural
+or security-sensitive changes.

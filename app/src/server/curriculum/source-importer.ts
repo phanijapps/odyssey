@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import type { CurriculumRecord } from "../../../../packages/curriculum/src/curriculum-model";
+import type { CurriculumRecord } from "./curriculum-model";
 
 export const MAX_CURRICULUM_UPLOAD_BYTES = 10 * 1024 * 1024;
 

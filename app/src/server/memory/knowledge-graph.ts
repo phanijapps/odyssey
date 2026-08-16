@@ -1,5 +1,6 @@
 import "server-only";
-import { DatabaseSync } from "node:sqlite";
+import { withGoldDatabase } from "../curriculum/gold-database";
+import { loadConfiguredEngramAddon } from "./engram-memory";
 
 /** Knowledge-graph scope for Odyssey curriculum + learning data. */
 const SCOPE = {
@@ -24,51 +25,36 @@ type BeliefEngine = {
 let knowledgeEngine: KnowledgeEngine | null | undefined;
 let beliefEngine: BeliefEngine | null | undefined;
 
-/** Loads the native Engram knowledge engine (cached). */
+/** Loads the verified native Engram knowledge engine (cached). */
 function getKnowledgeEngine(): KnowledgeEngine | null {
   if (knowledgeEngine !== undefined) return knowledgeEngine;
   try {
-    const addonPath =
-      process.env.ENGRAM_ADDON_PATH ??
-      (process.env.ENGRAM_NODE_PACKAGE_PATH
-        ? process.env.ENGRAM_NODE_PACKAGE_PATH
-        : null);
-    if (!addonPath) {
+    const addon = loadConfiguredEngramAddon();
+    if (!addon?.NativeKnowledgeEngine) {
       knowledgeEngine = null;
       return null;
     }
-    // eslint-disable-next-line no-eval -- eval-require bypasses bundler path analysis
-    const req = eval("require") as (moduleId: string) => unknown;
-    const addon = req(
-      addonPath.endsWith(".node") ? addonPath : `${addonPath}/engram_node.node`,
-    ) as { NativeKnowledgeEngine: new (path: string) => KnowledgeEngine };
     const dbPath = process.env.ENGRAM_DB_PATH ?? "odyssey-knowledge-graph.db";
-    knowledgeEngine = new addon.NativeKnowledgeEngine(dbPath);
+    knowledgeEngine = new addon.NativeKnowledgeEngine(
+      dbPath,
+    ) as KnowledgeEngine;
   } catch {
     knowledgeEngine = null;
   }
   return knowledgeEngine;
 }
 
-/** Loads the native Engram belief engine (cached). */
+/** Loads the verified native Engram belief engine (cached). */
 function getBeliefEngine(): BeliefEngine | null {
   if (beliefEngine !== undefined) return beliefEngine;
   try {
-    const addonPath =
-      process.env.ENGRAM_ADDON_PATH ??
-      process.env.ENGRAM_NODE_PACKAGE_PATH ??
-      null;
-    if (!addonPath) {
+    const addon = loadConfiguredEngramAddon();
+    if (!addon?.NativeBeliefEngine) {
       beliefEngine = null;
       return null;
     }
-    // eslint-disable-next-line no-eval -- eval-require bypasses bundler path analysis
-    const req = eval("require") as (moduleId: string) => unknown;
-    const addon = req(
-      addonPath.endsWith(".node") ? addonPath : `${addonPath}/engram_node.node`,
-    ) as { NativeBeliefEngine: new (path: string) => BeliefEngine };
     const dbPath = process.env.ENGRAM_DB_PATH ?? "odyssey-knowledge-graph.db";
-    beliefEngine = new addon.NativeBeliefEngine(dbPath);
+    beliefEngine = new addon.NativeBeliefEngine(dbPath) as BeliefEngine;
   } catch {
     beliefEngine = null;
   }
@@ -152,14 +138,13 @@ export function seedCurriculumGraph(): {
   // Load standards from Gold DB
   let records: unknown[] = [];
   try {
-    const db = new DatabaseSync(
-      process.env.ODYSSEY_CURRICULUM_DB_PATH ?? "odyssey-curriculum.db",
+    records = withGoldDatabase((database) =>
+      (
+        database
+          .prepare("SELECT content_json FROM gold_curriculum_records")
+          .all() as Array<{ content_json: string }>
+      ).map((row) => JSON.parse(row.content_json)),
     );
-    const rows = db
-      .prepare("SELECT content_json FROM gold_curriculum_records")
-      .all() as Array<{ content_json: string }>;
-    records = rows.map((r) => JSON.parse(r.content_json));
-    db.close();
   } catch {
     return { entitiesWritten: 0, relationshipsWritten: 0 };
   }

@@ -1,90 +1,85 @@
 # Reference architecture
 
-> **Normative.** New implementation conforms to this foundation unless a later
-> ADR records a deliberate change.
+> **Normative for new implementation.** This is the current foundation. Frozen
+> ADRs and RFCs record decisions made at a point in time; a historical record
+> does not override this document when the implementation has changed.
 
 ## Constraints
 
-- **Runtime.** TypeScript and Next.js run on Node.js 24.19.0 or later.
-- **Local persistence.** SQLite is the initial source of truth for accounts,
-  learning progress, and approved generated learning artifacts.
-- **Curriculum source.** A versioned JSON catalog owns the in-product mapping
-  of grade or course, topic, standard identifier, and official-source metadata
-  for Ohio Learning Standards for Mathematics.
-- **Child safety.** Model output and all user input are untrusted at the server
-  boundary. No generated executable code reaches the browser.
-- **Scope.** The first experience is child-facing math practice for grades
-  6–12. Parent workflows, other subjects, and production deployment are out of
-  the first slice. ADR-0003 includes a local-only, server-side Engram profile
-  memory boundary.
+- **Runtime.** TypeScript and Next.js run on Node.js 24.19.0 or later in one
+  local-first application process.
+- **Persistence.** SQLite is the authoritative local store. The centralized
+  persistence module owns connection policy and ordered migrations for both
+  learning and curriculum data.
+- **Curriculum.** Reviewed Gold records are the only approved curriculum input
+  to learning, assessment, and retrieval. Bronze and Silver are workflow
+  states, not learner-facing content.
+- **Safety.** User input and model output are untrusted at the route boundary.
+  Generated content is validated before persistence or rendering; no generated
+  executable code reaches the browser.
+- **Scope.** The product is local math practice for grades 6–12, with local
+  progress support and curriculum administration. Other subjects and production
+  deployment remain out of scope.
 
 ## Solution strategy
 
-- **Application shape.** A Next.js application owns browser UI, server actions
-  or route handlers, persistence, and access control in a single local-first
-  deployable unit exposed through one port. A separate API process is not part
-  of the initial architecture.
-- **Repository layout.** `app/` owns the deployable application. `packages/`
-  holds only focused code with two real consumers; it never hosts a second
-  deployable application or a catch-all utility layer.
-- **Agent runtime.** Pi Mono's agent core runs only on the server. It selects
-  learning content through registered tools and never owns database writes,
-  authorization decisions, or unrestricted network or filesystem access.
-- **Agent-generated UI.** A2UI is limited to an application-owned, versioned
-  catalog of declarative components. The application validates every payload
-  before rendering it.
-- **Generated diagrams.** A server-side validator accepts only an allowlisted
-  SVG shape and label vocabulary before a diagram is persisted or displayed.
-- **Configuration.** Repo-owned skills define narrow topic, question, diagram,
-  and progression configurations. New MCP capabilities require a spec and a
-  tool-level authorization decision.
-
-## Building blocks
-
-- **Child portal.** Renders the selected topic, a question, an optional
-  validated diagram, answer controls, and progress feedback.
-- **Curriculum catalog.** Supplies reviewed, versioned topic and standards
-  metadata to the learning service and agent adapter. It is not editable by the
-  agent at runtime.
-- **Learning service.** Owns topic state, answer evaluation, progression rules,
-  and durable progress records.
-- **Identity service.** Owns password verification, sessions, and the child
-  account boundary; it never exposes password material to the agent.
-- **Agent adapter.** Wraps Pi Mono, supplies narrow context, invokes only
-  registered tools, and validates structured outputs. Provider, model, and API
-  credentials are server-only environment configuration; no credential is
-  required for the reviewed fixture path. The planned integration-test target
-  is Ollama with the `minimax-m2.7:cloud` model, enabled only when the local
-  Ollama service is available.
-- **A2UI catalog renderer.** Maps validated declarative component descriptions
-  to application-owned React components.
-- **SQLite repository.** Encapsulates persistence behind application services.
-- **Profile-memory adapter.** Wraps a verified local Engram native artifact,
-  projects only derived child-scoped signals, and seeds an application-owned
-  ontology and taxonomy. It is not a browser surface or agent tool. The
-  preferred future source is the installed `@engram/node` package from the
-  Engram Git `main` branch; `ENGRAM_NODE_PACKAGE_PATH` remains a local artifact
-  override. The current package declares `@engram/contracts` as a workspace
-  dependency, so Git installation should use a checked-out Engram workspace or
-  a published compatible package until that upstream contract changes.
-  Building the native package also requires Cargo and Rust `1.85+`; the
-  application runtime must not attempt compilation during a request.
+- **Application shape.** `app/` owns browser UI, App Router handlers, and
+  focused server modules. There is no second service and no reusable package
+  boundary until a real second consumer exists.
+- **Transport boundary.** Routes are same-origin adapters: validate transport
+  input, derive server-side session scope, invoke a focused service, and return
+  a safe projection. Authorization and persistence policy stay out of browser
+  components.
+- **Completion boundary.** `src/server/pi-completion.ts` is the only Pi AI
+  provider boundary. It makes bounded, stateless, text-only local completions.
+  It does not expose tools, an agent loop, filesystem access, database writes,
+  or authorization decisions. Do not introduce A2UI or Pi-agent-core concepts
+  into new designs without an approved architectural change.
+- **Persistence boundary.** `src/server/persistence/sqlite.ts` opens and
+  migrates application databases. Feature modules use its connections and
+  transactions rather than creating schemas or competing migration paths.
+- **Learning boundary.** `src/server/learning/` owns practice progression,
+  assessment lifecycle, and redacted learner history. Assessment state and
+  formative mastery are deliberately separate.
+- **Curriculum boundary.** `src/server/curriculum/` owns catalog reading,
+  promotion, Gold persistence, vectors, and retrieval. Its Pi-named workflow
+  adapter obtains structured completion data but application code validates and
+  promotes records.
+- **Native-memory boundary.** `src/server/memory/` contains optional,
+  server-only Engram adapters. They project allowlisted derived signals and are
+  recoverable when unavailable; they never become the authority for learning
+  progress or curriculum.
 
 ## Crosscutting standards
 
-- Validate at all trust boundaries with typed schemas; reject unknown fields and
-  unsafe SVG elements, attributes, and URL-bearing values.
-- Store passwords only as salted, slow hashes; keep credentials and model API
-  keys server-side and out of logs.
-- Record agent requests, tool names, validation outcomes, and content versions
-  without logging child answers or secrets unnecessarily.
-- Test progression and validation logic with deterministic tests; test the
-  real child flow and rendered diagram manually before release.
-- Keep generated learning content attributable to its topic, skill version,
-  and validation result so it can be reviewed or removed.
-- Keep modules cohesive and narrowly named; do not create god classes,
-  catch-all services, or components that own rendering, persistence, agent
-  orchestration, and validation together.
-- Write clear code first. Comments capture rationale, constraints, and
-  non-obvious tradeoffs rather than narrating the code. Improve nearby code
-  only when it is a small, same-concern cleanup required by the change.
+- Validate all route input and all generated payloads with narrow schemas;
+  reject unknown fields at public boundaries.
+- Derive learner and administrative scope from the server-side session. Every
+  state-changing route uses the shared same-origin mutation proof, except where
+  a route's documented session lifecycle is intentionally narrower.
+- Keep answer keys, raw submitted answers, provider internals, and internal
+  error detail out of client projections and durable attempt history.
+- Treat local semantic retrieval as an optional vector projection over Gold:
+  bounded nearest-neighbor results may fall back to text search. Do not describe
+  it as graph retrieval, hybrid retrieval, or reranking unless implementation
+  adds those stages.
+- Keep modules cohesive and named for their policy. Do not create catch-all
+  services, browser-side persistence, or a second database migration owner.
+- Preserve route paths and response shapes as compatibility surfaces. Update
+  [`application.md`](application.md#public-route-contracts) in the same change
+  as any route contract.
+- If deployed outside local development, configure `ODYSSEY_APP_ORIGIN` as the
+  exact public HTTPS origin. Generic development fixtures require explicit local
+  enablement and are refused in production; production account material is
+  provisioned out of band and never committed to configuration or docs.
+- Write comments for constraints and trade-offs, not narration. Make nearby
+  cleanup only when it is a small same-concern change required by the work.
+
+## Contributor guidance hierarchy
+
+Read the root [`AGENTS.md`](../../AGENTS.md) first, then every applicable
+nested `AGENTS.md` on the path to the file being changed; the most local guide
+adds constraints for that area. `CLAUDE.md` files point to the corresponding
+`AGENTS.md` and do not define competing policy. In particular, `app/AGENTS.md`
+defines deployable-app boundaries, while the guides beneath `app/src/` refine
+route, server, curriculum, learning, memory, and UI responsibilities.

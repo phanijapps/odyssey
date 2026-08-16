@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { expect, test } from "vitest";
-import type { CurriculumRecord } from "../../../../packages/curriculum/src/curriculum-model";
+import type { CurriculumRecord } from "./curriculum-model";
 import { indexCurriculumRecords } from "./curriculum-indexer";
 import { CurriculumVectorRepository } from "./vector-repository";
 

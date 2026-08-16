@@ -4,13 +4,17 @@ All notable user-visible changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+> Historical release entries are retained as an archive. Concrete local account
+> identifiers and sign-in values have been redacted; use the current application
+> configuration for local access.
+
 ## [unreleased-2] — 2026-08-14
 
 ### Added
 
-- **Multi-account authentication** — accounts live in SQLite with per-account
-  scrypt-hashed passwords. Seeded accounts: `admin`/`admin` (admin role),
-  `sushma`/`Mason712048` (student), `demo`/`demo` (student).
+- **Multi-account authentication** — local accounts were stored in SQLite with
+  per-account scrypt-hashed password verification. Historical account identifiers
+  and sign-in values are redacted.
 - **Persistent sessions** — sessions are stored in SQLite and survive server
   restarts; the session cookie now lasts 8 hours, so staying signed in across
   page reloads and dev-server restarts works without re-login.
@@ -89,7 +93,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   alternative answers (e.g. "0.5" matches "1/2", "4 girls" matches "4").
 - **Progress persistence** — learning data now survives server restarts
   (SQLite on disk instead of `:memory:`).
-- **Credentials** — demo account is now `demo` / `demo`.
+- **Local access fixture** — the development sign-in fixture changed; its
+  identifiers and values are redacted.
 
 ### Fixed
 

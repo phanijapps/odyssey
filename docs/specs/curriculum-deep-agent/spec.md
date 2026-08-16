@@ -124,8 +124,8 @@ approved Silver payload and its provenance.
 
 - Technical: Pi Core 0.84.1 is the server-only runtime for the reusable agent
   boundary (source: app/package.json).
-- Technical: the source-neutral promotion state machine remains in
-  `packages/curriculum/` (source: packages/curriculum/src/promotion-workflow.ts).
+- Technical: the source-neutral promotion state machine is application-owned in
+  `app/src/server/curriculum/promotion-workflow.ts`.
 - Process: bounded Pi transformations and application-owned approvals follow
   RFC-0002 (source: docs/rfc/0002-adopt-curriculum-source-promotion.md).
 - Product: `curriculum-document` is the first agent skill; question and diagram

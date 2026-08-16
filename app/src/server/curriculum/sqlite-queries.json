@@ -13,5 +13,6 @@
   "deleteVector": "DELETE FROM curriculum_embedding_vectors WHERE rowid = ?",
   "insertVector": "INSERT INTO curriculum_embedding_vectors(rowid, embedding) VALUES (?, ?)",
   "nearestVectors": "SELECT rowid, distance FROM curriculum_embedding_vectors WHERE embedding MATCH ? AND k = ? ORDER BY distance",
-  "scopedRecord": "SELECT record_id FROM curriculum_embedding_records WHERE id = ? AND subject = ? AND framework = ?"
+  "scopedRecord": "SELECT record_id FROM curriculum_embedding_records WHERE id = ? AND (? IS NULL OR subject = ?) AND (? IS NULL OR framework = ?)",
+  "deleteRecord": "DELETE FROM curriculum_embedding_records WHERE record_id = ?"
 }

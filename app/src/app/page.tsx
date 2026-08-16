@@ -1,32 +1,22 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { MathText } from "@/components/math-text";
-
-type FlatStandard = {
-  id: string;
-  standardCode: string;
-  standardText: string;
-  domain: string;
-  subject: string;
-  grade: string;
-};
-
-type PracticeFeedback = { kind: "success" | "error"; message: string };
-
-type Mode = "practice" | "test";
-
-type AnswerResult = {
-  correct: boolean;
-  correctAnswer: string;
-  solution: string[];
-  hint: string;
-  points: number;
-  answeredDifficulty: number;
-  testMode: boolean;
-  testPosition: number;
-  testTotal: number;
-};
+import { AssessmentPanel } from "./learner/assessment-panel";
+import { LearnerHeader } from "./learner/learner-header";
+import { LearningHistory } from "./learner/learning-history";
+import { PracticePanel } from "./learner/practice-panel";
+import { SkillBrowser } from "./learner/skill-browser";
+import {
+  Assessment,
+  AssessmentQuestion,
+  AssessmentResponse,
+  AssessmentResult,
+  AnswerResult,
+  FlatStandard,
+  HistoryEntry,
+  Mode,
+  PracticeFeedback,
+} from "./learner/types";
 
 const GRADE_KEY = "odyssey:grade";
 const SKILL_KEY = "odyssey:lastSkill";
@@ -66,6 +56,8 @@ export default function HomePage() {
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
   const [questionFailed, setQuestionFailed] = useState(false);
   const [question, setQuestion] = useState("");
+  /** Opaque server-issued binding for the displayed Practice question. */
+  const [assignmentToken, setAssignmentToken] = useState<string | null>(null);
   const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
   const [level, setLevel] = useState(1);
   const [correctStreak, setCorrectStreak] = useState(0);
@@ -80,6 +72,16 @@ export default function HomePage() {
   const [testLog, setTestLog] = useState<
     { correct: boolean; points: number; difficulty: number }[]
   >([]);
+  const [testSelectedIds, setTestSelectedIds] = useState<string[]>([]);
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [assessmentQuestion, setAssessmentQuestion] =
+    useState<AssessmentQuestion | null>(null);
+  const [assessmentResult, setAssessmentResult] =
+    useState<AssessmentResult | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testError, setTestError] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const progressVersion = useRef(0);
   const allStandardsRef = useRef<FlatStandard[]>([]);
@@ -128,8 +130,10 @@ export default function HomePage() {
       try {
         savedGrade = window.localStorage.getItem(GRADE_KEY);
         const savedMode = window.localStorage.getItem(MODE_KEY);
-        if (savedMode === "test" || savedMode === "practice")
+        if (savedMode === "test" || savedMode === "practice") {
           setMode(savedMode);
+          if (savedMode === "test") await loadActiveTest();
+        }
       } catch {
         /* storage unavailable */
       }
@@ -207,7 +211,18 @@ export default function HomePage() {
 
   /* ---- Skill selection → practice ---- */
 
-  async function selectSkill(skill: FlatStandard) {
+  async function selectSkill(skill: FlatStandard, requestedMode: Mode = mode) {
+    if (requestedMode === "test") {
+      if (assessment?.status === "active") return;
+      setTestSelectedIds((selected) =>
+        selected.includes(skill.id)
+          ? selected.filter((id) => id !== skill.id)
+          : selected.length < 3
+            ? [...selected, skill.id]
+            : selected,
+      );
+      return;
+    }
     const version = ++progressVersion.current;
     setActiveSkill(skill);
     setFeedback(null);
@@ -220,6 +235,7 @@ export default function HomePage() {
     setTestLog([]);
     setIsLoadingQuestion(true);
     setQuestion("Loading…");
+    setAssignmentToken(null);
     setDiagramSvg(null);
     try {
       window.localStorage.setItem(SKILL_KEY, JSON.stringify(skill));
@@ -233,12 +249,17 @@ export default function HomePage() {
         domain: skill.domain,
         standard: skill.standardCode,
         topicId: `${skill.subject}::${skill.grade}::${skill.domain}::${skill.standardCode}`,
-        mode,
+        mode: requestedMode,
       });
       const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
       if (progressVersion.current !== version) return;
-      if (!res.ok) return;
+      if (!res.ok) {
+        setQuestion("");
+        setQuestionFailed(true);
+        return;
+      }
       const d = await res.json();
+      if (progressVersion.current !== version) return;
       setLevel(d.level ?? 1);
       setCorrectStreak(d.correctStreak ?? 0);
       setPoolPos(d.poolProgress?.position ?? 0);
@@ -247,13 +268,21 @@ export default function HomePage() {
       setTestIndex(Math.max(0, (d.poolProgress?.position ?? 1) - 1));
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
+        setAssignmentToken(
+          typeof d.nextQuestion.assignmentToken === "string"
+            ? d.nextQuestion.assignmentToken
+            : null,
+        );
         setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
       } else {
         setQuestion("");
         setQuestionFailed(true);
       }
     } catch {
-      setQuestion("Could not load question. Try another skill.");
+      if (progressVersion.current === version) {
+        setQuestion("");
+        setQuestionFailed(true);
+      }
     } finally {
       if (progressVersion.current === version) setIsLoadingQuestion(false);
     }
@@ -263,7 +292,8 @@ export default function HomePage() {
 
   async function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmittingAnswer || !activeSkill || result) return;
+    if (isSubmittingAnswer || !activeSkill || result || !assignmentToken)
+      return;
     const version = progressVersion.current;
     setIsSubmittingAnswer(true);
     try {
@@ -274,7 +304,7 @@ export default function HomePage() {
           "content-type": "application/json",
           origin: window.location.origin,
         },
-        body: JSON.stringify({ topicId, answer }),
+        body: JSON.stringify({ topicId, answer, assignmentToken }),
       });
       if (progressVersion.current !== version) return;
       if (!res.ok) {
@@ -287,9 +317,11 @@ export default function HomePage() {
         nextQuestion?: { question?: string; diagramSvg?: string } | null;
         poolProgress?: { position: number; total: number; difficulty: number };
       };
+      if (progressVersion.current !== version) return;
       setLevel(d.level);
       setCorrectStreak(d.correctStreak);
       setResult(d);
+      setAssignmentToken(null);
       setFeedback({
         kind: d.correct ? "success" : "error",
         message: d.correct
@@ -316,7 +348,9 @@ export default function HomePage() {
       }
       setAnswer("");
     } catch {
-      setFeedback({ kind: "error", message: "Could not save answer." });
+      if (progressVersion.current === version) {
+        setFeedback({ kind: "error", message: "Could not save answer." });
+      }
     } finally {
       if (progressVersion.current === version) setIsSubmittingAnswer(false);
     }
@@ -325,14 +359,21 @@ export default function HomePage() {
   /** Next: advance to the question the server already prepared. */
   async function nextQuestion() {
     if (!activeSkill) return;
+    const version = ++progressVersion.current;
+    const skill = activeSkill;
+    const requestedMode = mode;
+    const currentResult = result;
     setResult(null);
     setFeedback(null);
+    setQuestionFailed(false);
     setIsLoadingQuestion(true);
     setQuestion("Loading…");
-    if (mode === "test" && result) {
-      const nextIndex = result.testPosition; // server counts the just-served one
+    setAssignmentToken(null);
+    setDiagramSvg(null);
+    if (requestedMode === "test" && currentResult) {
+      const nextIndex = currentResult.testPosition; // server counts the just-served one
       setTestIndex(nextIndex);
-      if (result.testPosition >= result.testTotal) {
+      if (currentResult.testPosition >= currentResult.testTotal) {
         setTestDone(true);
         setIsLoadingQuestion(false);
         setQuestion("");
@@ -341,20 +382,31 @@ export default function HomePage() {
     }
     try {
       const params = new URLSearchParams({
-        subject: activeSkill.subject,
-        grade: activeSkill.grade,
-        domain: activeSkill.domain,
-        standard: activeSkill.standardCode,
-        topicId: `${activeSkill.subject}::${activeSkill.grade}::${activeSkill.domain}::${activeSkill.standardCode}`,
-        mode,
+        subject: skill.subject,
+        grade: skill.grade,
+        domain: skill.domain,
+        standard: skill.standardCode,
+        topicId: `${skill.subject}::${skill.grade}::${skill.domain}::${skill.standardCode}`,
+        mode: requestedMode,
       });
       const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
-      if (!res.ok) return;
+      if (progressVersion.current !== version) return;
+      if (!res.ok) {
+        setQuestion("");
+        setQuestionFailed(true);
+        return;
+      }
       const d = await res.json();
+      if (progressVersion.current !== version) return;
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
+        setAssignmentToken(
+          typeof d.nextQuestion.assignmentToken === "string"
+            ? d.nextQuestion.assignmentToken
+            : null,
+        );
         setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
-      } else if (mode === "test") {
+      } else if (requestedMode === "test") {
         setTestDone(true);
         setQuestion("");
       } else {
@@ -362,9 +414,12 @@ export default function HomePage() {
         setQuestionFailed(true);
       }
     } catch {
-      setQuestion("Could not load the next question.");
+      if (progressVersion.current === version) {
+        setQuestion("");
+        setQuestionFailed(true);
+      }
     } finally {
-      setIsLoadingQuestion(false);
+      if (progressVersion.current === version) setIsLoadingQuestion(false);
     }
   }
 
@@ -441,10 +496,134 @@ export default function HomePage() {
     setResult(null);
     setFeedback(null);
     setTestDone(false);
-    setTestScore(0);
-    setTestIndex(0);
-    setTestLog([]);
-    if (activeSkill) void selectSkill(activeSkill);
+    setTestError("");
+    if (next === "practice" && activeSkill)
+      void selectSkill(activeSkill, "practice");
+    if (next === "test") void loadActiveTest();
+  }
+
+  function applyAssessment(data: AssessmentResponse) {
+    setAssessment(data.assessment);
+    setAssessmentQuestion(data.question ?? null);
+    if (data.result) setAssessmentResult(data.result);
+  }
+
+  async function loadActiveTest(assessmentId?: string) {
+    setTestLoading(true);
+    try {
+      const suffix = assessmentId
+        ? `?id=${encodeURIComponent(assessmentId)}`
+        : "";
+      const res = await fetch(`/api/test${suffix}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.assessment) applyAssessment(data);
+        else {
+          setAssessment(null);
+          setAssessmentQuestion(null);
+          setAssessmentResult(null);
+        }
+      }
+    } catch {
+      /* no resumable assessment */
+    } finally {
+      setTestLoading(false);
+    }
+  }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch("/api/history", { cache: "no-store" });
+      if (res.ok) setHistory((await res.json()).entries ?? []);
+    } catch {
+      setHistory([]);
+    }
+  }
+
+  async function exitTest() {
+    if (
+      !assessment ||
+      !window.confirm(
+        "Exit this test? Your answered work will be saved as partial.",
+      )
+    )
+      return;
+    setTestLoading(true);
+    setTestError("");
+    try {
+      const res = await fetch("/api/test/exit", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: window.location.origin,
+        },
+        body: JSON.stringify({ assessmentId: assessment.id }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      applyAssessment(data);
+      if (data.result) setAssessmentResult(data.result);
+    } catch {
+      setTestError("We couldn’t exit this test. Try again.");
+    } finally {
+      setTestLoading(false);
+    }
+  }
+
+  async function startTest() {
+    if (!testSelectedIds.length || testLoading) return;
+    setTestLoading(true);
+    setTestError("");
+    try {
+      const res = await fetch("/api/test", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: window.location.origin,
+        },
+        body: JSON.stringify({ standardIds: testSelectedIds }),
+      });
+      if (!res.ok) throw new Error();
+      applyAssessment(await res.json());
+    } catch {
+      setTestError(
+        "We couldn’t start that test. Pick supported skills and try again.",
+      );
+    } finally {
+      setTestLoading(false);
+    }
+  }
+
+  async function submitTestAnswer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!assessment || !assessmentQuestion || !answer.trim() || testLoading)
+      return;
+    setTestLoading(true);
+    setTestError("");
+    try {
+      const res = await fetch("/api/test/answer", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: window.location.origin,
+        },
+        body: JSON.stringify({
+          assessmentId: assessment.id,
+          answer,
+          assignmentToken: assessmentQuestion.assignmentToken,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      applyAssessment(data);
+      setAnswer("");
+      if (data.assessment?.status === "active")
+        await loadActiveTest(data.assessment.id);
+    } catch {
+      setTestError("We couldn’t save that answer. Try again.");
+    } finally {
+      setTestLoading(false);
+    }
   }
 
   /* ---- Derived data ---- */
@@ -473,6 +652,7 @@ export default function HomePage() {
     if (!skillsByDomain.has(s.domain)) skillsByDomain.set(s.domain, []);
     skillsByDomain.get(s.domain)!.push(s);
   }
+  const testLocked = mode === "test" && assessment?.status === "active";
 
   /* ---- Auth screen ---- */
 
@@ -545,335 +725,123 @@ export default function HomePage() {
 
   /* ---- Main practice screen ---- */
 
-  const testQuestionNumber = Math.min(testIndex + 1, poolTotal || 9);
-
   return (
     <main className="ixl-shell">
-      <header className="ixl-topbar">
-        <span className="small-mark">O</span>
-        <span className="topbar-brand">odyssey</span>
-        <select
-          className="topbar-select"
-          value={selSubject}
-          onChange={(e) => {
-            setSelSubject(e.target.value);
-            setSearchQuery("");
-            const firstGrade = allStandards.find(
-              (s) => s.subject === e.target.value,
-            )?.grade;
-            if (firstGrade) setSelGrade(firstGrade);
-          }}
-        >
-          {subjects.map((s) => (
-            <option key={s} value={s}>
-              {s === "Mathematics"
-                ? "Math"
-                : s === "English Language Arts"
-                  ? "ELA"
-                  : s}
-            </option>
-          ))}
-        </select>
-        <select
-          className="topbar-select"
-          value={selGrade}
-          onChange={(e) => {
-            setSelGrade(e.target.value);
-            try {
-              window.localStorage.setItem(GRADE_KEY, e.target.value);
-            } catch {
-              /* ignore */
-            }
-            setSearchQuery("");
-          }}
-        >
-          {grades.map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
-        <div className="topbar-search">
-          <input
-            type="text"
-            placeholder="Search skills…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button
-            className="semantic-btn"
-            onClick={() => void semanticSearch()}
-            disabled={semanticLoading || !searchQuery.trim()}
-            title="AI semantic search"
-          >
-            {semanticLoading ? "…" : "✨"}
-          </button>
-          {searchQuery.trim() && (
-            <div className="search-dropdown">
-              {searchResults.length > 0 ? (
-                searchResults.map((s) => (
-                  <button
-                    key={s.id}
-                    className="search-result-row"
-                    onClick={() => {
-                      void selectSkill(s);
-                      setSearchQuery("");
-                    }}
-                  >
-                    <span className="result-code">{s.standardCode}</span>
-                    <span className="result-text">{s.standardText}</span>
-                  </button>
-                ))
-              ) : (
-                <p className="search-meta">
-                  No matches. Try ✨ for semantic search, or pick a skill below.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="mode-toggle">
-          <button
-            className={mode === "practice" ? "mode-btn active" : "mode-btn"}
-            onClick={() => switchMode("practice")}
-          >
-            Practice
-          </button>
-          <button
-            className={mode === "test" ? "mode-btn active" : "mode-btn"}
-            onClick={() => switchMode("test")}
-          >
-            Test
-          </button>
-        </div>
-        <button
-          className="browse-toggle"
-          onClick={() => setBrowseOpen(!browseOpen)}
-        >
-          {browseOpen ? "Hide skills" : "Browse skills"}
-        </button>
-        <a href="/dashboard" className="ixl-link">
-          Dashboard
-        </a>
-        {role && <span className="role-chip">{role}</span>}
-        <button
-          className="ixl-link"
-          onClick={async () => {
-            await fetch("/api/session", { method: "DELETE" });
-            setSignedIn(false);
-            setRole(null);
-          }}
-        >
-          Sign out
-        </button>
-      </header>
+      <LearnerHeader
+        grades={grades}
+        subjects={subjects}
+        selGrade={selGrade}
+        selSubject={selSubject}
+        searchQuery={searchQuery}
+        searchResults={searchResults}
+        semanticLoading={semanticLoading}
+        mode={mode}
+        browseOpen={browseOpen}
+        historyOpen={historyOpen}
+        role={role}
+        testLocked={testLocked}
+        onSubjectChange={(subject) => {
+          setSelSubject(subject);
+          setSearchQuery("");
+          const firstGrade = allStandards.find(
+            (standard) => standard.subject === subject,
+          )?.grade;
+          if (firstGrade) setSelGrade(firstGrade);
+        }}
+        onGradeChange={(grade) => {
+          setSelGrade(grade);
+          try {
+            window.localStorage.setItem(GRADE_KEY, grade);
+          } catch {
+            /* ignore */
+          }
+          setSearchQuery("");
+        }}
+        onSearchQueryChange={setSearchQuery}
+        onSemanticSearch={() => void semanticSearch()}
+        onSearchResultSelect={(skill) => {
+          void selectSkill(skill);
+          setSearchQuery("");
+        }}
+        onModeChange={switchMode}
+        onBrowseToggle={() => setBrowseOpen(!browseOpen)}
+        onHistoryToggle={() => {
+          setHistoryOpen((open) => !open);
+          if (!historyOpen) void loadHistory();
+        }}
+        onSignOut={async () => {
+          await fetch("/api/session", { method: "DELETE" });
+          setSignedIn(false);
+          setRole(null);
+        }}
+      />
 
-      {/* Skill browser */}
       {browseOpen && (
-        <div className="skill-browser">
-          {[...skillsByDomain.entries()].map(([domain, skills]) => (
-            <div key={domain} className="browser-domain">
-              <p className="browser-domain-header">{domain}</p>
-              <div className="browser-skills">
-                {skills.map((s) => (
-                  <button
-                    key={s.id}
-                    className={
-                      activeSkill?.id === s.id
-                        ? "browser-skill active"
-                        : "browser-skill"
-                    }
-                    onClick={() => {
-                      void selectSkill(s);
-                      setBrowseOpen(false);
-                    }}
-                  >
-                    <span className="browser-code">{s.standardCode}</span>
-                    <span className="browser-desc">
-                      {s.standardText.length > 70
-                        ? s.standardText.slice(0, 70) + "…"
-                        : s.standardText}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <SkillBrowser
+          activeSkill={activeSkill}
+          skillsByDomain={skillsByDomain}
+          testLocked={testLocked}
+          onSkillSelect={(skill) => {
+            void selectSkill(skill);
+            setBrowseOpen(false);
+          }}
+        />
       )}
 
-      <section className="ixl-practice">
-        {activeSkill ? (
-          <>
-            <div className="practice-header">
-              <div>
-                <p className="eyebrow">{activeSkill.subject.toUpperCase()}</p>
-                <h1 className="practice-skill">{activeSkill.standardCode}</h1>
-                <p className="practice-desc">{activeSkill.standardText}</p>
-              </div>
-              <div className="practice-meta">
-                {mode === "test" ? (
-                  <span className="test-progress">
-                    Question {testQuestionNumber} of {poolTotal || 9}
-                  </span>
-                ) : (
-                  poolTotal > 0 && (
-                    <div className="pool-bar">
-                      {Array.from({ length: poolTotal }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`pool-dot ${i < poolPos ? "done" : i === poolPos ? "current" : ""}`}
-                        />
-                      ))}
-                    </div>
-                  )
-                )}
-                {mode === "practice" && (
-                  <span className={`diff-badge diff-${poolDifficulty}`}>
-                    {poolDifficulty === 1
-                      ? "Building up"
-                      : poolDifficulty === 2
-                        ? "On track"
-                        : "Challenge"}
-                  </span>
-                )}
-                {mode === "test" && (
-                  <span className="score-badge">Score {testScore}</span>
-                )}
-                {mode === "practice" && (
-                  <span className="streak-badge">🔥 {correctStreak}</span>
-                )}
-              </div>
-            </div>
+      {historyOpen && <LearningHistory history={history} />}
 
-            {testDone ? (
-              <div className="question-card test-report">
-                <div className="question-copy">
-                  <h2 className="practice-skill">Test complete!</h2>
-                  <p className="test-score-line">
-                    You scored <strong>{testScore}</strong> out of{" "}
-                    <strong>180</strong> points.
-                  </p>
-                  <div className="test-breakdown">
-                    {testLog.map((entry, i) => (
-                      <div key={i} className="test-entry">
-                        <span
-                          className={
-                            entry.correct ? "kg-pred good" : "kg-pred bad"
-                          }
-                        >
-                          Q{i + 1} · Level {entry.difficulty} ·{" "}
-                          {entry.correct ? "✓" : "✗"} +{entry.points}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    className="primary-button"
-                    onClick={() => activeSkill && void selectSkill(activeSkill)}
-                  >
-                    Take a new test
-                  </button>
-                  <button
-                    className="secondary-btn"
-                    onClick={() => switchMode("practice")}
-                  >
-                    Back to practice
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="question-card">
-                <div className="question-copy">
-                  {questionFailed ? (
-                    <div className="retry-panel">
-                      <p className="retry-message">
-                        We couldn&rsquo;t generate a question for this skill
-                        just now. The local model may be busy — try again.
-                      </p>
-                      <button
-                        className="primary-button"
-                        onClick={() =>
-                          activeSkill && void selectSkill(activeSkill)
-                        }
-                      >
-                        Try again
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <h2 className="question-text">
-                        <MathText>{question}</MathText>
-                      </h2>
-                      {isLoadingQuestion ? (
-                        <p className="loading-text">Loading your question…</p>
-                      ) : result ? (
-                        <>
-                          <div
-                            className={`solution-panel ${result.correct ? "good" : "bad"}`}
-                          >
-                            <p className="solution-title">
-                              {result.correct
-                                ? "Correct! Here's how it works:"
-                                : `The correct answer is ${result.correctAnswer}`}
-                            </p>
-                            <ol className="solution-steps">
-                              {result.solution.map((step, i) => (
-                                <li key={i}>
-                                  <MathText>{step}</MathText>
-                                </li>
-                              ))}
-                            </ol>
-                          </div>
-                          <button
-                            className="primary-button next-btn"
-                            onClick={() => void nextQuestion()}
-                          >
-                            Next question →
-                          </button>
-                        </>
-                      ) : (
-                        <form onSubmit={submitAnswer} className="answer-row">
-                          <input
-                            className="answer-input"
-                            value={answer}
-                            onChange={(e) => setAnswer(e.target.value)}
-                            placeholder="Type your answer"
-                            disabled={isSubmittingAnswer}
-                            autoFocus
-                          />
-                          <button
-                            className="primary-button"
-                            type="submit"
-                            disabled={isSubmittingAnswer || !answer.trim()}
-                          >
-                            Check
-                          </button>
-                        </form>
-                      )}
-                      {feedback && !result && (
-                        <p
-                          className={`feedback-${feedback.kind}`}
-                          role="status"
-                        >
-                          <MathText>{feedback.message}</MathText>
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-                {diagramSvg && (
-                  <div className="diagram-card">
-                    <img
-                      className="generated-diagram"
-                      src={`data:image/svg+xml,${encodeURIComponent(diagramSvg)}`}
-                      alt="diagram"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </>
+      <section className="ixl-practice">
+        {mode === "test" ? (
+          <AssessmentPanel
+            allStandards={allStandards}
+            assessment={assessment}
+            assessmentQuestion={assessmentQuestion}
+            assessmentResult={assessmentResult}
+            answer={answer}
+            testError={testError}
+            testLoading={testLoading}
+            testSelectedIds={testSelectedIds}
+            onAnswerChange={setAnswer}
+            onExit={() => void exitTest()}
+            onLoadActiveTest={(assessmentId) =>
+              void loadActiveTest(assessmentId)
+            }
+            onNewTest={() => {
+              setAssessment(null);
+              setAssessmentQuestion(null);
+              setAssessmentResult(null);
+              setTestSelectedIds([]);
+            }}
+            onStart={() => void startTest()}
+            onSubmitAnswer={submitTestAnswer}
+            onSwitchToPractice={() => switchMode("practice")}
+            onToggleSelectedSkill={(skill) => void selectSkill(skill, "test")}
+          />
+        ) : activeSkill ? (
+          <PracticePanel
+            activeSkill={activeSkill}
+            answer={answer}
+            correctStreak={correctStreak}
+            diagramSvg={diagramSvg}
+            feedback={feedback}
+            isLoadingQuestion={isLoadingQuestion}
+            isSubmittingAnswer={isSubmittingAnswer}
+            poolDifficulty={poolDifficulty}
+            poolPos={poolPos}
+            poolTotal={poolTotal}
+            question={question}
+            questionFailed={questionFailed}
+            result={result}
+            testDone={testDone}
+            testLog={testLog}
+            testScore={testScore}
+            onAnswerChange={setAnswer}
+            onNextQuestion={() => void nextQuestion()}
+            onRetry={() => void selectSkill(activeSkill)}
+            onStartNewTest={() => void selectSkill(activeSkill)}
+            onSubmitAnswer={submitAnswer}
+            onSwitchToPractice={() => switchMode("practice")}
+          />
         ) : (
           <div className="empty-practice">
             <h1>Search a skill to start</h1>

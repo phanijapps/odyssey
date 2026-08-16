@@ -24,54 +24,78 @@ type SessionRow = {
   last_seen: number;
   generated_requests: number;
   allowance_topic: string | null;
-  active_ai_question: string | null;
   question_pool: string | null;
 };
 
-/** Initial local accounts, seeded idempotently. Passwords belong to .env in
- *  any shared deployment; these are single-household local defaults. */
-const SEED_ACCOUNTS: ReadonlyArray<{
+type FixtureAccount = {
   username: string;
   password: string;
   role: "admin" | "student";
   childId: string;
-}> = [
-  { username: "admin", password: "admin", role: "admin", childId: "admin" },
+};
+
+/**
+ * Generic accounts used only for local verification. They are opt-in in
+ * development and separately enabled by Vitest; production never seeds or
+ * accepts either account.
+ */
+const DEVELOPMENT_FIXTURE_ACCOUNTS: readonly FixtureAccount[] = [
   {
-    username: "sushma",
-    password: "Mason712048",
-    role: "student",
-    childId: "child:sushma",
+    username: "development-admin",
+    password: "development-admin-password",
+    role: "admin",
+    childId: "development-admin",
   },
-  { username: "demo", password: "demo", role: "student", childId: "child-1" },
+  {
+    username: "development-learner",
+    password: "development-learner-password",
+    role: "student",
+    childId: "development-learner",
+  },
 ];
 
-learningDb.exec(`
-CREATE TABLE IF NOT EXISTS accounts (
-  username TEXT PRIMARY KEY,
-  password_hash BLOB NOT NULL,
-  salt BLOB NOT NULL,
-  role TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS auth_sessions (
-  token_hash TEXT PRIMARY KEY,
-  child_id TEXT NOT NULL,
-  username TEXT NOT NULL,
-  role TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  last_seen INTEGER NOT NULL,
-  generated_requests INTEGER NOT NULL DEFAULT 0,
-  allowance_topic TEXT,
-  active_ai_question TEXT,
-  question_pool TEXT
-);
-CREATE TABLE IF NOT EXISTS failed_logins (
-  username TEXT PRIMARY KEY,
-  count INTEGER NOT NULL,
-  first_at INTEGER NOT NULL
-);
-`);
+const TEST_FIXTURE_ACCOUNTS: readonly FixtureAccount[] = [
+  {
+    username: "test-admin",
+    password: "test-admin-password",
+    role: "admin",
+    childId: "test-admin",
+  },
+  {
+    username: "test-learner",
+    password: "test-learner-password",
+    role: "student",
+    childId: "test-learner",
+  },
+];
+
+const ALL_FIXTURE_ACCOUNTS = [
+  ...DEVELOPMENT_FIXTURE_ACCOUNTS,
+  ...TEST_FIXTURE_ACCOUNTS,
+] as const;
+
+function testFixturesEnabled(): boolean {
+  return (
+    process.env.NODE_ENV === "test" &&
+    process.env.ODYSSEY_TEST_FIXTURE_ACCOUNTS === "1"
+  );
+}
+
+function fixtureAccounts(): readonly FixtureAccount[] {
+  if (testFixturesEnabled()) return TEST_FIXTURE_ACCOUNTS;
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.ODYSSEY_ENABLE_DEVELOPMENT_FIXTURE_ACCOUNTS === "1"
+  )
+    return DEVELOPMENT_FIXTURE_ACCOUNTS;
+  return [];
+}
+
+function productionRuntime(
+  environment?: "development" | "production",
+): boolean {
+  return environment === "production" || process.env.NODE_ENV === "production";
+}
 
 function scryptSync(password: string, salt: Buffer): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -84,14 +108,16 @@ function scryptSync(password: string, salt: Buffer): Promise<Buffer> {
 
 /** Seeds the local accounts once; existing rows are never overwritten. */
 async function seedAccounts(): Promise<void> {
+  const accounts = fixtureAccounts();
+  if (accounts.length === 0) return;
   const existing = learningDb
     .prepare("SELECT username FROM accounts")
     .all() as Array<{ username: string }>;
   const have = new Set(existing.map((r) => r.username));
   const insert = learningDb.prepare(
-    "INSERT INTO accounts (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
+    "INSERT INTO accounts (username, password_hash, salt, role) VALUES (?, ?, ?, ?) ON CONFLICT(username) DO NOTHING",
   );
-  for (const account of SEED_ACCOUNTS) {
+  for (const account of accounts) {
     if (have.has(account.username)) continue;
     const salt = randomBytes(16);
     const hash = await scryptSync(account.password, salt);
@@ -118,12 +144,26 @@ function readSession(token: string): SessionRow | undefined {
     .get(sessionKey(token)) as SessionRow | undefined;
 }
 
-function expireIfStale(row: SessionRow): SessionRow | undefined {
+/** Removes expired session rows and their session-owned plaintext state opportunistically. */
+export function purgeExpiredSessions(now = Date.now()): number {
   const policy = getIdentityPolicy();
-  const now = Date.now();
+  return learningDb
+    .prepare(
+      `DELETE FROM auth_sessions
+       WHERE created_at <= ? OR last_seen <= ?`,
+    )
+    .run(now - policy.absoluteTimeoutMs, now - policy.idleTimeoutMs)
+    .changes as number;
+}
+
+function expireIfStale(
+  row: SessionRow,
+  now = Date.now(),
+): SessionRow | undefined {
+  const policy = getIdentityPolicy();
   if (
-    now - row.created_at > policy.absoluteTimeoutMs ||
-    now - row.last_seen > policy.idleTimeoutMs
+    now - row.created_at >= policy.absoluteTimeoutMs ||
+    now - row.last_seen >= policy.idleTimeoutMs
   ) {
     learningDb
       .prepare("DELETE FROM auth_sessions WHERE token_hash = ?")
@@ -145,7 +185,16 @@ export async function authenticateChild(_credentials: {
   role: "admin" | "student";
 }> {
   await seedPromise;
+  purgeExpiredSessions();
   const username = _credentials.username.trim();
+  const enabledFixture =
+    !productionRuntime(_credentials.environment) &&
+    fixtureAccounts().some((account) => account.username === username);
+  if (
+    ALL_FIXTURE_ACCOUNTS.some((account) => account.username === username) &&
+    !enabledFixture
+  )
+    throw new Error("Invalid credentials");
   const now = Date.now();
   const policy = getIdentityPolicy();
 
@@ -194,8 +243,8 @@ export async function authenticateChild(_credentials: {
     .run(username);
 
   const childId =
-    SEED_ACCOUNTS.find((a) => a.username === username)?.childId ??
-    `child:${username}`;
+    fixtureAccounts().find((account) => account.username === username)
+      ?.childId ?? `child:${username}`;
   const role = (account.role === "admin" ? "admin" : "student") as
     | "admin"
     | "student";
@@ -260,50 +309,121 @@ export function assertChildRecordScope(
 }
 
 function activeSession(request: Request): SessionRow | undefined {
+  const now = Date.now();
+  purgeExpiredSessions(now);
   const token = request.headers
     .get("cookie")
     ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
-  if (token === "valid" && process.env.NODE_ENV === "test") {
+  if (token === "valid" && testFixturesEnabled()) {
     const now = Date.now();
     return {
       token_hash: "test",
-      child_id: "child-1",
-      username: "demo",
+      child_id: "test-learner",
+      username: "test-learner",
       role: "student",
       created_at: now,
       last_seen: now,
       generated_requests: 0,
       allowance_topic: null,
-      active_ai_question: null,
       question_pool: null,
     };
   }
   if (!token) return undefined;
   const row = readSession(token);
   if (!row) return undefined;
-  const fresh = expireIfStale(row);
+  const fresh = expireIfStale(row, now);
   if (fresh) {
     learningDb
       .prepare("UPDATE auth_sessions SET last_seen = ? WHERE token_hash = ?")
-      .run(Date.now(), fresh.token_hash);
+      .run(now, fresh.token_hash);
   }
   return fresh;
 }
 
-/** Authorizes a mutating request before it reads or changes learning state. */
-export function requireMutationProof(_request: Request): { childId: string } {
-  const origin = _request.headers.get("origin");
-  let sameSiteOrigin = false;
-  try {
-    sameSiteOrigin = new URL(origin ?? "").hostname === "localhost";
-  } catch {
-    sameSiteOrigin = false;
-  }
-  const session = activeSession(_request);
-  if (_request.method !== "POST" || !origin || !sameSiteOrigin || !session) {
+type SessionIdentity = {
+  childId: string;
+  role: "admin" | "student";
+  /** Server-only binding used by atomic session-owned learning mutations. */
+  sessionTokenHash: string;
+};
+
+function requireSessionRead(request: Request): SessionIdentity {
+  const session = activeSession(request);
+  if (!session) throw new Error("Sign-in required");
+  return {
+    childId: session.child_id,
+    role: session.role === "admin" ? "admin" : "student",
+    sessionTokenHash: session.token_hash,
+  };
+}
+
+/** Requires a signed-in learner before reading child-scoped practice data. */
+export function requireLearnerRead(request: Request): { childId: string } {
+  const session = requireSessionRead(request);
+  if (session.role !== "student") throw new Error("Learner access required");
+  return { childId: session.childId };
+}
+
+/** Requires a signed-in curriculum steward (the local admin role) before reads. */
+export function requireAdminRead(request: Request): { childId: string } {
+  const session = requireSessionRead(request);
+  if (session.role !== "admin") throw new Error("Admin access required");
+  return { childId: session.childId };
+}
+
+function requireSameOriginMutationProof(
+  request: Request,
+  allowedMethods: readonly string[],
+): SessionIdentity {
+  const origin = request.headers.get("origin");
+  const canonicalOrigin =
+    process.env.ODYSSEY_APP_ORIGIN ??
+    (process.env.NODE_ENV === "production"
+      ? undefined
+      : new URL(request.url).origin);
+  const session = activeSession(request);
+  if (
+    !allowedMethods.includes(request.method) ||
+    !canonicalOrigin ||
+    !origin ||
+    origin !== canonicalOrigin ||
+    !session
+  ) {
     throw new Error("Mutation proof required");
   }
-  return { childId: session.child_id };
+  return {
+    childId: session.child_id,
+    role: session.role === "admin" ? "admin" : "student",
+    sessionTokenHash: session.token_hash,
+  };
+}
+
+/** Authorizes a same-origin learning POST before it reads or changes state. */
+export function requireMutationProof(request: Request): SessionIdentity {
+  return requireSameOriginMutationProof(request, ["POST"]);
+}
+
+/** Authorizes an assessment mutation for a learner account only. */
+export function requireLearnerMutationProof(request: Request): {
+  childId: string;
+  /** Server-only session binding for atomic learner mutations. */
+  sessionTokenHash: string;
+} {
+  const proof = requireMutationProof(request);
+  if (proof.role !== "student") throw new Error("Learner access required");
+  return {
+    childId: proof.childId,
+    sessionTokenHash: proof.sessionTokenHash,
+  };
+}
+
+/** Requires an admin/steward mutation to carry a canonical same-origin proof. */
+export function requireAdminMutationProof(request: Request): {
+  childId: string;
+} {
+  const proof = requireSameOriginMutationProof(request, ["POST", "DELETE"]);
+  if (proof.role !== "admin") throw new Error("Admin access required");
+  return { childId: proof.childId };
 }
 
 /** Grants one topic-bound provider request after an accepted local answer. */
@@ -346,15 +466,9 @@ export function consumeGeneratedPracticeAllowance(
   return { childId };
 }
 
-/** Requires an admin session; throws otherwise. */
+/** @deprecated Use requireAdminRead or requireAdminMutationProof by route method. */
 export function requireAdmin(request: Request): { childId: string } {
-  const token = request.headers
-    .get("cookie")
-    ?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
-  const session = token ? resolveSession(token) : undefined;
-  if (!session || session.role !== "admin")
-    throw new Error("Admin access required");
-  return { childId: session.childId };
+  return requireAdminRead(request);
 }
 
 /** Resolves a session token to the signed-in identity. */
@@ -365,15 +479,21 @@ export function resolveSession(token: string):
       role: "admin" | "student";
     }
   | undefined {
-  if (token === "valid" && process.env.NODE_ENV === "test")
-    return { childId: "child-1", username: "demo", role: "student" };
+  if (token === "valid" && testFixturesEnabled())
+    return {
+      childId: "test-learner",
+      username: "test-learner",
+      role: "student",
+    };
+  const now = Date.now();
+  purgeExpiredSessions(now);
   const row = readSession(token);
   if (!row) return undefined;
-  const fresh = expireIfStale(row);
+  const fresh = expireIfStale(row, now);
   if (!fresh) return undefined;
   learningDb
     .prepare("UPDATE auth_sessions SET last_seen = ? WHERE token_hash = ?")
-    .run(Date.now(), fresh.token_hash);
+    .run(now, fresh.token_hash);
   return {
     childId: fresh.child_id,
     username: fresh.username,
@@ -398,18 +518,10 @@ export async function runProtectedMutation<T>(
 }
 
 /* ============================================================
-   Persisted per-session practice state (AI question + pool)
+   Persisted per-session practice state (Practice pool)
    ============================================================ */
 
-type ActiveAiQuestion = {
-  topicId: string;
-  question: string;
-  answer: string;
-  acceptableAnswers: readonly string[];
-  hint: string;
-};
-
-type SessionPool = {
+export type SessionPool = {
   topicId: string;
   questions: readonly {
     id: string;
@@ -427,38 +539,11 @@ type SessionPool = {
   batchSize: number;
   mode?: "practice" | "test";
   testPlan?: readonly number[];
+  /** The only displayed Practice question that can be submitted. */
+  activeAssignment?: { questionId: string; token: string };
 };
 
-/** Stores the active AI-generated question's answer in the session. */
-export function setActiveAiQuestion(
-  request: Request,
-  question: ActiveAiQuestion,
-): void {
-  const session = activeSession(request);
-  if (!session) return;
-  learningDb
-    .prepare(
-      "UPDATE auth_sessions SET active_ai_question = ? WHERE token_hash = ?",
-    )
-    .run(JSON.stringify(question), session.token_hash);
-}
-
-/** Returns the active AI question's answer, consuming it once. */
-export function getActiveAiQuestion(request: Request): ActiveAiQuestion | null {
-  const session = activeSession(request);
-  if (!session?.active_ai_question) return null;
-  try {
-    const parsed = JSON.parse(session.active_ai_question) as ActiveAiQuestion;
-    learningDb
-      .prepare(
-        "UPDATE auth_sessions SET active_ai_question = NULL WHERE token_hash = ?",
-      )
-      .run(session.token_hash);
-    return parsed;
-  } catch {
-    return null;
-  }
-}
+export type SessionPoolState = { pool: SessionPool; serialized: string };
 
 /** Stores the adaptive question pool in the session. */
 export function setSessionPool(request: Request, pool: SessionPool): void {
@@ -469,8 +554,106 @@ export function setSessionPool(request: Request, pool: SessionPool): void {
     .run(JSON.stringify(pool), session.token_hash);
 }
 
-/** Atomically appends one question to the session pool without touching
- *  shownIds/position -- safe against concurrent prefetch vs. main saves. */
+/** Returns the pool and exact serialized value needed for a conditional write. */
+export function getSessionPoolState(request: Request): SessionPoolState | null {
+  const session = activeSession(request);
+  if (!session?.question_pool) return null;
+  try {
+    return {
+      pool: JSON.parse(session.question_pool) as SessionPool,
+      serialized: session.question_pool,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Replaces a pool only if no other request has changed it in the meantime. */
+export function compareAndSetSessionPool(
+  request: Request,
+  expectedSerialized: string | null,
+  pool: SessionPool,
+): boolean {
+  const session = activeSession(request);
+  if (!session) return false;
+  const result = learningDb
+    .prepare(
+      "UPDATE auth_sessions SET question_pool = ? WHERE token_hash = ? AND question_pool IS ?",
+    )
+    .run(JSON.stringify(pool), session.token_hash, expectedSerialized);
+  return result.changes === 1;
+}
+
+/** Creates a CSPRNG opaque token which is valid for one stored assignment. */
+export function createPracticeAssignmentToken(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+/**
+ * Replaces an idle Practice pool with one generated question and its opaque,
+ * one-use assignment token. An existing issued assignment is never replaced.
+ */
+export function issueGeneratedPracticeAssignment(
+  request: Request,
+  question: {
+    topicId: string;
+    question: string;
+    answer: string;
+    acceptableAnswers: readonly string[];
+    hint: string;
+    solution: readonly string[];
+    diagramSvg: string;
+  },
+): { assignmentToken: string } | null {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const state = getSessionPoolState(request);
+    const pool = state?.pool;
+    if (
+      !state ||
+      !pool ||
+      (pool.mode ?? "practice") !== "practice" ||
+      pool.topicId !== question.topicId ||
+      pool.activeAssignment ||
+      !Number.isInteger(pool.currentDifficulty) ||
+      pool.currentDifficulty < 1 ||
+      pool.currentDifficulty > 3
+    )
+      return null;
+
+    const assignmentToken = createPracticeAssignmentToken();
+    const questionId = `generated-${assignmentToken}`;
+    const replacement: SessionPool = {
+      topicId: question.topicId,
+      questions: [
+        {
+          id: questionId,
+          question: question.question,
+          answer: question.answer,
+          acceptableAnswers: question.acceptableAnswers,
+          hint: question.hint,
+          solution: question.solution,
+          diagramSvg: question.diagramSvg,
+          difficulty: pool.currentDifficulty,
+        },
+      ],
+      shownIds: [questionId],
+      currentDifficulty: pool.currentDifficulty,
+      batchPosition: 1,
+      batchSize: pool.batchSize,
+      mode: "practice",
+      activeAssignment: { questionId, token: assignmentToken },
+    };
+    if (compareAndSetSessionPool(request, state.serialized, replacement))
+      return { assignmentToken };
+  }
+  return null;
+}
+
+/**
+ * Appends a prefetched question only while space remains. The conditional write
+ * prevents a stale background task from restoring an already-consumed token or
+ * overwriting the persisted adaptive difficulty.
+ */
 export function appendSessionPoolQuestion(
   request: Request,
   q: {
@@ -484,29 +667,23 @@ export function appendSessionPoolQuestion(
     difficulty: number;
   },
 ): void {
-  const session = activeSession(request);
-  if (!session) return;
-  const current = session.question_pool
-    ? (JSON.parse(session.question_pool) as SessionPool)
-    : null;
-  if (!current) return;
-  if (current.questions.some((e) => e.id === q.id)) return;
-  const merged: SessionPool = {
-    ...current,
-    questions: [...current.questions, q],
-  };
-  learningDb
-    .prepare("UPDATE auth_sessions SET question_pool = ? WHERE token_hash = ?")
-    .run(JSON.stringify(merged), session.token_hash);
+  const state = getSessionPoolState(request);
+  if (!state) return;
+  const { pool } = state;
+  if (
+    pool.questions.length >= pool.batchSize ||
+    pool.questions.some(
+      (existing) => existing.id === q.id || existing.question === q.question,
+    )
+  )
+    return;
+  compareAndSetSessionPool(request, state.serialized, {
+    ...pool,
+    questions: [...pool.questions, q],
+  });
 }
 
 /** Reads the adaptive question pool from the session. */
 export function getSessionPool(request: Request): SessionPool | null {
-  const session = activeSession(request);
-  if (!session?.question_pool) return null;
-  try {
-    return JSON.parse(session.question_pool) as SessionPool;
-  } catch {
-    return null;
-  }
+  return getSessionPoolState(request)?.pool ?? null;
 }

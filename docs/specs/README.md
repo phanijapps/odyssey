@@ -15,27 +15,27 @@ docs/specs/<feature>/
 
 ## Active specs
 
-<!-- Update this list as features are added. -->
+| Spec | Status | Constrained by | Notes |
+| --- | --- | --- | --- |
+| [child-math-practice](child-math-practice/spec.md) | Implementing | ADR-0001, ADR-0002, ADR-0003, RFC-0001 | Child practice experience |
+| [test-mode-assessment](test-mode-assessment/spec.md) | Implementing | ADR-0001, ADR-0002, ADR-0003 | Mixed-skill learner assessment |
+| [curriculum-deep-agent](curriculum-deep-agent/spec.md) | Draft | ADR-0001, ADR-0003, ADR-0004, RFC-0002 | Bounded curriculum-document workflow |
+| [curriculum-model](curriculum-model/spec.md) | Draft | — | Curriculum records and embeddings |
+
+## Archived specs
+
+Archived specs remain as historical feature contracts.
 
 | Spec | Status | Constrained by | Notes |
 | --- | --- | --- | --- |
-| [child-math-practice](child-math-practice/spec.md) | Draft | ADR-0001, ADR-0002, RFC-0001 | Local child-math walking skeleton |
-
-## Shipped specs (archived)
-
-<!-- Once a feature is shipped, move its row here. The spec stays in place
-     as documentation of the feature's contract. -->
-
-| Spec | Status | Constrained by | Notes |
-| --- | --- | --- | --- |
-<!-- no shipped specs yet -->
+| [curriculum-ingestion](curriculum-ingestion/spec.md) | Archived | RFC-0002, RFC-0003 | Superseded by curriculum-deep-agent |
 
 ## Adding a new spec
 
 ```bash
 mkdir -p docs/specs/<feature-name>
-cp .claude/skills/new-spec/assets/spec.md docs/specs/<feature-name>/spec.md
-cp .claude/skills/new-spec/assets/plan.md docs/specs/<feature-name>/plan.md
+cp .agents/skills/new-spec/assets/spec.md docs/specs/<feature-name>/spec.md
+cp .agents/skills/new-spec/assets/plan.md docs/specs/<feature-name>/plan.md
 ```
 
-Or, in Claude Code, run `/new-spec "<feature-name>"`.
+Or use the `new-spec` workflow in your agent environment.
