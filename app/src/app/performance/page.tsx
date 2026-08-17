@@ -53,7 +53,14 @@ export default function PerformancePage() {
             </button>
           </div>
         ) : document ? (
-          <OdysseyA2uiSurface document={document} />
+          <OdysseyA2uiSurface
+            document={document}
+            onPracticeTarget={(topicId) => {
+              window.location.assign(
+                `/?practice=${encodeURIComponent(topicId)}`,
+              );
+            }}
+          />
         ) : (
           <p role="status">Loading performance…</p>
         )}

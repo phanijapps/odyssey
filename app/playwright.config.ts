@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 import { join } from "node:path";
 
 const databasePath = join(process.cwd(), ".playwright-parent.db");
+const curriculumDatabasePath = join(process.cwd(), ".playwright-curriculum.db");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -23,6 +24,7 @@ export default defineConfig({
       ...process.env,
       NODE_ENV: "development",
       ODYSSEY_DB_PATH: databasePath,
+      ODYSSEY_CURRICULUM_DB_PATH: curriculumDatabasePath,
       ODYSSEY_ENABLE_LOCAL_PARENT_BOOTSTRAP: "1",
       ODYSSEY_PARENT_BOOTSTRAP_USERNAME: "e2e-parent",
       ODYSSEY_PARENT_BOOTSTRAP_PASSWORD: "e2e-parent-password",

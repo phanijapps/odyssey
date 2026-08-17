@@ -8,9 +8,12 @@ import type {
 } from "../a2ui/practice-document";
 import type { OdysseyTestA2uiAction } from "../a2ui/test-document";
 import { LearnerHeader } from "./learner/learner-header";
-import { LearningHistory } from "./learner/learning-history";
 import { PracticePanel } from "./learner/practice-panel";
 import { parseTextResponseInteraction } from "./learner/question-interaction";
+import {
+  composeTopicId,
+  findStandardByTopicId,
+} from "./learner/practice-target";
 import { SkillBrowser } from "./learner/skill-browser";
 import {
   Assessment,
@@ -19,7 +22,6 @@ import {
   AssessmentResult,
   AnswerResult,
   FlatStandard,
-  HistoryEntry,
   Mode,
   PracticeFeedback,
 } from "./learner/types";
@@ -89,8 +91,6 @@ export default function HomePage() {
     useState<AssessmentResult | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState("");
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const progressVersion = useRef(0);
   const allStandardsRef = useRef<FlatStandard[]>([]);
@@ -152,12 +152,41 @@ export default function HomePage() {
       }
       if (savedGrade) {
         setSelGrade(savedGrade);
+        const requested = requestPracticeTarget();
+        if (requested && applyPerformanceTarget(requested)) return;
         resumeLastSkill();
       } else {
         setNeedsGrade(true);
       }
     })();
   }, [loadStandards]);
+
+  /** Reads and clears a server-validated Practice target handed off by Performance. */
+  function requestPracticeTarget(): string | null {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const requested = params.get("practice");
+      if (!requested) return null;
+      window.history.replaceState({}, "", "/");
+      return requested;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Enters the existing Practice flow for exactly the reviewed target; false when unresolvable. */
+  function applyPerformanceTarget(topicId: string): boolean {
+    const skill = findStandardByTopicId(allStandardsRef.current, topicId);
+    if (!skill) return false;
+    setMode("practice");
+    try {
+      window.localStorage.setItem(MODE_KEY, "practice");
+    } catch {
+      /* ignore */
+    }
+    void selectSkill(skill, "practice");
+    return true;
+  }
 
   function resumeLastSkill() {
     try {
@@ -262,7 +291,7 @@ export default function HomePage() {
         grade: skill.grade,
         domain: skill.domain,
         standard: skill.standardCode,
-        topicId: `${skill.subject}::${skill.grade}::${skill.domain}::${skill.standardCode}`,
+        topicId: composeTopicId(skill),
         mode: requestedMode,
       });
       const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
@@ -383,7 +412,7 @@ export default function HomePage() {
   function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!activeSkill || !assignmentToken) return;
-    const topicId = `${activeSkill.subject}::${activeSkill.grade}::${activeSkill.domain}::${activeSkill.standardCode}`;
+    const topicId = composeTopicId(activeSkill);
     void savePracticeAnswer(answer, topicId, assignmentToken);
   }
 
@@ -426,7 +455,7 @@ export default function HomePage() {
         grade: skill.grade,
         domain: skill.domain,
         standard: skill.standardCode,
-        topicId: `${skill.subject}::${skill.grade}::${skill.domain}::${skill.standardCode}`,
+        topicId: composeTopicId(skill),
         mode: requestedMode,
       });
       const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
@@ -513,6 +542,8 @@ export default function HomePage() {
         const savedGrade = window.localStorage.getItem(GRADE_KEY);
         if (savedGrade) {
           setSelGrade(savedGrade);
+          const requested = requestPracticeTarget();
+          if (requested && applyPerformanceTarget(requested)) return;
           resumeLastSkill();
         } else {
           setNeedsGrade(true);
@@ -577,15 +608,6 @@ export default function HomePage() {
       /* no resumable assessment */
     } finally {
       setTestLoading(false);
-    }
-  }
-
-  async function loadHistory() {
-    try {
-      const res = await fetch("/api/history", { cache: "no-store" });
-      if (res.ok) setHistory((await res.json()).entries ?? []);
-    } catch {
-      setHistory([]);
     }
   }
 
@@ -806,7 +828,6 @@ export default function HomePage() {
         semanticLoading={semanticLoading}
         mode={mode}
         browseOpen={browseOpen}
-        historyOpen={historyOpen}
         role={role === "parent" ? null : role}
         testLocked={testLocked}
         onSubjectChange={(subject) => {
@@ -834,10 +855,6 @@ export default function HomePage() {
         }}
         onModeChange={switchMode}
         onBrowseToggle={() => setBrowseOpen(!browseOpen)}
-        onHistoryToggle={() => {
-          setHistoryOpen((open) => !open);
-          if (!historyOpen) void loadHistory();
-        }}
         onSignOut={async () => {
           await fetch("/api/session", { method: "DELETE" });
           setSignedIn(false);
@@ -856,8 +873,6 @@ export default function HomePage() {
           }}
         />
       )}
-
-      {historyOpen && <LearningHistory history={history} />}
 
       <section className="ixl-practice">
         {mode === "test" ? (

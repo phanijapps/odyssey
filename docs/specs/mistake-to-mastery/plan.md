@@ -118,6 +118,12 @@ partial exclusion, no-store, redaction, and unavailable target behavior.
 
 ### T4: Add the child guidance entry point
 
+**Status:** Complete. The Performance surface renders one fixed guidance card
+per plan item with evidence-stating text and, when the target is still
+reviewed, a `performance.practice` action that enters the existing Practice
+flow for exactly that standard. Verified by the
+`performance-guidance` browser journey.
+
 **Depends on:** T3
 
 **Touches:** `app/src/app/learner/*`, `app/src/app/performance/*`
@@ -128,6 +134,12 @@ harness; confirm action enters current Practice flow without a new generator.
 **Approach:** render one fixed guidance card with explicit evidence and action.
 
 ### T5: Verify Test/Practice isolation end-to-end
+
+**Status:** Complete. `app/src/app/api/performance/read-isolation.test.ts`
+snapshots the progress, attempt, and Test tables plus the session-bound
+adaptive question pool across Performance and plan reads and proves no
+mutation; the app gates, the Playwright browser journey, and the dependency
+audit are green.
 
 **Depends on:** T3, T4
 
@@ -148,3 +160,5 @@ learning attempts, memory, graph, assessment records, or assignment state.
 
 - 2026-08-16: Drafted from Performance/Test Catalog research.
 - 2026-08-17: Implemented the deterministic learner-only read model and BFF; action entry remains in progress.
+- 2026-08-17: Delivered the guidance card action entry and the read-isolation
+  regression; the plan is feature-complete.

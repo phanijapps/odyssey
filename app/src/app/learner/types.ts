@@ -61,14 +61,3 @@ export type AssessmentResponse = {
   question?: AssessmentQuestion;
   result?: AssessmentResult;
 };
-
-export type HistoryEntry = {
-  kind: "practice" | "test";
-  occurredAt: string;
-  topicId?: string;
-  correct?: boolean;
-  status?: "completed" | "partial";
-  score?: number;
-  answeredQuestions?: number;
-  totalQuestions?: number;
-};

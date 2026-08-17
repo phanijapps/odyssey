@@ -11,6 +11,8 @@ export type MistakeToMasteryPlan = {
   readonly items: readonly {
     readonly standardCode: string;
     readonly standardText: string;
+    /** Server-composed canonical Practice target for this snapshotted standard. */
+    readonly topicId: string;
     readonly state: PlanState;
   }[];
 };
@@ -125,6 +127,7 @@ export function getMistakeToMasteryPlan(
       return {
         standardCode: standard.standardCode,
         standardText: standard.standardText,
+        topicId: standard.topicId,
         state: stateForCorrectAttempts(row.count),
       };
     }),

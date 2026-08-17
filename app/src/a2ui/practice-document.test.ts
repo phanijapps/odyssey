@@ -198,3 +198,18 @@ test("compiles bounded multiple-choice and true-false components with only /answ
     );
   }
 });
+test("accepts a real-world-length topic identity within the 300-char ceiling", () => {
+  const longTopicId =
+    "English Language Arts::Grades 11-12::Reading Standards for Literacy in Science and Technical Subjects::RST.11-12.4";
+  expect(longTopicId.length).toBeGreaterThan(100);
+  const document = createPracticeA2uiDocument({
+    topicId: longTopicId,
+    assignmentToken: "a".repeat(40),
+    interaction: {
+      type: "text-response",
+      prompt: "Cite the claim.",
+      response: { maxLength: 100 },
+    },
+  });
+  expect(document.messages[2].updateComponents.components).toHaveLength(3);
+});

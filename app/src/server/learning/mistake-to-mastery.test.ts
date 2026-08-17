@@ -71,6 +71,7 @@ test("uses only the latest completed Test and groups missed snapshot standards",
     items: [
       {
         standardCode: "8.EE.7",
+        topicId: "Mathematics::Grade 8::Expressions::8.EE.7",
         standardText: "Use linear equations.",
         state: "recommended",
       },
@@ -106,6 +107,7 @@ test("ignores partial Tests and classifies only later correct Practice attempts"
     items: [
       {
         standardCode: "8.EE.7",
+        topicId: "Mathematics::Grade 8::Expressions::8.EE.7",
         standardText: "Use linear equations.",
         state: "practice-checkpoint-met",
       },
@@ -160,6 +162,7 @@ test("retains selected snapshot metadata after a later live Gold revision", () =
     items: [
       {
         standardCode: "8.EE.7",
+        topicId: "Mathematics::Grade 8::Expressions::8.EE.7",
         standardText: "Use linear equations.",
         state: "recommended",
       },

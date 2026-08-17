@@ -11,11 +11,14 @@
 
 ## Implementation status
 
-The first deterministic read model is implemented. It selects only the latest
-completed Test, groups missed snapshot standards, counts only later correct
-Practice attempts, and classifies each as `recommended`, `practicing`, or
-`practice-checkpoint-met` at three correct attempts. It omits malformed
-snapshots and has no action, Pi, parent, or persistence surface.
+The deterministic read model is implemented and delivered. It selects only the
+latest completed Test, groups missed snapshot standards, counts only later
+correct Practice attempts, and classifies each as `recommended`, `practicing`,
+or `practice-checkpoint-met` at three correct attempts. Each item carries its
+server-composed canonical Practice target; the Performance guidance card offers
+that exact target through the existing Practice flow and honestly disables it
+when the standard left the reviewed catalog. A regression test proves plan and
+Performance reads never mutate Practice, Test, or attempt state.
 
 ## Objective
 
@@ -78,14 +81,14 @@ or allowing a model to determine educational facts.
 - [x] Given post-Test Practice for a target, when the plan loads, it reports
       `recommended`, `practicing`, or `practice-checkpoint-met` from documented
       post-baseline evidence only.
-- [ ] Given any Test result, Practice progress, adaptive level, memory, and
+- [x] Given any Test result, Practice progress, adaptive level, memory, and
       graph beliefs remain unchanged until the learner submits normal Practice.
 - [x] Given a learner-scoped request, the response contains no raw answer,
       question, solution, token, prompt, unscoped child ID, or provider data and is
       not cacheable.
-- [ ] Given a plan item, the learner can enter existing Practice for exactly its
+- [x] Given a plan item, the learner can enter existing Practice for exactly its
       validated Gold standard without a client-invented composite topic identity.
-- [ ] Given fewer than the stated evidence threshold, the UI says checkpoint
+- [x] Given fewer than the stated evidence threshold, the UI says checkpoint
       status rather than mastery, diagnosis, ability, or prerequisite.
 
 ## Assumptions

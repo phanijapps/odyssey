@@ -2108,3 +2108,20 @@ button {
   background: #fffaeb;
   color: #7a5c10;
 }
+.guidance-card {
+  border: 1px solid #d8e2d8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.guidance-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #24435c;
+}
+.guidance-status {
+  margin: 0;
+  color: #4a5a52;
+}

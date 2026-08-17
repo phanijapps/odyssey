@@ -10,7 +10,6 @@ type LearnerHeaderProps = {
   semanticLoading: boolean;
   mode: Mode;
   browseOpen: boolean;
-  historyOpen: boolean;
   role: "student" | "admin" | null;
   testLocked: boolean;
   onSubjectChange: (subject: string) => void;
@@ -20,7 +19,6 @@ type LearnerHeaderProps = {
   onSearchResultSelect: (skill: FlatStandard) => void;
   onModeChange: (mode: Mode) => void;
   onBrowseToggle: () => void;
-  onHistoryToggle: () => void;
   onSignOut: () => Promise<void>;
 };
 
@@ -35,7 +33,6 @@ export function LearnerHeader({
   semanticLoading,
   mode,
   browseOpen,
-  historyOpen,
   role,
   testLocked,
   onSubjectChange,
@@ -45,7 +42,6 @@ export function LearnerHeader({
   onSearchResultSelect,
   onModeChange,
   onBrowseToggle,
-  onHistoryToggle,
   onSignOut,
 }: LearnerHeaderProps) {
   return (
@@ -140,9 +136,6 @@ export function LearnerHeader({
         disabled={testLocked}
       >
         {browseOpen ? "Hide skills" : "Browse skills"}
-      </button>
-      <button className="ixl-link" onClick={onHistoryToggle}>
-        {historyOpen ? "Hide history" : "History"}
       </button>
       <a href="/performance" className="ixl-link">
         Performance

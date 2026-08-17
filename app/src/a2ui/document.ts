@@ -2,6 +2,11 @@ import { z } from "zod";
 
 export const ODYSSEY_A2UI_CATALOG_ID = "odyssey.learning.v1";
 const componentId = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/);
+const topicId = z
+  .string()
+  .min(1)
+  .max(300)
+  .regex(/^[^:]+::[^:]+::[^:]+::[^:]+$/);
 
 const textComponent = z
   .object({
@@ -19,17 +24,37 @@ const statusComponent = z
     text: z.string().min(1).max(320),
   })
   .strict();
+const practiceAction = z
+  .object({
+    event: z
+      .object({
+        name: z.literal("performance.practice"),
+        context: z.object({ topicId }).strict(),
+      })
+      .strict(),
+  })
+  .strict();
+const guidanceCardComponent = z
+  .object({
+    component: z.literal("OdysseyGuidanceCard"),
+    id: z.string().regex(/^guidance-[0-9]{1,2}$/),
+    standardCode: z.string().min(1).max(64),
+    statusText: z.string().min(1).max(160),
+    action: practiceAction.optional(),
+  })
+  .strict();
 const columnComponent = z
   .object({
     component: z.literal("OdysseyColumn"),
     id: componentId,
-    children: z.array(componentId).max(16),
+    children: z.array(componentId).max(24),
   })
   .strict();
 
 const component = z.discriminatedUnion("component", [
   textComponent,
   statusComponent,
+  guidanceCardComponent,
   columnComponent,
 ]);
 
@@ -57,7 +82,7 @@ function createReadOnlyDocumentSchema(surfaceId: OdysseyA2uiSurfaceId) {
       updateComponents: z
         .object({
           surfaceId: z.literal(surfaceId),
-          components: z.array(component).min(1).max(16),
+          components: z.array(component).min(1).max(24),
         })
         .strict(),
     })
@@ -140,6 +165,20 @@ export type OdysseyParentPerformanceA2uiDocument = z.infer<
 export function parseOdysseyA2uiDocument(value: unknown): OdysseyA2uiDocument {
   return odysseyA2uiDocumentSchema.parse(value);
 }
+
+/** The only client event accepted from the fixed learner Performance surface. */
+export const odysseyPerformanceA2uiActionSchema = z
+  .object({
+    name: z.literal("performance.practice"),
+    surfaceId: z.literal("odyssey-performance"),
+    sourceComponentId: z.string().regex(/^guidance-[0-9]{1,2}$/),
+    context: z.object({ topicId }).strict(),
+  })
+  .strict();
+
+export type OdysseyPerformanceA2uiAction = z.infer<
+  typeof odysseyPerformanceA2uiActionSchema
+>;
 
 /** Rejects unknown fields/components before the A2UI processor sees a parent document. */
 export function parseOdysseyParentPerformanceA2uiDocument(

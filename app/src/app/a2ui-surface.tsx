@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { A2uiSurface, createComponentImplementation } from "@a2ui/react/v0_9";
 import {
   Catalog,
+  CommonSchemas,
   MessageProcessor,
   type SurfaceModel,
 } from "@a2ui/web_core/v0_9";
 import { z } from "zod";
 import {
   ODYSSEY_A2UI_CATALOG_ID,
+  odysseyPerformanceA2uiActionSchema,
   parseOdysseyA2uiDocument,
   parseOdysseyParentPerformanceA2uiDocument,
   type OdysseyA2uiSurfaceId,
@@ -48,7 +50,7 @@ const OdysseyStatus = createComponentImplementation(
 const OdysseyColumn = createComponentImplementation(
   {
     name: "OdysseyColumn",
-    schema: z.object({ children: z.array(z.string()).max(16) }),
+    schema: z.object({ children: z.array(z.string()).max(24) }),
   },
   ({ props, buildChild }) => (
     <div className="a2ui-column">
@@ -57,10 +59,34 @@ const OdysseyColumn = createComponentImplementation(
   ),
 );
 
+const OdysseyGuidanceCard = createComponentImplementation(
+  {
+    name: "OdysseyGuidanceCard",
+    // The strict document parser, not this renderer schema, authorizes action data.
+    schema: z.object({
+      standardCode: z.string(),
+      statusText: z.string(),
+      action: CommonSchemas.Action.optional(),
+    }),
+  },
+  ({ props }) => (
+    <div className="guidance-card">
+      <h3 className="guidance-code">{props.standardCode}</h3>
+      <p className="guidance-status">{props.statusText}</p>
+      {props.action && (
+        <button className="secondary-btn" onClick={() => props.action?.()}>
+          Practice this skill
+        </button>
+      )}
+    </div>
+  ),
+);
+
 const odysseyCatalog = new Catalog(ODYSSEY_A2UI_CATALOG_ID, [
   OdysseyText,
   OdysseyStatus,
   OdysseyColumn,
+  OdysseyGuidanceCard,
 ]);
 
 type OdysseySurfaceModel = SurfaceModel<typeof OdysseyText>;
@@ -69,15 +95,28 @@ type OdysseySurfaceModel = SurfaceModel<typeof OdysseyText>;
 export function OdysseyA2uiSurface({
   document,
   surfaceId = "odyssey-performance",
+  onPracticeTarget,
 }: {
   document: unknown;
   surfaceId?: OdysseyA2uiSurfaceId;
+  onPracticeTarget?: (topicId: string) => void;
 }) {
   const [surface, setSurface] = useState<OdysseySurfaceModel | null>(null);
   const [error, setError] = useState(false);
+  const onPracticeTargetRef = useRef(onPracticeTarget);
+  onPracticeTargetRef.current = onPracticeTarget;
 
   useEffect(() => {
-    const processor = new MessageProcessor([odysseyCatalog]);
+    const processor = new MessageProcessor([odysseyCatalog], (action) => {
+      const parsed = odysseyPerformanceA2uiActionSchema.safeParse({
+        name: action.name,
+        surfaceId: action.surfaceId,
+        sourceComponentId: action.sourceComponentId,
+        context: action.context,
+      });
+      if (!parsed.success) return;
+      onPracticeTargetRef.current?.(parsed.data.context.topicId);
+    });
     setSurface(null);
     const subscription = processor.onSurfaceCreated((created) => {
       if (created.id === surfaceId) setSurface(created as OdysseySurfaceModel);

@@ -11,14 +11,18 @@
 
 ## Implementation status
 
-The initial learner-only delivery is factual and read-only: it reports capped
+The learner-only delivery is factual and read-only: it reports capped
 recent reviewed Practice skill codes and completed/partial Test events as separate
 sections. A fuller recent Practice summary requires three reviewed Practice
 attempts; this is an activity-evidence threshold, not a readiness or mastery
 claim. The server compiles and validates the document; the client validates it
 again before its fixed local catalog renders it. The deterministic
-Test-to-Practice evidence projection is now present; its action variant remains
-deferred.
+Test-to-Practice evidence projection renders per-standard guidance cards whose
+`performance.practice` action opens the existing Practice flow for exactly the
+server-validated target; targets that left the reviewed catalog render an honest
+unavailable card with no action. The replaced learner History surface is
+removed; manual QA is recorded in
+[`notes/manual-qa.md`](notes/manual-qa.md).
 
 ## Objective
 
@@ -83,16 +87,16 @@ a validated A2UI v0.9.1 surface rendered through Odyssey’s fixed React catalog
 - [x] Given terminal Tests, when Performance loads, completed and partial Test
       events appear separately from formative Practice evidence and state that Tests
       do not alter Practice mastery.
-- [ ] Given Mistake-to-Mastery targets, when Performance loads, it renders only
+- [x] Given Mistake-to-Mastery targets, when Performance loads, it renders only
       the validated closed guidance variants and their validated internal actions.
 - [x] Given an unknown/malformed view document, when the route or renderer sees
       it, it rejects it safely and shows a retryable fallback; it never silently
       ignores unknown fields or renders arbitrary content.
 - [x] Given a learner session, when Performance data is requested, it is scoped
       to that learner, `Cache-Control: no-store`, capped, redacted, and read-only.
-- [ ] Given a valid Practice action, when selected, it opens the matching
+- [x] Given a valid Practice action, when selected, it opens the matching
       existing Practice target; invalid/stale actions cannot select another target.
-- [ ] The ready, loading, empty, insufficient-evidence, and failure states meet
+- [x] The ready, loading, empty, insufficient-evidence, and failure states meet
       WCAG 2.2 AA keyboard/focus/semantic requirements in manual review.
 
 ## A2UI protocol decision

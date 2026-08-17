@@ -6,7 +6,7 @@ const componentId = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/);
 const topicId = z
   .string()
   .min(1)
-  .max(100)
+  .max(300)
   .regex(/^[^:]+::[^:]+::[^:]+::[^:]+$/);
 const assignmentToken = z.string().regex(/^[A-Za-z0-9_-]{32,}$/);
 

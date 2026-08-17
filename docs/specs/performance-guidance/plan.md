@@ -111,11 +111,11 @@ cap, copy/tone rules, and HTTP transport contract before components exist.
 
 ### T2: Build the Performance evidence read model
 
-**Status:** In progress. The delivered projection is a capped, redacted factual
-history summary. A fuller recent Practice summary requires three reviewed
-Practice attempts; this activity-evidence threshold does not imply readiness or
-mastery. Deterministic Mistake-to-Mastery guidance is present; actions remain
-deferred.
+**Status:** Complete. The projection is a capped, redacted factual history
+summary. A fuller recent Practice summary requires three reviewed Practice
+attempts; this activity-evidence threshold does not imply readiness or mastery.
+Deterministic Mistake-to-Mastery guidance cards are present with availability
+checked against the reviewed catalog.
 
 **Depends on:** T1, `spec:mistake-to-mastery/T2`
 
@@ -129,9 +129,10 @@ second analytics store.
 
 ### T3: Enforce the A2UI BFF and catalog boundary
 
-**Status:** In progress. The learner-only no-store route, strict dual-side
-envelope validation, component cap/graph checks, and fixed renderer are
-implemented; actions and broader variants remain deferred.
+**Status:** Complete. The learner-only no-store route, strict dual-side
+envelope validation, component cap/graph checks, fixed renderer, and the single
+closed `performance.practice` action (validated server- and client-side) are
+implemented; broader variants remain gated by the spec's Ask-first list.
 
 **Depends on:** T2
 
@@ -146,9 +147,11 @@ and validated after deterministic evidence calculation.
 
 ### T4: Deliver the A2UI Performance page in the existing visual language
 
-**Status:** In progress. Navigation and empty-state browser coverage are
-implemented; guidance, action, Test-review, and full manual accessibility
-parity remain.
+**Status:** Complete. Navigation, empty-state, guidance-card, action, and
+narrow-viewport browser coverage are implemented and recorded in
+`notes/manual-qa.md`. A Test-review surface from Performance would add a new
+variant/action kind and stays behind the spec's Ask-first gate; the existing
+terminal Test result surface on the Practice/Test page is unchanged.
 
 **Depends on:** T3
 
@@ -162,6 +165,11 @@ renderer, register only Odyssey components, and reuse established card, button,
 typography, MathText, and assessment review patterns.
 
 ### T5: Remove the replaced learner History surface only after parity review
+
+**Status:** Complete. The parity review is recorded in `notes/manual-qa.md`;
+the home-page History panel, its load path, and the internal `/api/history`
+route are removed. The redacted server projection (`getLearnerHistory`) remains
+the Performance evidence source.
 
 **Depends on:** T4
 
@@ -183,3 +191,5 @@ History API if it remains an external compatibility surface.
 
 - 2026-08-16: Drafted from learner UI and A2UI research.
 - 2026-08-17: Implemented a bounded factual learner Performance subset without guidance/actions.
+- 2026-08-17: Delivered guidance cards with the closed `performance.practice`
+  action into the existing Practice flow; removed the replaced History surface.

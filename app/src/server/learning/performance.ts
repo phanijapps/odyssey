@@ -22,11 +22,10 @@ function displayText(value: string, limit: number): string {
 }
 
 const PRACTICE_EVIDENCE_ATTEMPT_THRESHOLD = 3;
+/** Matches the A2UI transport ceiling for a composed topic identity. */
+const GUIDANCE_TOPIC_ID_MAX = 300;
 
-function reviewedPracticeEvidence(topicIds: readonly string[]): {
-  codes: string[];
-  attemptCount: number;
-} {
+function reviewedTopics(): Map<string, string> {
   const reviewedCodes = new Map<string, string>();
   for (const subject of getBrowseTree().subjects)
     for (const grade of subject.grades)
@@ -36,7 +35,16 @@ function reviewedPracticeEvidence(topicIds: readonly string[]): {
             `${subject.subject}::${grade.grade}::${domain.domain}::${standard.standardCode}`,
             displayText(standard.standardCode, 64),
           );
+  return reviewedCodes;
+}
 
+function reviewedPracticeEvidence(
+  topicIds: readonly string[],
+  reviewedCodes: Map<string, string>,
+): {
+  codes: string[];
+  attemptCount: number;
+} {
   const matchingCodes = topicIds
     .map((topicId) => reviewedCodes.get(topicId))
     .filter((standardCode): standardCode is string => Boolean(standardCode));
@@ -44,6 +52,21 @@ function reviewedPracticeEvidence(topicIds: readonly string[]): {
     codes: [...new Set(matchingCodes)].slice(0, PERFORMANCE_ITEM_CAP),
     attemptCount: matchingCodes.length,
   };
+}
+
+function guidanceStatusText(
+  state: "recommended" | "practicing" | "practice-checkpoint-met",
+  actionable: boolean,
+): string {
+  const stateText =
+    state === "practice-checkpoint-met"
+      ? "Checkpoint met: three correct Practice answers since that Test."
+      : state === "practicing"
+        ? "You have answered this skill correctly since that Test. Keep practicing."
+        : "Missed on your latest completed Test. Practice is recommended.";
+  return actionable
+    ? stateText
+    : `${stateText} This skill is no longer in the reviewed curriculum, so Practice is unavailable.`;
 }
 
 /**
@@ -59,12 +82,34 @@ export function getLearnerPerformanceDocument(
   const practiceTopicIds = history
     .filter((entry) => entry.kind === "practice")
     .map((entry) => entry.topicId);
+  const reviewedTopicIds = reviewedTopics();
   const practiceEvidence =
     practiceTopicIds.length === 0
       ? { codes: [], attemptCount: 0 }
-      : reviewedPracticeEvidence(practiceTopicIds);
+      : reviewedPracticeEvidence(practiceTopicIds, reviewedTopicIds);
   const skills = practiceEvidence.codes;
   const guidance = getMistakeToMasteryPlan(childId).items;
+  const guidanceCards = guidance.map((item, index) => {
+    const actionable =
+      reviewedTopicIds.has(item.topicId) &&
+      item.topicId.length <= GUIDANCE_TOPIC_ID_MAX;
+    return {
+      component: "OdysseyGuidanceCard" as const,
+      id: `guidance-${index + 1}`,
+      standardCode: displayText(item.standardCode, 64),
+      statusText: displayText(guidanceStatusText(item.state, actionable), 160),
+      ...(actionable
+        ? {
+            action: {
+              event: {
+                name: "performance.practice" as const,
+                context: { topicId: item.topicId },
+              },
+            },
+          }
+        : {}),
+    };
+  });
   const achievements = getAchievements(childId);
   const tests = history
     .filter((entry) => entry.kind === "test")
@@ -88,7 +133,9 @@ export function getLearnerPerformanceDocument(
         "tests-title",
         "tests-detail",
         "guidance-title",
-        "guidance-detail",
+        ...(guidanceCards.length > 0
+          ? guidanceCards.map((card) => card.id)
+          : ["guidance-detail"]),
         "achievements-title",
         "achievements-detail",
         "fun-fact-title",
@@ -170,25 +217,19 @@ export function getLearnerPerformanceDocument(
       variant: "h2",
       text: "Next Practice",
     },
-    {
-      component: "OdysseyText",
-      id: "guidance-detail",
-      variant: "body",
-      text: displayText(
-        guidance.length === 0
-          ? "No Test-based Practice recommendations are available yet."
-          : guidance
-              .map((item) => {
-                if (item.state === "practice-checkpoint-met")
-                  return `${item.standardCode}: Practice checkpoint met`;
-                if (item.state === "practicing")
-                  return `${item.standardCode}: Keep practicing`;
-                return `${item.standardCode}: Recommended Practice`;
-              })
-              .join("; "),
-        320,
-      ),
-    },
+    ...(guidanceCards.length > 0
+      ? guidanceCards
+      : [
+          {
+            component: "OdysseyText" as const,
+            id: "guidance-detail" as const,
+            variant: "body" as const,
+            text: displayText(
+              "No Test-based Practice recommendations are available yet.",
+              320,
+            ),
+          },
+        ]),
     {
       component: "OdysseyText",
       id: "achievements-title",

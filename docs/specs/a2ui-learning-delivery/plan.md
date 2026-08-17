@@ -151,6 +151,12 @@ never make renderer data model a persistence authority.
 
 ### T5: Emit A2UI Performance insight surfaces
 
+**Status:** Complete. The deterministic Performance DTO compiles to the fixed
+catalog including per-target guidance cards and the closed
+`performance.practice` action; redaction, action-target, unknown-surface, and
+empty/sparse/ready/error coverage is in unit tests plus the
+`performance-guidance` browser journey. Pi prose remains excluded.
+
 **Depends on:** T2, `spec:mistake-to-mastery/T3`, `spec:performance-guidance/T3`
 
 **Tests:** redacted evidence/action/capability/unknown-surface tests and manual
