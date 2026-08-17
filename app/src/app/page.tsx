@@ -5,6 +5,7 @@ import { AssessmentPanel } from "./learner/assessment-panel";
 import { LearnerHeader } from "./learner/learner-header";
 import { LearningHistory } from "./learner/learning-history";
 import { PracticePanel } from "./learner/practice-panel";
+import { parseTextResponseInteraction } from "./learner/question-interaction";
 import { SkillBrowser } from "./learner/skill-browser";
 import {
   Assessment,
@@ -274,9 +275,8 @@ export default function HomePage() {
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
         setAnswerMaxLength(
-          d.nextQuestion.interaction?.type === "text-response"
-            ? d.nextQuestion.interaction.response.maxLength
-            : 100,
+          parseTextResponseInteraction(d.nextQuestion.interaction)?.response
+            .maxLength ?? 100,
         );
         setAssignmentToken(
           typeof d.nextQuestion.assignmentToken === "string"
@@ -411,9 +411,8 @@ export default function HomePage() {
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
         setAnswerMaxLength(
-          d.nextQuestion.interaction?.type === "text-response"
-            ? d.nextQuestion.interaction.response.maxLength
-            : 100,
+          parseTextResponseInteraction(d.nextQuestion.interaction)?.response
+            .maxLength ?? 100,
         );
         setAssignmentToken(
           typeof d.nextQuestion.assignmentToken === "string"
