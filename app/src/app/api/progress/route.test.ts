@@ -7,6 +7,7 @@ import {
   getLearningProgress,
   submitAnswer,
 } from "../../../server/learning/learning";
+import { withGoldDatabase } from "../../../server/curriculum/gold-database";
 import { GET } from "./route";
 
 test("returns only the signed-in child's persisted topic progress", async () => {
@@ -118,4 +119,94 @@ test("concurrent progress reads return the same active assignment", async () => 
   expect(a.nextQuestion.question).toBe(b.nextQuestion.question);
   expect(a.poolProgress.position).toBe(1);
   expect(b.poolProgress.position).toBe(1);
+});
+
+test("rejects a selected standard whose composite topic identity was tampered", async () => {
+  const session = await authenticateChild({
+    username: "test-learner",
+    password: "test-learner-password",
+  });
+  const response = await GET(
+    new Request(
+      "http://localhost/api/progress?subject=Mathematics&grade=Grade%208&domain=Expressions&standard=8.EE.7&topicId=unreviewed-topic",
+      { headers: { cookie: `session=${session.sessionToken}` } },
+    ),
+  );
+
+  expect(response.status).toBe(400);
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  await expect(response.json()).resolves.toEqual({
+    error: "Invalid Practice selection",
+  });
+});
+
+test("rejects a requested standard absent from the selected Gold domain", async () => {
+  const session = await authenticateChild({
+    username: "test-learner",
+    password: "test-learner-password",
+  });
+  const response = await GET(
+    new Request(
+      "http://localhost/api/progress?subject=Mathematics&grade=Grade%208&domain=Expressions&standard=unreviewed&topicId=Mathematics%3A%3AGrade%208%3A%3AExpressions%3A%3Aunreviewed",
+      { headers: { cookie: `session=${session.sessionToken}` } },
+    ),
+  );
+
+  expect(response.status).toBe(400);
+  await expect(response.json()).resolves.toEqual({
+    error: "Invalid Practice selection",
+  });
+});
+
+test("accepts the exact topic identity for a reviewed selected standard", async () => {
+  withGoldDatabase((database) => {
+    database
+      .prepare(
+        `INSERT INTO gold_curriculum_records
+          (record_id, subject, framework, content_json, source_fingerprint,
+           prompt_version, model, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        "progress-selection-fixture",
+        "Mathematics",
+        "fixture",
+        JSON.stringify({
+          id: "progress-selection-fixture",
+          subject: "Mathematics",
+          gradeOrCourse: "Grade 8",
+          domain: "Selection fixture",
+          standardCode: "8.F.1",
+          standardText: "Understand slope and linear relationships.",
+        }),
+        "fixture",
+        "v1",
+        "fixture",
+        "2026-01-01",
+      );
+  });
+  const session = await authenticateChild({
+    username: "test-learner",
+    password: "test-learner-password",
+  });
+  const domainOnlyResponse = await GET(
+    new Request(
+      "http://localhost/api/progress?subject=Mathematics&grade=Grade%208&domain=Selection%20fixture&topicId=domain-selection-fixture",
+      { headers: { cookie: `session=${session.sessionToken}` } },
+    ),
+  );
+  expect(domainOnlyResponse.status).toBe(200);
+
+  const topicId = "Mathematics::Grade 8::Selection fixture::8.F.1";
+  const response = await GET(
+    new Request(
+      `http://localhost/api/progress?subject=Mathematics&grade=Grade%208&domain=Selection%20fixture&standard=8.F.1&topicId=${encodeURIComponent(topicId)}`,
+      { headers: { cookie: `session=${session.sessionToken}` } },
+    ),
+  );
+
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toMatchObject({
+    nextQuestion: { assignmentToken: expect.any(String) },
+  });
 });

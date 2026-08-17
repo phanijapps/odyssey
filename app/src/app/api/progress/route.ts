@@ -161,6 +161,16 @@ export async function GET(request: Request): Promise<Response> {
   const standards = standard
     ? allStandards.filter((item) => item.standardCode === standard)
     : allStandards;
+  // A selected Gold standard defines the only acceptable composite topic ID.
+  // Legacy callers without a selection retain their existing bare-topic API.
+  if (standard) {
+    const expectedTopicId = `${subject}::${grade}::${domain}::${standard}`;
+    if (standards.length !== 1 || topicId !== expectedTopicId)
+      return Response.json(
+        { error: "Invalid Practice selection" },
+        { status: 400, headers: { "Cache-Control": "no-store" } },
+      );
+  }
 
   const claimed = await claimPracticeQuestion(request, topicId, standards);
   if (!claimed)
