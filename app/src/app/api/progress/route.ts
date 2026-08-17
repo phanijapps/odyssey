@@ -15,6 +15,7 @@ import {
   type SessionPool,
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
+import { textResponseInteraction } from "../../../server/learning/question-interactions";
 
 type Standards = readonly { standardCode: string; standardText: string }[];
 
@@ -197,6 +198,7 @@ export async function GET(request: Request): Promise<Response> {
       ...progress,
       nextQuestion: {
         question: claimed.question.question,
+        interaction: textResponseInteraction(claimed.question.question),
         diagramSvg: claimed.question.diagramSvg,
         // Contract addition: POST /api/answer requires this opaque token.
         assignmentToken: claimed.assignmentToken,

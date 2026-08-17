@@ -117,6 +117,11 @@ entries to existing fixed components without moving grading/state policy.
 
 ### T3: Add server-owned question interaction DTOs
 
+**Status:** In progress. Practice now issues a bounded versioned
+`text-response` interaction DTO alongside its existing opaque assignment. The
+DTO contains no answer material; multiple-choice and true-false source support
+and A2UI rendering remain deferred.
+
 **Depends on:** T1
 
 **Tests:** TDD item response schemas/validation for multiple-choice,

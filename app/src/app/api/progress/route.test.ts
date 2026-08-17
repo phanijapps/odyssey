@@ -45,12 +45,25 @@ test("returns only the signed-in child's persisted topic progress", async () => 
     level: number;
     correctStreak: number;
     attemptCount: number;
-    nextQuestion: { question: string; diagramSvg: string };
+    nextQuestion: {
+      question: string;
+      diagramSvg: string;
+      interaction: {
+        type: string;
+        prompt: string;
+        response?: { maxLength: number };
+      };
+    };
   };
   expect(payload).toMatchObject(expected ?? {});
   expect(payload.nextQuestion).toBeTruthy();
   expect(typeof payload.nextQuestion.question).toBe("string");
   expect(typeof payload.nextQuestion.diagramSvg).toBe("string");
+  expect(payload.nextQuestion.interaction).toEqual({
+    type: "text-response",
+    prompt: payload.nextQuestion.question,
+    response: { maxLength: 100 },
+  });
 });
 
 test("treats a legacy test query as practice", async () => {
