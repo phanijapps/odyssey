@@ -336,7 +336,7 @@ const MIGRATIONS: readonly Migration[] = [
           event_type TEXT NOT NULL CHECK (
             event_type IN ('child-created', 'password-reset', 'link-revoked')
           ),
-          reason TEXT,
+          reason TEXT CHECK (reason IS NULL OR reason = 'parent-requested'),
           created_at INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS parent_relationship_events_parent_created
