@@ -120,21 +120,27 @@ export async function POST(request: Request): Promise<Response> {
 
     const { nextPracticeDifficulty: _nextPracticeDifficulty, ...response } =
       result;
-    return Response.json({
-      ...response,
-      points: result.correct
-        ? result.answeredDifficulty === 1
-          ? 10
-          : result.answeredDifficulty === 2
-            ? 20
-            : 30
-        : 0,
-      memoryWritten,
-      memoryRecalled,
-      nextQuestion: null,
-    });
+    return Response.json(
+      {
+        ...response,
+        points: result.correct
+          ? result.answeredDifficulty === 1
+            ? 10
+            : result.answeredDifficulty === 2
+              ? 20
+              : 30
+          : 0,
+        memoryWritten,
+        memoryRecalled,
+        nextQuestion: null,
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch {
     // Do not disclose whether a token was stale, fabricated, or already used.
-    return Response.json({ error: "Unable to save answer" }, { status: 400 });
+    return Response.json(
+      { error: "Unable to save answer" },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }

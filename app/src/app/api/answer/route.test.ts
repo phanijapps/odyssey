@@ -44,10 +44,11 @@ test("requires the opaque assignmentToken in the answer DTO", async () => {
   });
   const token = await issueAssignment(session);
 
-  expect(
-    (await POST(answerRequest(session, { topicId: TOPIC, answer: "2:1" })))
-      .status,
-  ).toBe(400);
+  const missingToken = await POST(
+    answerRequest(session, { topicId: TOPIC, answer: "2:1" }),
+  );
+  expect(missingToken.status).toBe(400);
+  expect(missingToken.headers.get("cache-control")).toBe("no-store");
   expect(
     (
       await POST(
@@ -69,6 +70,7 @@ test("requires the opaque assignmentToken in the answer DTO", async () => {
     }),
   );
   expect(accepted.status).toBe(200);
+  expect(accepted.headers.get("cache-control")).toBe("no-store");
   const payload = (await accepted.json()) as {
     correct: boolean;
     attemptCount: number;
