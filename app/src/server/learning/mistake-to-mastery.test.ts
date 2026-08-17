@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { withGoldDatabase } from "../curriculum/gold-database";
 import { learningDb } from "./sqlite-repository";
 import { getMistakeToMasteryPlan } from "./mistake-to-mastery";
 
@@ -125,4 +126,43 @@ test("omits malformed snapshot data rather than exposing or substituting it", ()
     .run();
 
   expect(getMistakeToMasteryPlan("plan-malformed")).toEqual({ items: [] });
+});
+
+test("retains selected snapshot metadata after a later live Gold revision", () => {
+  seedCompletedTest({
+    learnerId: "plan-snapshot",
+    id: "snapshot-test",
+    completedAt: "2026-02-01T00:00:00.000Z",
+  });
+  withGoldDatabase((database) => {
+    database
+      .prepare(
+        `INSERT INTO gold_curriculum_records
+          (record_id, subject, framework, content_json, source_fingerprint,
+           prompt_version, model, created_at)
+         VALUES ('gold-fixture', 'Mathematics', 'fixture', ?, 'old', 'v1', 'fixture', '2026-01-01')`,
+      )
+      .run(
+        JSON.stringify({ standardCode: "8.EE.7", standardText: "Old text" }),
+      );
+    database
+      .prepare(
+        `UPDATE gold_curriculum_records
+         SET content_json = ?, source_fingerprint = 'later-live-gold-revision'
+         WHERE record_id = 'gold-fixture'`,
+      )
+      .run(
+        JSON.stringify({ standardCode: "changed", standardText: "New text" }),
+      );
+  });
+
+  expect(getMistakeToMasteryPlan("plan-snapshot")).toEqual({
+    items: [
+      {
+        standardCode: "8.EE.7",
+        standardText: "Use linear equations.",
+        state: "recommended",
+      },
+    ],
+  });
 });

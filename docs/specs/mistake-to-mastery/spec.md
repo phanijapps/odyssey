@@ -73,7 +73,7 @@ or allowing a model to determine educational facts.
       answered/incorrect baseline.
 - [x] Given a partial Test, when a plan is computed, the partial Test is not a
       plan source.
-- [ ] Given later Gold edits, when a plan for an earlier Test is computed, its
+- [x] Given later Gold edits, when a plan for an earlier Test is computed, its
       target uses that Test’s snapshotted standard metadata and fingerprint.
 - [x] Given post-Test Practice for a target, when the plan loads, it reports
       `recommended`, `practicing`, or `practice-checkpoint-met` from documented
