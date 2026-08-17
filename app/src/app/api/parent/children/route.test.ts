@@ -108,3 +108,40 @@ test("a learner cannot read parent child accounts", async () => {
   expect(response.status).toBe(403);
   expect(response.headers.get("cache-control")).toBe("no-store");
 });
+
+test("parent lifecycle routes fail closed for anonymous, malformed, and cross-origin requests", async () => {
+  const anonymous = GET(new Request("http://localhost/api/parent/children"));
+  expect(anonymous.status).toBe(401);
+  expect(anonymous.headers.get("cache-control")).toBe("no-store");
+
+  provisionParent("parent-origin", "parent-password");
+  const parent = await authenticateChild({
+    username: "parent-origin",
+    password: "parent-password",
+  });
+  const malformed = await POST(
+    new Request("http://localhost/api/parent/children", {
+      method: "POST",
+      headers: parentHeaders(parent.sessionToken),
+      body: JSON.stringify({ username: "missing-password" }),
+    }),
+  );
+  expect(malformed.status).toBe(400);
+  expect(malformed.headers.get("cache-control")).toBe("no-store");
+
+  const crossOrigin = await POST(
+    new Request("http://localhost/api/parent/children", {
+      method: "POST",
+      headers: {
+        ...parentHeaders(parent.sessionToken),
+        origin: "https://example.invalid",
+      },
+      body: JSON.stringify({
+        username: "cross-origin-child",
+        password: "child-password",
+      }),
+    }),
+  );
+  expect(crossOrigin.status).toBe(403);
+  expect(crossOrigin.headers.get("cache-control")).toBe("no-store");
+});
