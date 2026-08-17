@@ -100,6 +100,7 @@ test("rejects unknown generated-practice request fields", async () => {
     }),
   );
   expect(response.status).toBe(400);
+  expect(response.headers.get("cache-control")).toBe("no-store");
   await expect(response.json()).resolves.toEqual({
     error: "Unable to request generated practice",
   });
@@ -160,6 +161,7 @@ test("returns a recoverable state when the configured provider is unavailable", 
   );
 
   expect(response.status).toBe(503);
+  expect(response.headers.get("cache-control")).toBe("no-store");
   await expect(response.json()).resolves.toEqual({
     error:
       "Generated practice is unavailable. Your local practice question is still ready.",

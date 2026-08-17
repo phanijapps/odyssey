@@ -15,7 +15,7 @@ const unavailableResponse = () =>
       error:
         "Generated practice is unavailable. Your local practice question is still ready.",
     },
-    { status: 503 },
+    { status: 503, headers: { "Cache-Control": "no-store" } },
   );
 
 /** Requests one bounded provider-backed question for the signed-in child's topic. */
@@ -40,7 +40,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json(
       { error: "Unable to request generated practice" },
-      { status: 400 },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
   try {
