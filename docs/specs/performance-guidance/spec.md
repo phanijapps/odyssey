@@ -13,10 +13,12 @@
 
 The initial learner-only delivery is factual and read-only: it reports capped
 recent reviewed Practice skill codes and completed/partial Test events as separate
-sections. It has neutral empty states and intentionally makes no readiness,
-mastery, accuracy, score, or guidance claim. The server compiles and validates
-the document; the client validates it again before its fixed local catalog
-renders it. The deterministic Test-to-Practice evidence projection is now present; its action variant remains deferred.
+sections. A fuller recent Practice summary requires three reviewed Practice
+attempts; this is an activity-evidence threshold, not a readiness or mastery
+claim. The server compiles and validates the document; the client validates it
+again before its fixed local catalog renders it. The deterministic
+Test-to-Practice evidence projection is now present; its action variant remains
+deferred.
 
 ## Objective
 
@@ -75,7 +77,7 @@ a validated A2UI v0.9.1 surface rendered through Odyssey’s fixed React catalog
       page opens without changing current Practice or Test layout/style contracts.
 - [x] Given sparse or no evidence, when Performance loads, it shows a factual
       neutral state and no accuracy, deficiency, mastery, or comparison label.
-- [ ] Given sufficient Practice evidence, when Performance loads, it shows a
+- [x] Given three reviewed Practice attempts, when Performance loads, it shows a
       bounded server-computed activity/skill projection with evidence status and no
       raw attempt or question data.
 - [x] Given terminal Tests, when Performance loads, completed and partial Test

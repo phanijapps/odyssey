@@ -21,7 +21,12 @@ function displayText(value: string, limit: number): string {
     .slice(0, limit);
 }
 
-function reviewedPracticeCodes(topicIds: readonly string[]): string[] {
+const PRACTICE_EVIDENCE_ATTEMPT_THRESHOLD = 3;
+
+function reviewedPracticeEvidence(topicIds: readonly string[]): {
+  codes: string[];
+  attemptCount: number;
+} {
   const reviewedCodes = new Map<string, string>();
   for (const subject of getBrowseTree().subjects)
     for (const grade of subject.grades)
@@ -32,15 +37,13 @@ function reviewedPracticeCodes(topicIds: readonly string[]): string[] {
             displayText(standard.standardCode, 64),
           );
 
-  return [
-    ...new Set(
-      topicIds
-        .map((topicId) => reviewedCodes.get(topicId))
-        .filter((standardCode): standardCode is string =>
-          Boolean(standardCode),
-        ),
-    ),
-  ].slice(0, PERFORMANCE_ITEM_CAP);
+  const matchingCodes = topicIds
+    .map((topicId) => reviewedCodes.get(topicId))
+    .filter((standardCode): standardCode is string => Boolean(standardCode));
+  return {
+    codes: [...new Set(matchingCodes)].slice(0, PERFORMANCE_ITEM_CAP),
+    attemptCount: matchingCodes.length,
+  };
 }
 
 /**
@@ -56,10 +59,11 @@ export function getLearnerPerformanceDocument(
   const practiceTopicIds = history
     .filter((entry) => entry.kind === "practice")
     .map((entry) => entry.topicId);
-  const skills =
+  const practiceEvidence =
     practiceTopicIds.length === 0
-      ? []
-      : reviewedPracticeCodes(practiceTopicIds);
+      ? { codes: [], attemptCount: 0 }
+      : reviewedPracticeEvidence(practiceTopicIds);
+  const skills = practiceEvidence.codes;
   const guidance = getMistakeToMasteryPlan(childId).items;
   const achievements = getAchievements(childId);
   const tests = history
@@ -116,11 +120,16 @@ export function getLearnerPerformanceDocument(
     {
       component: "OdysseyStatus",
       id: "practice-evidence",
-      tone: skills.length === 0 ? "neutral" : "positive",
+      tone:
+        practiceEvidence.attemptCount >= PRACTICE_EVIDENCE_ATTEMPT_THRESHOLD
+          ? "positive"
+          : "neutral",
       text:
-        skills.length === 0
+        practiceEvidence.attemptCount === 0
           ? "No reviewed Practice evidence is available yet."
-          : `Recent reviewed Practice evidence is available for ${skills.length} skill${skills.length === 1 ? "" : "s"}.`,
+          : practiceEvidence.attemptCount < PRACTICE_EVIDENCE_ATTEMPT_THRESHOLD
+            ? "More reviewed Practice activity will make a fuller recent summary available."
+            : `Recent reviewed Practice evidence is available for ${skills.length} skill${skills.length === 1 ? "" : "s"}.`,
     },
     {
       component: "OdysseyText",

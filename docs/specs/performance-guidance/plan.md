@@ -112,8 +112,10 @@ cap, copy/tone rules, and HTTP transport contract before components exist.
 ### T2: Build the Performance evidence read model
 
 **Status:** In progress. The delivered projection is a capped, redacted factual
-history summary only; thresholds, readiness, and Mistake-to-Mastery guidance
-are explicitly not implemented.
+history summary. A fuller recent Practice summary requires three reviewed
+Practice attempts; this activity-evidence threshold does not imply readiness or
+mastery. Deterministic Mistake-to-Mastery guidance is present; actions remain
+deferred.
 
 **Depends on:** T1, `spec:mistake-to-mastery/T2`
 

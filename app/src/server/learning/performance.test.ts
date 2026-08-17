@@ -18,10 +18,10 @@ function seedReviewedStandard(input: {
          VALUES (?, ?, 'local', ?, 'fixture', 'fixture', 'fixture', '2026-01-01')`,
       )
       .run(
-        `performance-${input.standardCode}`,
+        `performance-${input.domain}-${input.standardCode}`,
         input.subject,
         JSON.stringify({
-          id: `performance-${input.standardCode}`,
+          id: `performance-${input.domain}-${input.standardCode}`,
           subject: input.subject,
           gradeOrCourse: input.grade,
           domain: input.domain,
@@ -50,6 +50,30 @@ test("Performance has neutral factual empty states", () => {
   expect(textById(document, "tests-detail")).toBe(
     "No completed or partial Tests are recorded yet.",
   );
+});
+
+test("marks three reviewed Practice attempts as sufficient recent evidence", () => {
+  seedReviewedStandard({
+    subject: "Mathematics",
+    grade: "Grade 8",
+    domain: "Linear",
+    standardCode: "8.EE.6",
+  });
+  const insert = learningDb.prepare(
+    `INSERT INTO learning_attempts
+      (child_id, topic_id, correct, level_before, level_after, created_at)
+     VALUES ('performance-sufficient', 'Mathematics::Grade 8::Linear::8.EE.6', 1, 1, 2, ?)`,
+  );
+  insert.run("2026-01-01T00:00:00.000Z");
+  insert.run("2026-01-02T00:00:00.000Z");
+  insert.run("2026-01-03T00:00:00.000Z");
+
+  expect(
+    textById(
+      getLearnerPerformanceDocument("performance-sufficient"),
+      "practice-evidence",
+    ),
+  ).toBe("Recent reviewed Practice evidence is available for 1 skill.");
 });
 
 test("Performance caps and redacts separate Practice and terminal Test evidence", () => {
@@ -86,7 +110,7 @@ test("Performance caps and redacts separate Practice and terminal Test evidence"
   const practice = textById(document, "practice-detail");
   const tests = textById(document, "tests-detail");
   expect(textById(document, "practice-evidence")).toBe(
-    "Recent reviewed Practice evidence is available for 1 skill.",
+    "More reviewed Practice activity will make a fuller recent summary available.",
   );
   expect(textById(document, "fun-fact-detail")).toContain(
     "In plane geometry, a triangle's three interior angles add up to 180 degrees.",
