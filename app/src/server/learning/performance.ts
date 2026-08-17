@@ -46,7 +46,8 @@ function reviewedPracticeCodes(topicIds: readonly string[]): string[] {
 /**
  * Produces a deterministic, read-only Performance surface from redacted
  * learner history. It makes no mastery claim and intentionally excludes raw
- * answers, correctness, timestamps, assignment identifiers, and guidance.
+ * answers, correctness, timestamps, and assignment identifiers; any guidance
+ * is a separate deterministic snapshot-derived projection.
  */
 export function getLearnerPerformanceDocument(
   childId: string,
@@ -78,6 +79,7 @@ export function getLearnerPerformanceDocument(
         "title",
         "summary",
         "practice-title",
+        "practice-evidence",
         "practice-detail",
         "tests-title",
         "tests-detail",
@@ -108,6 +110,15 @@ export function getLearnerPerformanceDocument(
       id: "practice-title",
       variant: "h2",
       text: "Practice",
+    },
+    {
+      component: "OdysseyStatus",
+      id: "practice-evidence",
+      tone: skills.length === 0 ? "neutral" : "positive",
+      text:
+        skills.length === 0
+          ? "No reviewed Practice evidence is available yet."
+          : `Recent reviewed Practice evidence is available for ${skills.length} skill${skills.length === 1 ? "" : "s"}.`,
     },
     {
       component: "OdysseyText",
