@@ -56,6 +56,32 @@ test("a parent can create, reset, and revoke only linked child accounts", async 
   revokeParentChildLink(parentId, child.accountId);
   expect(listParentChildren(parentId)).toEqual([]);
   expect(
+    learningDb
+      .prepare(
+        `SELECT event_type, reason, created_at
+         FROM parent_relationship_events
+         WHERE parent_account_id = ? AND child_account_id = ?
+         ORDER BY id`,
+      )
+      .all(parentId, child.accountId),
+  ).toEqual([
+    {
+      event_type: "child-created",
+      reason: "parent-requested",
+      created_at: expect.any(Number),
+    },
+    {
+      event_type: "password-reset",
+      reason: null,
+      created_at: expect.any(Number),
+    },
+    {
+      event_type: "link-revoked",
+      reason: "parent-requested",
+      created_at: expect.any(Number),
+    },
+  ]);
+  expect(
     requireParentRead(
       new Request("http://localhost/parent", {
         headers: { cookie: `session=${parentSession.sessionToken}` },

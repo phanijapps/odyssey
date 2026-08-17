@@ -6,14 +6,14 @@
 - **Constrained by:** RFC-0003; RFC-0004 (Open); `performance-guidance` and `a2ui-learning-delivery` (Draft)
 - **Brief:** none
 - **Discovery:** current persona/auth boundary and Performance research, 2026-08-16
-- **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is deliberately available only under explicit development configuration; production parent provisioning/recovery requires approval. No Performance BFF contract exists until the shared evidence/A2UI contracts are approved.
+- **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is deliberately available only under explicit development configuration; production parent provisioning/recovery requires approval. Relationship creation, password reset, and revocation write a minimal local audit event retained for the lifetime of the local database; create/revoke use the fixed `parent-requested` reason and reset stores no free-text reason. No Performance BFF contract exists until the shared evidence/A2UI contracts are approved.
 - **Shape:** mixed
 
 ## Implementation status
 
-The relationship foundation is implemented. Production parent provisioning,
-relationship audit/reason/retention policy, and Performance/A2UI remain blocked
-pending explicit approval.
+The relationship foundation and local audit trail are implemented. Production
+parent provisioning and Performance/A2UI remain blocked pending explicit
+approval.
 
 ## Objective
 
@@ -48,7 +48,8 @@ reset a child password or revoke that child relationship server-side.
   seam is not an integration and cannot authenticate or issue a session.
 - The first-parent recovery mechanism; initial local setup is the approved
   bootstrap mechanism.
-- Exact retention/audit requirements for relationship and access events.
+- Changing local audit retention, exporting audit events, or allowing a
+  free-text revocation reason.
 - Adding Pi-generated parent explanation beyond validated redacted evidence.
 
 ### Never do
@@ -86,7 +87,7 @@ reset a child password or revoke that child relationship server-side.
       exact event-time data.
 - [ ] Given a parent action, it is limited to a validated support/navigation
       action; it cannot submit, grade, or alter a learner’s work or mastery.
-- [ ] Given parent relationship creation/revocation, the request requires the
+- [x] Given parent relationship creation/revocation, the request requires the
       approved authority, exact origin, validated body, and auditable lifecycle
       transition.
 

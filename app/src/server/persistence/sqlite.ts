@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 const DEFAULT_LEARNING_DATABASE_PATH = "odyssey-learning.db";
 const DEFAULT_CURRICULUM_DATABASE_PATH = "odyssey-curriculum.db";
 const BUSY_TIMEOUT_MS = 5_000;
-const LATEST_SCHEMA_VERSION = 8;
+const LATEST_SCHEMA_VERSION = 9;
 
 export type DatabaseKind = "learning" | "curriculum" | "promotion";
 
@@ -322,6 +322,26 @@ const MIGRATIONS: readonly Migration[] = [
           )
           WHERE principal_id IS NULL OR principal_id = '';
         `);
+    },
+  },
+  {
+    version: 9,
+    apply(database) {
+      if (!hasTable(database, "accounts")) return;
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS parent_relationship_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          parent_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+          child_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+          event_type TEXT NOT NULL CHECK (
+            event_type IN ('child-created', 'password-reset', 'link-revoked')
+          ),
+          reason TEXT,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS parent_relationship_events_parent_created
+          ON parent_relationship_events(parent_account_id, created_at DESC);
+      `);
     },
   },
 ];

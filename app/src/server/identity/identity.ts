@@ -644,6 +644,23 @@ function requireActiveParentChildLink(
   if (!link) throw new Error("Child access denied");
 }
 
+/** Writes a minimal local lifecycle record within the caller's transaction. */
+function recordParentRelationshipEvent(
+  parentAccountId: string,
+  childAccountId: string,
+  eventType: "child-created" | "password-reset" | "link-revoked",
+  reason: "parent-requested" | null,
+  createdAt: number,
+): void {
+  learningDb
+    .prepare(
+      `INSERT INTO parent_relationship_events
+        (parent_account_id, child_account_id, event_type, reason, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .run(parentAccountId, childAccountId, eventType, reason, createdAt);
+}
+
 /** Creates a linked learner account without exposing a client-selected parent. */
 export async function createParentChildAccount(
   parentAccountId: string,
@@ -674,6 +691,13 @@ export async function createParentChildAccount(
          VALUES (?, ?, ?)`,
       )
       .run(parentAccountId, accountId, now);
+    recordParentRelationshipEvent(
+      parentAccountId,
+      accountId,
+      "child-created",
+      "parent-requested",
+      now,
+    );
     learningDb.exec("COMMIT");
   } catch (error) {
     learningDb.exec("ROLLBACK");
@@ -728,6 +752,13 @@ export async function resetParentChildPassword(
     learningDb
       .prepare("DELETE FROM auth_sessions WHERE username = ?")
       .run(child.username);
+    recordParentRelationshipEvent(
+      parentAccountId,
+      childAccountId,
+      "password-reset",
+      null,
+      Date.now(),
+    );
     learningDb.exec("COMMIT");
   } catch (error) {
     learningDb.exec("ROLLBACK");
@@ -749,6 +780,13 @@ export function revokeParentChildLink(
          WHERE parent_account_id = ? AND child_account_id = ? AND revoked_at IS NULL`,
       )
       .run(Date.now(), parentAccountId, childAccountId);
+    recordParentRelationshipEvent(
+      parentAccountId,
+      childAccountId,
+      "link-revoked",
+      "parent-requested",
+      Date.now(),
+    );
     learningDb.exec("COMMIT");
   } catch (error) {
     learningDb.exec("ROLLBACK");

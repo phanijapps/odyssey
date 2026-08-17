@@ -61,7 +61,7 @@ test("upgrades a legacy schema without losing session rows", () => {
   configureSqliteConnection(database);
   migrateDatabase(database);
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 8,
+    user_version: 9,
   });
   expect(
     database.prepare("SELECT status, score FROM test_sessions").get(),
@@ -113,7 +113,7 @@ test("removes orphaned active AI question state without losing sessions", () => 
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 8,
+    user_version: 9,
   });
   expect(
     database
@@ -137,7 +137,7 @@ test("removes orphaned active AI question state without losing sessions", () => 
   database.close();
 });
 
-test("v8 adds parent identity tables when a legacy account store has no sessions", () => {
+test("current migration adds parent identity tables when a legacy account store has no sessions", () => {
   const database = new DatabaseSync(temporaryDatabasePath());
   database.exec(`
     CREATE TABLE accounts (
@@ -152,7 +152,7 @@ test("v8 adds parent identity tables when a legacy account store has no sessions
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 8,
+    user_version: 9,
   });
   expect(
     database.prepare("SELECT account_id FROM accounts").get(),
@@ -164,6 +164,13 @@ test("v8 adds parent identity tables when a legacy account store has no sessions
       )
       .get(),
   ).toEqual({ name: "parent_child_links" });
+  expect(
+    database
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'parent_relationship_events'",
+      )
+      .get(),
+  ).toEqual({ name: "parent_relationship_events" });
   database.close();
 });
 
@@ -174,10 +181,10 @@ test("concurrent startup connections converge on one current schema", () => {
   const second = openDatabase("learning");
   try {
     expect(first.prepare("PRAGMA user_version").get()).toEqual({
-      user_version: 8,
+      user_version: 9,
     });
     expect(second.prepare("PRAGMA user_version").get()).toEqual({
-      user_version: 8,
+      user_version: 9,
     });
     expect(second.prepare("PRAGMA foreign_keys").get()).toEqual({
       foreign_keys: 1,
