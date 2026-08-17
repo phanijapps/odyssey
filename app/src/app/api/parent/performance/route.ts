@@ -2,6 +2,7 @@ import {
   listParentChildren,
   requireParentRead,
 } from "../../../../server/identity/identity";
+import { createParentPerformanceA2uiDocument } from "../../../../a2ui/parent-performance-document";
 import { getParentSafePerformance } from "../../../../server/learning/parent-performance";
 
 /** Returns aggregate Performance only for children with the parent's active links. */
@@ -26,7 +27,7 @@ export function GET(request: Request): Response {
       performance: getParentSafePerformance(child.accountId),
     }));
     return Response.json(
-      { children },
+      { document: createParentPerformanceA2uiDocument(children) },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {

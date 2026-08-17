@@ -11,7 +11,8 @@ import { z } from "zod";
 import {
   ODYSSEY_A2UI_CATALOG_ID,
   parseOdysseyA2uiDocument,
-  type OdysseyA2uiDocument,
+  parseOdysseyParentPerformanceA2uiDocument,
+  type OdysseyA2uiSurfaceId,
 } from "../a2ui/document";
 
 const OdysseyText = createComponentImplementation(
@@ -67,8 +68,10 @@ type OdysseySurfaceModel = SurfaceModel<typeof OdysseyText>;
 /** Renders only locally validated, server-issued Odyssey A2UI documents. */
 export function OdysseyA2uiSurface({
   document,
+  surfaceId = "odyssey-performance",
 }: {
-  document: OdysseyA2uiDocument;
+  document: unknown;
+  surfaceId?: OdysseyA2uiSurfaceId;
 }) {
   const [surface, setSurface] = useState<OdysseySurfaceModel | null>(null);
   const [error, setError] = useState(false);
@@ -77,16 +80,19 @@ export function OdysseyA2uiSurface({
     const processor = new MessageProcessor([odysseyCatalog]);
     setSurface(null);
     const subscription = processor.onSurfaceCreated((created) => {
-      if (created.id === "odyssey-performance")
-        setSurface(created as OdysseySurfaceModel);
+      if (created.id === surfaceId) setSurface(created as OdysseySurfaceModel);
     });
     try {
-      processor.processMessages(parseOdysseyA2uiDocument(document).messages);
+      const parsed =
+        surfaceId === "odyssey-parent-performance"
+          ? parseOdysseyParentPerformanceA2uiDocument(document)
+          : parseOdysseyA2uiDocument(document);
+      processor.processMessages(parsed.messages);
     } catch {
       setError(true);
     }
     return () => subscription.unsubscribe();
-  }, [document]);
+  }, [document, surfaceId]);
 
   if (error)
     return <p role="alert">Performance is unavailable. Please retry.</p>;

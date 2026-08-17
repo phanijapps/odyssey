@@ -1,24 +1,13 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { OdysseyA2uiSurface } from "../a2ui-surface";
+import {
+  parseOdysseyParentPerformanceA2uiDocument,
+  type OdysseyParentPerformanceA2uiDocument,
+} from "../../a2ui/document";
 
 type Child = { accountId: string; username: string };
-type ParentPerformance = {
-  username: string;
-  performance: {
-    practice: {
-      correctPracticeAttempts: number;
-      activePracticeDayStreak: number;
-    };
-    tests: { completed: number; partial: number };
-    nextPractice: {
-      recommended: number;
-      practicing: number;
-      checkpointMet: number;
-    };
-  };
-};
-
 async function responseError(response: Response): Promise<string> {
   const body = (await response.json().catch(() => null)) as {
     error?: unknown;
@@ -35,7 +24,9 @@ export default function ParentPage() {
   const [resetPassword, setResetPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [performance, setPerformance] = useState<ParentPerformance[]>([]);
+  const [performanceDocument, setPerformanceDocument] =
+    useState<OdysseyParentPerformanceA2uiDocument | null>(null);
+  const [performanceLoading, setPerformanceLoading] = useState(true);
   const performanceRequest = useRef(0);
 
   const loadChildren = useCallback(async () => {
@@ -52,27 +43,30 @@ export default function ParentPage() {
 
   const loadPerformance = useCallback(async () => {
     const request = ++performanceRequest.current;
-    setPerformance([]);
+    setPerformanceDocument(null);
+    setPerformanceLoading(true);
     try {
       const response = await fetch("/api/parent/performance", {
         cache: "no-store",
       });
       if (request !== performanceRequest.current) return;
       if (!response.ok) {
-        setPerformance([]);
+        setPerformanceDocument(null);
         setMessage(await responseError(response));
         return;
       }
-      const body = (await response.json()) as {
-        children?: ParentPerformance[];
-      };
+      const body = (await response.json()) as { document?: unknown };
       if (request === performanceRequest.current)
-        setPerformance(body.children ?? []);
+        setPerformanceDocument(
+          parseOdysseyParentPerformanceA2uiDocument(body.document),
+        );
     } catch {
       if (request === performanceRequest.current) {
-        setPerformance([]);
+        setPerformanceDocument(null);
         setMessage("Performance is unavailable");
       }
+    } finally {
+      if (request === performanceRequest.current) setPerformanceLoading(false);
     }
   }, []);
 
@@ -143,7 +137,7 @@ export default function ParentPage() {
     }
     setMessage("Child access revoked.");
     performanceRequest.current += 1;
-    setPerformance([]);
+    setPerformanceDocument(null);
     await Promise.all([loadChildren(), loadPerformance()]);
   }
 
@@ -225,34 +219,15 @@ export default function ParentPage() {
       </section>
       <section className="panel" aria-labelledby="child-performance-heading">
         <h2 id="child-performance-heading">Child Performance</h2>
-        {loading ? (
+        {performanceLoading ? (
           <p>Loading child Performance…</p>
-        ) : performance.length === 0 ? (
-          <p>No active linked-child Performance is available yet.</p>
+        ) : performanceDocument ? (
+          <OdysseyA2uiSurface
+            document={performanceDocument}
+            surfaceId="odyssey-parent-performance"
+          />
         ) : (
-          <ul className="history-list">
-            {performance.map((child) => (
-              <li key={child.username}>
-                <strong>{child.username}</strong>
-                <span>
-                  {child.performance.practice.correctPracticeAttempts} correct
-                  Practice answers ·{" "}
-                  {child.performance.practice.activePracticeDayStreak}-day
-                  active Practice streak
-                </span>
-                <span>
-                  Tests: {child.performance.tests.completed} completed,{" "}
-                  {child.performance.tests.partial} partial
-                </span>
-                <span>
-                  Next Practice: {child.performance.nextPractice.recommended}{" "}
-                  recommended, {child.performance.nextPractice.practicing}{" "}
-                  practicing, {child.performance.nextPractice.checkpointMet}{" "}
-                  checkpoint met
-                </span>
-              </li>
-            ))}
-          </ul>
+          <p>No active linked-child Performance is available yet.</p>
         )}
       </section>
       {resetChild && (

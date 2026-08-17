@@ -33,36 +33,42 @@ const component = z.discriminatedUnion("component", [
   columnComponent,
 ]);
 
-const createSurface = z
-  .object({
-    version: z.literal("v0.9"),
-    createSurface: z
-      .object({
-        surfaceId: z.literal("odyssey-performance"),
-        catalogId: z.literal(ODYSSEY_A2UI_CATALOG_ID),
-      })
-      .strict(),
-  })
-  .strict();
-const updateComponents = z
-  .object({
-    version: z.literal("v0.9"),
-    updateComponents: z
-      .object({
-        surfaceId: z.literal("odyssey-performance"),
-        components: z.array(component).min(1).max(16),
-      })
-      .strict(),
-  })
-  .strict();
+export const ODYSSEY_A2UI_SURFACE_IDS = [
+  "odyssey-performance",
+  "odyssey-parent-performance",
+] as const;
+export type OdysseyA2uiSurfaceId = (typeof ODYSSEY_A2UI_SURFACE_IDS)[number];
 
-/** A complete, local-only A2UI v0.9 surface accepted by Odyssey's renderer. */
-export const odysseyA2uiDocumentSchema = z
-  .object({
-    messages: z.tuple([createSurface, updateComponents]),
-  })
-  .strict()
-  .superRefine((document, context) => {
+function createReadOnlyDocumentSchema(surfaceId: OdysseyA2uiSurfaceId) {
+  const createSurface = z
+    .object({
+      version: z.literal("v0.9"),
+      createSurface: z
+        .object({
+          surfaceId: z.literal(surfaceId),
+          catalogId: z.literal(ODYSSEY_A2UI_CATALOG_ID),
+        })
+        .strict(),
+    })
+    .strict();
+  const updateComponents = z
+    .object({
+      version: z.literal("v0.9"),
+      updateComponents: z
+        .object({
+          surfaceId: z.literal(surfaceId),
+          components: z.array(component).min(1).max(16),
+        })
+        .strict(),
+    })
+    .strict();
+
+  return z
+    .object({
+      messages: z.tuple([createSurface, updateComponents]),
+    })
+    .strict()
+    .superRefine((document, context) => {
     const components = document.messages[1].updateComponents.components;
     const byId = new Map(
       components.map((component) => [component.id, component]),
@@ -114,11 +120,30 @@ export const odysseyA2uiDocumentSchema = z
         code: z.ZodIssueCode.custom,
         message: "A2UI document contains an unreachable component",
       });
-  });
+    });
+}
 
+/** A complete, local-only learner Performance A2UI v0.9 surface. */
+export const odysseyA2uiDocumentSchema = createReadOnlyDocumentSchema(
+  "odyssey-performance",
+);
 export type OdysseyA2uiDocument = z.infer<typeof odysseyA2uiDocumentSchema>;
 
-/** Rejects unknown fields/components before the A2UI processor sees a document. */
+/** A complete, local-only parent Performance A2UI v0.9 surface. */
+export const odysseyParentPerformanceA2uiDocumentSchema =
+  createReadOnlyDocumentSchema("odyssey-parent-performance");
+export type OdysseyParentPerformanceA2uiDocument = z.infer<
+  typeof odysseyParentPerformanceA2uiDocumentSchema
+>;
+
+/** Rejects unknown fields/components before the A2UI processor sees a learner document. */
 export function parseOdysseyA2uiDocument(value: unknown): OdysseyA2uiDocument {
   return odysseyA2uiDocumentSchema.parse(value);
+}
+
+/** Rejects unknown fields/components before the A2UI processor sees a parent document. */
+export function parseOdysseyParentPerformanceA2uiDocument(
+  value: unknown,
+): OdysseyParentPerformanceA2uiDocument {
+  return odysseyParentPerformanceA2uiDocumentSchema.parse(value);
 }

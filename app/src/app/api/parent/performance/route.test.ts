@@ -60,20 +60,27 @@ test("parent Performance derives active child scope and redacts details", async 
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("no-store");
   const body = await response.json();
-  expect(body).toEqual({
-    children: [
-      {
-        username: "linked-child",
-        performance: {
-          practice: { correctPracticeAttempts: 1, activePracticeDayStreak: 0 },
-          tests: { completed: 0, partial: 0 },
-          nextPractice: { recommended: 0, practicing: 0, checkpointMet: 0 },
+  expect(body).toMatchObject({
+    document: {
+      messages: [
+        { createSurface: { surfaceId: "odyssey-parent-performance" } },
+        {
+          updateComponents: {
+            components: expect.arrayContaining([
+              expect.objectContaining({
+                component: "OdysseyText",
+                text: expect.stringContaining(
+                  "linked-child: 1 correct Practice answers",
+                ),
+              }),
+            ]),
+          },
         },
-      },
-    ],
+      ],
+    },
   });
   expect(JSON.stringify(body)).not.toMatch(
-    /accountId|childId|topicId|answer|score|occurredAt|standardCode/,
+    /accountId|childId|topicId|occurredAt|standardCode|assignmentToken/,
   );
 });
 
