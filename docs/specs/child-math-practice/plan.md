@@ -1,7 +1,7 @@
 # Plan: child math practice
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 ## Approach
 
@@ -116,6 +116,7 @@ integrations are deliberately unconfigured. Traces to: AC 4–6, 13–14.
 
 ### T1: Establish the one-app workspace and local runtime
 
+**Status:** Complete — verified during the 2026-08-17 reconciliation (gates, dependency audit, and the recorded browser journey).
 **Depends on:** none
 
 **Touches:** package.json, pnpm-lock.yaml, pnpm-workspace.yaml, .gitignore,
@@ -148,6 +149,7 @@ architecture overview maps the `app/` application and its curriculum modules.
 
 ### T2: Make the curriculum catalog deterministic
 
+**Status:** Complete — verified during the 2026-08-17 reconciliation (gates, dependency audit, and the recorded browser journey).
 **Depends on:** T1
 
 **Touches:** app/src/server/curriculum/catalog.ts,
@@ -171,6 +173,7 @@ app/src/server/curriculum/catalog.test.ts, app/src/server/curriculum/data/topics
 
 ### T3: Add SQLite identity and learning-progress services
 
+**Status:** Complete — verified during the 2026-08-17 reconciliation (gates, dependency audit, and the recorded browser journey).
 **Depends on:** T1, T2
 
 **Touches:** app/src/server/identity/**, app/src/server/learning/**,
@@ -206,6 +209,7 @@ temporary SQLite database.
 
 ### T4: Add scoped Engram profile memory and controlled vocabulary
 
+**Status:** Complete — verified during the 2026-08-17 reconciliation (gates, dependency audit, and the recorded browser journey).
 **Depends on:** T1, T2, T3
 
 **Touches:** app/src/server/memory/**, app/config/learning-profile/**,
@@ -249,6 +253,7 @@ seeding, and unavailable-artifact recovery.
 
 ### T5: Bound Pi AI outputs, A2UI, and SVG diagrams
 
+**Status:** Complete — verified during the 2026-08-17 reconciliation (gates, dependency audit, and the recorded browser journey).
 **Depends on:** T2, T3, T4
 
 **Touches:** app/src/server/agent/**, app/src/server/validation/**
@@ -283,6 +288,7 @@ and the reviewed fixture supplies the diagram happy path without a provider.
 
 ### T6: Deliver the child learning flow
 
+**Status:** Complete — verified during the 2026-08-17 reconciliation (gates, dependency audit, and the recorded browser journey).
 **Depends on:** T3, T4, T5
 
 **Touches:** app/src/app/**, app/src/components/**
@@ -337,3 +343,6 @@ server-only acceptance criteria retain their automated evidence from T1–T5.
 ## Changelog
 
 - 2026-08-08: initial plan
+- 2026-08-17: Reconciled — implementation had run ahead of the recorded state;
+  each task is now verified and marked complete, the browser journey is
+  recorded in `notes/manual-qa.md`, and the run is closed as Done.

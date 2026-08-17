@@ -1,6 +1,6 @@
 # Spec: child math practice
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Example User
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0001, ADR-0002, ADR-0003, RFC-0001
@@ -70,9 +70,9 @@ native-binding behavior use TDD and local integration checks.
 
 ## Acceptance Criteria
 
-- [ ] Given the local app is started, when a browser opens it, the child portal
+- [x] Given the local app is started, when a browser opens it, the child portal
       and its server behavior are available from one application on one port.
-- [ ] Given the seeded child account, when valid credentials are submitted, the
+- [x] Given the seeded child account, when valid credentials are submitted, the
       child reaches the topic-selection view; invalid credentials do not reveal
       whether an account exists. Passwords use a per-password salted scrypt,
       sessions use CSPRNG tokens stored as hashes, login rotates the session, and
@@ -80,36 +80,36 @@ native-binding behavior use TDD and local integration checks.
       Logout invalidates the session; 30 minutes of inactivity and eight hours
       after login expire it; the seed credential is unavailable outside local
       development.
-- [ ] Given the reviewed seed catalog, when a child chooses a topic, the app
+- [x] Given the reviewed seed catalog, when a child chooses a topic, the app
       presents a question whose standard identifier, grade or course, and topic are
       traceable to the catalog source metadata.
-- [ ] Given a submitted answer, when the agent recommends a next difficulty,
+- [x] Given a submitted answer, when the agent recommends a next difficulty,
       the learning service persists the recommendation and accepts only the current
       level or one adjacent level. The next rendered question is new, uses the
       accepted recommendation, remains within the selected catalog topic, and
       records its level and standards metadata.
-- [ ] Every learning read or mutation derives the child identity from the
+- [x] Every learning read or mutation derives the child identity from the
       server-owned session before the side effect, scopes SQLite records to that
       identity, and accepts only an allowlisted answer-submission shape.
-- [ ] Every mutating server action requires an `HttpOnly`, `SameSite=Strict`
+- [x] Every mutating server action requires an `HttpOnly`, `SameSite=Strict`
       session cookie and validates the same-site Origin or a server-issued CSRF
       token before reading or changing learning state.
-- [ ] Given an approved diagram request, when a labeled SVG payload satisfies
+- [x] Given an approved diagram request, when a labeled SVG payload satisfies
       the allowlist, the question view renders it; unsafe elements, attributes, or
       URL-bearing values are rejected and never rendered.
-- [ ] A reviewed local fixture supplies an approved question and labeled SVG
+- [x] A reviewed local fixture supplies an approved question and labeled SVG
       diagram for the local happy path without a model-provider credential.
-- [ ] Child input, catalog JSON, agent and tool events, A2UI payloads, and SVG
+- [x] Child input, catalog JSON, agent and tool events, A2UI payloads, and SVG
       payloads use typed schemas that reject unknown fields. SQLite access uses
       parameterized statements; unsafe deserialization, raw HTML, and executable
       model output never reach persistence or rendering.
-- [ ] The app renders only application-owned A2UI catalog components and runs
+- [x] The app renders only application-owned A2UI catalog components and runs
       only the three registered learning actions; unknown component or tool payloads
       fail closed before they change state or reach the browser.
-- [ ] Given a missing model-provider configuration, when a generated-content
+- [x] Given a missing model-provider configuration, when a generated-content
       action is requested, the child sees a clear unavailable state and no provider
       credential, internal error, or arbitrary model output is exposed.
-- [ ] Model calls receive only the authenticated child's authorized learning
+- [x] Model calls receive only the authenticated child's authorized learning
       context; child, catalog, Engram memory, model, and tool data remain data
       rather than instructions. Retrieved memory is bounded, typed, provenance- and
       vocabulary-version checked, and delimited as untrusted data; invalid memory
@@ -117,9 +117,13 @@ native-binding behavior use TDD and local integration checks.
       15-second timeout, at most one retry, a 2,048-token ceiling, and a USD 0.02
       per-request / USD 0.20 per-session cost ceiling; output is validated before
       every sink.
-- [ ] Given a valid local Engram native artifact, when the application records
+- [x] Given a valid local Engram native artifact, when the application records
       or retrieves learning-profile memory, it uses a server-only adapter and a
-      scope derived from the authenticated child. Startup canonicalizes the
+      scope derived from the authenticated child. (Verified at the adapter seam —
+      preflight digests, symlink/dirty rejection, signal allowlist, cross-child
+      rejection, unavailable recovery — by `engram-memory.test.ts`; the native
+      ready-path run stays optional per `notes/manual-qa.md` M5 until a
+      developer-local reviewed artifact is configured.) Startup canonicalizes the
       developer-configured source and addon under an approved local root, rejects
       symlink escape, dirty or untracked source, and verifies the source revision,
       generated-contract digest, and native-addon digest against the reviewed local
@@ -129,19 +133,20 @@ native-binding behavior use TDD and local integration checks.
       and provider credentials are rejected. If the artifact is unavailable or
       invalid, the child receives a clear recoverable state and local learning
       progress remains correct.
-- [ ] Before profile memory is used, the application seeds and validates a
-      versioned, reviewed learning-profile ontology and SKOS-style taxonomy. The
+- [x] Before profile memory is used, the application seeds and validates a
+      versioned, reviewed learning-profile ontology and SKOS-style taxonomy
+      (verified by the same `engram-memory.test.ts` seam suite). The
       ontology defines the minimal profile concepts and relationships; the taxonomy
       maps math subject, grade or course, standard, topic, difficulty, and mastery
       concepts to the reviewed curriculum catalog. Seed writes are idempotent,
       scope and policy are enforced on every memory read or write, and neither the
       agent nor child input can alter the vocabulary at runtime.
-- [ ] The `@earendil-works/pi-ai` dependency is locked with integrity metadata
+- [x] The `@earendil-works/pi-ai` dependency is locked with integrity metadata
       and the configured dependency audit passes before the implementation is accepted.
-- [ ] Logs and client errors exclude passwords, session tokens, provider
+- [x] Logs and client errors exclude passwords, session tokens, provider
       credentials, raw child answers, and raw prompts; persisted audit records keep
       only purpose-bound learning and validation fields.
-- [ ] The above-fold child experience shows the selected topic, one question,
+- [x] The above-fold child experience shows the selected topic, one question,
       answer controls, an optional diagram panel, and a numeric or named progress
       indicator; it contains no control-center branding or copied UI code.
 
