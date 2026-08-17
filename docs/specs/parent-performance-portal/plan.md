@@ -78,11 +78,11 @@ start until it is approved.
 principals, active/revoked parent-child links, and provider-subject links. The
 parent-only child list/create/reset/revoke routes and local account-management
 page derive authority from the parent session and retest links transactionally.
-The explicit first-parent bootstrap remains development-only; production
-provisioning/recovery remains unapproved. Lifecycle changes write minimal local
-append-only events retained for the database lifetime; only fixed machine
-reasons are recorded, so free-text reasons, export, and retention changes still
-require approval.
+The first parent can be provisioned in production only by explicit server-side
+configuration while no parent account exists; there is no public provisioning
+or recovery route. Lifecycle changes write minimal local append-only events
+retained for the database lifetime; only fixed machine reasons are recorded, so
+free-text reasons, export, and retention changes still require approval.
 
 **Tests:** TDD lifecycle/resolver/transaction/revocation cases plus route matrix.
 
