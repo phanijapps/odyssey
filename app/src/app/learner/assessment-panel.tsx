@@ -2,6 +2,7 @@ import { FormEvent } from "react";
 import { OdysseyTestA2uiSurface } from "../test-a2ui-surface";
 import type { OdysseyTestA2uiAction } from "../../a2ui/test-document";
 import { MathText } from "@/components/math-text";
+import { displayedQuestionOrdinal } from "./test-progress";
 import { parseTextResponseInteraction } from "./question-interaction";
 import {
   Assessment,
@@ -68,8 +69,12 @@ export function AssessmentPanel({
           <div className="practice-meta">
             <span className="test-progress">
               Question{" "}
-              {assessmentQuestion?.ordinal ??
-                assessment.questions.filter((q) => q.answered).length + 1}{" "}
+              {displayedQuestionOrdinal({
+                servedOrdinal: assessmentQuestion?.ordinal,
+                answeredCount: assessment.questions.filter((q) => q.answered)
+                  .length,
+                assessmentActive: assessment.status === "active",
+              })}{" "}
               of 9
             </span>
             {assessment.status !== "active" && (

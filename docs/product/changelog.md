@@ -40,6 +40,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Long standard identities** — topic identities up to 300 characters (real
   ELA standards exceeded the previous 100-char transport bound and made those
   surfaces permanently unavailable).
+- **Test progress counter** — the completed-test header no longer reads
+  "Question 10 of 9"; terminal and exited-partial screens now show the last
+  answered ordinal instead of assuming a next question.
 
 ## [unreleased-2] — 2026-08-14
 

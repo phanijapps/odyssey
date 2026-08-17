@@ -27,8 +27,9 @@
 # against an untrusted checkout without that design decision.
 open = [
   {slug = "engram-worktree-metadata-safe-preflight", source = "spec/child-math-practice AC13", summary = "Design a Git-metadata-safe local Engram source-state preflight"},
-  # Draft research/spec exists at docs/specs/mistake-to-mastery; approve its product assumptions before implementation.
-  {slug = "mistake-to-mastery-learning-plan", type = "design", summary = "Shape assessment-driven remediation plans from verified curriculum evidence"},
+  # The v1 mistake-to-mastery spec shipped; this tracks deeper remediation
+  # shaping (plan depth, ordering policy) as future design work.
+  {slug = "mistake-to-mastery-learning-plan", type = "design", summary = "Shape deeper assessment-driven remediation plans from verified curriculum evidence"},
   # The guidance card's unavailable copy is shared by three distinct
   # conditions: the target left the reviewed catalog, the catalog is empty or
   # failed to load, and a reviewed identity exceeding the transport ceiling.
@@ -39,8 +40,4 @@ open = [
   # the performance action schema does not cross-check sourceComponentId
   # against rendered card ids. Navigation is browse-tree gated today.
   {slug = "a2ui-action-schema-guards", source = "spec/a2ui-learning-delivery T5", summary = "Tighten A2UI action schema guards if a parent action surface is added"},
-  # Observed 2026-08-17 in the terminal assessment state: the header briefly
-  # renders "Question 10 of 9" — the position counter is not reset when the
-  # completion screen replaces the last question.
-  {slug = "assessment-terminal-counter-off-by-one", source = "spec/test-mode-assessment QA", summary = "Reset the question counter when the completion review renders"}
 ]

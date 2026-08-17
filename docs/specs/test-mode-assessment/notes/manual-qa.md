@@ -51,10 +51,11 @@ built app:
    one guidance card per missed standard, and the "Practice this skill"
    action opened the exact standard's Practice flow.
 
-**Observed defect (non-blocking):** in the terminal state the assessment
-header briefly reads "Question 10 of 9" — the position counter is not reset
-when the completion screen renders. Recorded as a follow-up; the review
-content itself is correct.
+**Observed defect (non-blocking, fixed 2026-08-17):** in the terminal state
+the assessment header read "Question 10 of 9" — the fallback ordinal assumed
+an upcoming question after the last answer. Fixed by
+`app/src/app/learner/test-progress.ts` (pinned by its unit tests); the
+completion review content itself was always correct.
 
 ## Automated coverage
 
