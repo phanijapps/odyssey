@@ -1,7 +1,7 @@
 # Plan: Parent Performance Portal
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** In progress — relationship foundation implemented; Performance/A2UI remains blocked.
+- **Status:** Executing
 
 ## Approach
 

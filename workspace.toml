@@ -25,4 +25,8 @@
 # A fully metadata-safe dirty/untracked check needs a reviewed manifest or a
 # non-Git source-state protocol; do not execute worktree-inspecting Git commands
 # against an untrusted checkout without that design decision.
-open = [{slug = "engram-worktree-metadata-safe-preflight", source = "spec/child-math-practice AC13", summary = "Design a Git-metadata-safe local Engram source-state preflight"}]
+open = [
+  {slug = "engram-worktree-metadata-safe-preflight", source = "spec/child-math-practice AC13", summary = "Design a Git-metadata-safe local Engram source-state preflight"},
+  # Draft research/spec exists at docs/specs/mistake-to-mastery; approve its product assumptions before implementation.
+  {slug = "mistake-to-mastery-learning-plan", type = "design", summary = "Shape assessment-driven remediation plans from verified curriculum evidence"}
+]

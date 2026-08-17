@@ -1,13 +1,19 @@
 # Spec: Parent Performance Portal
 
-- **Status:** In progress — relationship foundation is implemented; audit/retention policy and Performance/A2UI remain Draft.
+- **Status:** Implementing
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0003; RFC-0004 (Proposed); `performance-guidance` and `a2ui-learning-delivery` (Draft)
+- **Constrained by:** RFC-0003; RFC-0004 (Open); `performance-guidance` and `a2ui-learning-delivery` (Draft)
 - **Brief:** none
 - **Discovery:** current persona/auth boundary and Performance research, 2026-08-16
 - **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is deliberately available only under explicit development configuration; production parent provisioning/recovery requires approval. No Performance BFF contract exists until the shared evidence/A2UI contracts are approved.
 - **Shape:** mixed
+
+## Implementation status
+
+The relationship foundation is implemented. Production parent provisioning,
+relationship audit/reason/retention policy, and Performance/A2UI remain blocked
+pending explicit approval.
 
 ## Objective
 
