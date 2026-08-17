@@ -1,4 +1,5 @@
 import { generateLazyQuestion } from "../../../server/agent/adaptive-pool";
+import { textResponseInteraction } from "../../../server/learning/question-interactions";
 import {
   claimAssessmentQuestionPreparation,
   finalizeAssessmentQuestion,
@@ -72,9 +73,16 @@ export async function presentAssessment(
     display = getAssessmentQuestionForDisplay({ actor, assessmentId });
   }
   const state = getAssessmentState({ actor, assessmentId });
+  const presentedQuestion =
+    display && typeof display.question === "string"
+      ? {
+          ...display,
+          interaction: textResponseInteraction(display.question),
+        }
+      : null;
   return {
     assessment: state,
-    ...(display ? { question: display } : {}),
+    ...(presentedQuestion ? { question: presentedQuestion } : {}),
     ...(state.status === "completed" || state.status === "partial"
       ? { result: getAssessmentResult({ actor, assessmentId }) }
       : {}),

@@ -70,3 +70,32 @@ test("reports a failed generated assignment as unavailable and retryable", async
     },
   });
 });
+
+test("presents a bounded interaction without assessment answer material", async () => {
+  getAssessmentQuestionForDisplay.mockReturnValue({
+    ordinal: 1,
+    total: 9,
+    question: "Solve 2x = 8.",
+    assignmentToken: "assignment-1",
+  });
+  getAssessmentState.mockReturnValue({ id: "assessment-1", status: "active" });
+
+  const response = await presentAssessment(
+    { learnerId: "learner-1", role: "student" },
+    "assessment-1",
+  );
+
+  expect(response).toMatchObject({
+    question: {
+      question: "Solve 2x = 8.",
+      interaction: {
+        type: "text-response",
+        prompt: "Solve 2x = 8.",
+        response: { maxLength: 100 },
+      },
+    },
+  });
+  expect(JSON.stringify(response.question)).not.toMatch(
+    /correctAnswer|answer|score|solution/i,
+  );
+});

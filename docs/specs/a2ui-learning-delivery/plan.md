@@ -118,10 +118,11 @@ entries to existing fixed components without moving grading/state policy.
 ### T3: Add server-owned question interaction DTOs
 
 **Status:** In progress. Practice now issues a bounded versioned
-`text-response` interaction DTO alongside its existing opaque assignment. The
-existing Practice input validates and consumes its server-issued maximum-length
-bound. The DTO contains no answer material; multiple-choice and true-false
-source support and A2UI rendering remain deferred.
+`text-response` interaction DTO alongside its existing opaque assignment; Test
+also returns the same bounded DTO with no answer material. The existing Practice
+input validates and consumes its server-issued maximum-length bound.
+Multiple-choice and true-false source support and A2UI rendering remain
+deferred.
 
 **Depends on:** T1
 
