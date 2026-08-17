@@ -52,16 +52,16 @@ type SeedAccount = {
  */
 const DEVELOPMENT_FIXTURE_ACCOUNTS: readonly SeedAccount[] = [
   {
-    username: "development-admin",
-    password: "development-admin-password",
+    username: "devadmin",
+    password: "admin",
     role: "admin",
-    childId: "development-admin",
+    childId: "devadmin",
   },
   {
-    username: "development-learner",
-    password: "development-learner-password",
+    username: "devstu",
+    password: "stu",
     role: "student",
-    childId: "development-learner",
+    childId: "devstu",
   },
 ];
 
