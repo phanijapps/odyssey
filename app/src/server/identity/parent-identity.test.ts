@@ -81,6 +81,13 @@ test("a parent can create, reset, and revoke only linked child accounts", async 
       created_at: expect.any(Number),
     },
   ]);
+  expect(() =>
+    learningDb
+      .prepare(
+        "DELETE FROM parent_relationship_events WHERE parent_account_id = ?",
+      )
+      .run(parentId),
+  ).toThrow("parent relationship audit events are immutable");
   expect(
     requireParentRead(
       new Request("http://localhost/parent", {
@@ -91,6 +98,64 @@ test("a parent can create, reset, and revoke only linked child accounts", async 
   await expect(
     resetParentChildPassword(parentId, child.accountId, "another-password"),
   ).rejects.toThrow("Child access denied");
+});
+
+test("parent lifecycle mutations roll back when their audit write fails", async () => {
+  const parentId = provisionParent("parent-audit-rollback", "parent-password");
+  learningDb.exec(`
+    CREATE TRIGGER fixture_block_parent_audit
+    BEFORE INSERT ON parent_relationship_events
+    BEGIN
+      SELECT RAISE(ABORT, 'fixture audit write failed');
+    END;
+  `);
+  await expect(
+    createParentChildAccount(parentId, {
+      username: "rollback-child",
+      password: "child-password",
+    }),
+  ).rejects.toThrow("fixture audit write failed");
+  expect(
+    learningDb
+      .prepare("SELECT 1 FROM accounts WHERE username = 'rollback-child'")
+      .get(),
+  ).toBeUndefined();
+
+  learningDb.exec("DROP TRIGGER fixture_block_parent_audit");
+  const child = await createParentChildAccount(parentId, {
+    username: "rollback-child",
+    password: "child-password",
+  });
+  learningDb.exec(`
+    CREATE TRIGGER fixture_block_parent_audit
+    BEFORE INSERT ON parent_relationship_events
+    BEGIN
+      SELECT RAISE(ABORT, 'fixture audit write failed');
+    END;
+  `);
+  await expect(
+    resetParentChildPassword(parentId, child.accountId, "new-child-password"),
+  ).rejects.toThrow("fixture audit write failed");
+  await expect(
+    authenticateChild({
+      username: "rollback-child",
+      password: "child-password",
+    }),
+  ).resolves.toMatchObject({ principalId: child.accountId });
+  expect(() => revokeParentChildLink(parentId, child.accountId)).toThrow(
+    "fixture audit write failed",
+  );
+  expect(listParentChildren(parentId)).toEqual([
+    { accountId: child.accountId, username: "rollback-child" },
+  ]);
+  expect(
+    learningDb
+      .prepare(
+        `SELECT event_type FROM parent_relationship_events
+         WHERE parent_account_id = ? AND child_account_id = ?`,
+      )
+      .all(parentId, child.accountId),
+  ).toEqual([{ event_type: "child-created" }]);
 });
 
 test("parent guards require a parent session and canonical mutation origin", async () => {

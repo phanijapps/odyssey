@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 const DEFAULT_LEARNING_DATABASE_PATH = "odyssey-learning.db";
 const DEFAULT_CURRICULUM_DATABASE_PATH = "odyssey-curriculum.db";
 const BUSY_TIMEOUT_MS = 5_000;
-const LATEST_SCHEMA_VERSION = 9;
+const LATEST_SCHEMA_VERSION = 10;
 
 export type DatabaseKind = "learning" | "curriculum" | "promotion";
 
@@ -344,6 +344,43 @@ const MIGRATIONS: readonly Migration[] = [
       `);
     },
   },
+  {
+    version: 10,
+    apply(database) {
+      if (!hasTable(database, "parent_relationship_events")) return;
+      assertParentRelationshipAuditCompatibility(database);
+      database.exec(`
+        CREATE TABLE parent_relationship_events_v10 (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          parent_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+          child_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+          event_type TEXT NOT NULL CHECK (
+            event_type IN ('child-created', 'password-reset', 'link-revoked')
+          ),
+          reason TEXT CHECK (reason IS NULL OR reason = 'parent-requested'),
+          created_at INTEGER NOT NULL
+        );
+        INSERT INTO parent_relationship_events_v10
+          (id, parent_account_id, child_account_id, event_type, reason, created_at)
+        SELECT id, parent_account_id, child_account_id, event_type, reason, created_at
+        FROM parent_relationship_events;
+        DROP TABLE parent_relationship_events;
+        ALTER TABLE parent_relationship_events_v10 RENAME TO parent_relationship_events;
+        CREATE INDEX parent_relationship_events_parent_created
+          ON parent_relationship_events(parent_account_id, created_at DESC);
+        CREATE TRIGGER parent_relationship_events_no_update
+        BEFORE UPDATE ON parent_relationship_events
+        BEGIN
+          SELECT RAISE(ABORT, 'parent relationship audit events are immutable');
+        END;
+        CREATE TRIGGER parent_relationship_events_no_delete
+        BEFORE DELETE ON parent_relationship_events
+        BEGIN
+          SELECT RAISE(ABORT, 'parent relationship audit events are immutable');
+        END;
+      `);
+    },
+  },
 ];
 
 function hasTable(database: DatabaseSync, table: string): boolean {
@@ -364,6 +401,35 @@ function hasColumn(
       name: string;
     }>
   ).some((candidate) => candidate.name === column);
+}
+
+function assertParentRelationshipAuditCompatibility(
+  database: DatabaseSync,
+): void {
+  const requiredColumns = [
+    "id",
+    "parent_account_id",
+    "child_account_id",
+    "event_type",
+    "reason",
+    "created_at",
+  ];
+  if (
+    requiredColumns.some(
+      (column) => !hasColumn(database, "parent_relationship_events", column),
+    )
+  )
+    throw new Error("Existing parent relationship audit table is incompatible");
+  const unsafeReason = database
+    .prepare(
+      `SELECT 1 FROM parent_relationship_events
+       WHERE reason IS NOT NULL AND reason <> 'parent-requested' LIMIT 1`,
+    )
+    .get();
+  if (unsafeReason)
+    throw new Error(
+      "Existing parent relationship audit contains an unsafe reason",
+    );
 }
 
 function addColumnIfMissing(

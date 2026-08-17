@@ -6,7 +6,7 @@
 - **Constrained by:** RFC-0003; RFC-0004 (Open); `performance-guidance` and `a2ui-learning-delivery` (Draft)
 - **Brief:** none
 - **Discovery:** current persona/auth boundary and Performance research, 2026-08-16
-- **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is deliberately available only under explicit development configuration; production parent provisioning/recovery requires approval. Relationship creation, password reset, and revocation write a minimal local audit event retained for the lifetime of the local database; create/revoke use the fixed `parent-requested` reason and reset stores no free-text reason. No Performance BFF contract exists until the shared evidence/A2UI contracts are approved.
+- **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is deliberately available only under explicit development configuration; production parent provisioning/recovery requires approval. Relationship creation, password reset, and revocation write an append-only minimal local audit event retained for the lifetime of the local database; create/revoke use the fixed `parent-requested` reason and reset stores no free-text reason. No Performance BFF contract exists until the shared evidence/A2UI contracts are approved.
 - **Shape:** mixed
 
 ## Implementation status

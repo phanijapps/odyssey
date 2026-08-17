@@ -61,7 +61,7 @@ test("upgrades a legacy schema without losing session rows", () => {
   configureSqliteConnection(database);
   migrateDatabase(database);
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 9,
+    user_version: 10,
   });
   expect(
     database.prepare("SELECT status, score FROM test_sessions").get(),
@@ -113,7 +113,7 @@ test("removes orphaned active AI question state without losing sessions", () => 
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 9,
+    user_version: 10,
   });
   expect(
     database
@@ -152,7 +152,7 @@ test("current migration adds parent identity tables when a legacy account store 
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 9,
+    user_version: 10,
   });
   expect(
     database.prepare("SELECT account_id FROM accounts").get(),
@@ -174,6 +174,64 @@ test("current migration adds parent identity tables when a legacy account store 
   database.close();
 });
 
+test("v10 rebuilds compatible audit rows with fixed reasons and immutability", () => {
+  const database = new DatabaseSync(temporaryDatabasePath());
+  database.exec(`
+    CREATE TABLE accounts (account_id TEXT PRIMARY KEY);
+    INSERT INTO accounts (account_id) VALUES ('parent'), ('child');
+    CREATE TABLE parent_relationship_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_account_id TEXT NOT NULL,
+      child_account_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      reason TEXT,
+      created_at INTEGER NOT NULL
+    );
+    INSERT INTO parent_relationship_events
+      (parent_account_id, child_account_id, event_type, reason, created_at)
+    VALUES ('parent', 'child', 'child-created', 'parent-requested', 1);
+    PRAGMA user_version = 9;
+  `);
+
+  migrateDatabase(database);
+
+  expect(database.prepare("PRAGMA user_version").get()).toEqual({
+    user_version: 10,
+  });
+  expect(() =>
+    database
+      .prepare(
+        `INSERT INTO parent_relationship_events
+          (parent_account_id, child_account_id, event_type, reason, created_at)
+         VALUES ('parent', 'child', 'link-revoked', 'free text', 2)`,
+      )
+      .run(),
+  ).toThrow();
+  expect(() =>
+    database
+      .prepare("DELETE FROM parent_relationship_events WHERE id = 1")
+      .run(),
+  ).toThrow("parent relationship audit events are immutable");
+  database.close();
+});
+
+test("v10 fails closed when a pre-existing audit table is malformed", () => {
+  const database = new DatabaseSync(temporaryDatabasePath());
+  database.exec(`
+    CREATE TABLE accounts (account_id TEXT PRIMARY KEY);
+    CREATE TABLE parent_relationship_events (id INTEGER PRIMARY KEY);
+    PRAGMA user_version = 9;
+  `);
+
+  expect(() => migrateDatabase(database)).toThrow(
+    "Existing parent relationship audit table is incompatible",
+  );
+  expect(database.prepare("PRAGMA user_version").get()).toEqual({
+    user_version: 9,
+  });
+  database.close();
+});
+
 test("concurrent startup connections converge on one current schema", () => {
   const path = temporaryDatabasePath();
   process.env.ODYSSEY_DB_PATH = path;
@@ -181,10 +239,10 @@ test("concurrent startup connections converge on one current schema", () => {
   const second = openDatabase("learning");
   try {
     expect(first.prepare("PRAGMA user_version").get()).toEqual({
-      user_version: 9,
+      user_version: 10,
     });
     expect(second.prepare("PRAGMA user_version").get()).toEqual({
-      user_version: 9,
+      user_version: 10,
     });
     expect(second.prepare("PRAGMA foreign_keys").get()).toEqual({
       foreign_keys: 1,
