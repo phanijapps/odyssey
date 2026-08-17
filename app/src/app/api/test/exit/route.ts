@@ -31,6 +31,9 @@ export async function POST(request: Request): Promise<Response> {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {
-    return Response.json({ error: "Unable to exit test" }, { status: 400 });
+    return Response.json(
+      { error: "Unable to exit test" },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }

@@ -107,7 +107,10 @@ export async function POST(request: Request): Promise<Response> {
       headers: { "Cache-Control": "no-store" },
     });
   } catch {
-    return Response.json({ error: "Unable to start test" }, { status: 400 });
+    return Response.json(
+      { error: "Unable to start test" },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }
 
@@ -128,6 +131,9 @@ export async function GET(request: Request): Promise<Response> {
       headers: { "Cache-Control": "no-store" },
     });
   } catch {
-    return Response.json({ error: "Assessment unavailable" }, { status: 404 });
+    return Response.json(
+      { error: "Assessment unavailable" },
+      { status: 404, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }

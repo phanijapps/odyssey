@@ -41,7 +41,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json(
       { error: "Unable to save test answer" },
-      { status: 400 },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

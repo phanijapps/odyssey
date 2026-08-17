@@ -42,6 +42,7 @@ test("exits only the authenticated learner's test and returns partial review", a
   );
 
   expect(response.status).toBe(200);
+  expect(response.headers.get("cache-control")).toBe("no-store");
   expect(exitAssessment).toHaveBeenCalledWith({
     actor: { learnerId: "learner-1", role: "student" },
     assessmentId: "test-1",
@@ -59,6 +60,7 @@ test("rejects malformed or unauthorized exits", async () => {
     new Request("http://localhost/api/test/exit", { method: "POST" }),
   );
   expect(unauthorized.status).toBe(400);
+  expect(unauthorized.headers.get("cache-control")).toBe("no-store");
 
   requireLearnerMutationProof.mockReturnValue({ childId: "learner-1" });
   const malformed = await POST(

@@ -51,6 +51,7 @@ test("returns the next retained assessment assignment after grading", async () =
   );
 
   expect(response.status).toBe(200);
+  expect(response.headers.get("cache-control")).toBe("no-store");
   expect(submitAssessmentAnswer).toHaveBeenCalledWith({
     actor: { learnerId: "learner-1", role: "student" },
     assessmentId: "assessment-1",
@@ -78,5 +79,6 @@ test("rejects an answer without the server-issued assignment token", async () =>
   );
 
   expect(response.status).toBe(400);
+  expect(response.headers.get("cache-control")).toBe("no-store");
   expect(submitAssessmentAnswer).not.toHaveBeenCalled();
 });
