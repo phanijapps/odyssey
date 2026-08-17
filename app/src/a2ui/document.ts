@@ -69,57 +69,57 @@ function createReadOnlyDocumentSchema(surfaceId: OdysseyA2uiSurfaceId) {
     })
     .strict()
     .superRefine((document, context) => {
-    const components = document.messages[1].updateComponents.components;
-    const byId = new Map(
-      components.map((component) => [component.id, component]),
-    );
-    if (byId.size !== components.length) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Duplicate component id",
-      });
-      return;
-    }
-    const root = byId.get("root");
-    if (!root || root.component !== "OdysseyColumn") {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "A2UI document requires an OdysseyColumn root",
-      });
-      return;
-    }
+      const components = document.messages[1].updateComponents.components;
+      const byId = new Map(
+        components.map((component) => [component.id, component]),
+      );
+      if (byId.size !== components.length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Duplicate component id",
+        });
+        return;
+      }
+      const root = byId.get("root");
+      if (!root || root.component !== "OdysseyColumn") {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "A2UI document requires an OdysseyColumn root",
+        });
+        return;
+      }
 
-    const visiting = new Set<string>();
-    const visited = new Set<string>();
-    const visit = (id: string): void => {
-      if (visiting.has(id)) {
+      const visiting = new Set<string>();
+      const visited = new Set<string>();
+      const visit = (id: string): void => {
+        if (visiting.has(id)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "A2UI component graph contains a cycle",
+          });
+          return;
+        }
+        if (visited.has(id)) return;
+        const component = byId.get(id);
+        if (!component) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `A2UI child component ${id} is missing`,
+          });
+          return;
+        }
+        visiting.add(id);
+        if (component.component === "OdysseyColumn")
+          component.children.forEach(visit);
+        visiting.delete(id);
+        visited.add(id);
+      };
+      visit("root");
+      if (visited.size !== components.length)
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "A2UI component graph contains a cycle",
+          message: "A2UI document contains an unreachable component",
         });
-        return;
-      }
-      if (visited.has(id)) return;
-      const component = byId.get(id);
-      if (!component) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `A2UI child component ${id} is missing`,
-        });
-        return;
-      }
-      visiting.add(id);
-      if (component.component === "OdysseyColumn")
-        component.children.forEach(visit);
-      visiting.delete(id);
-      visited.add(id);
-    };
-    visit("root");
-    if (visited.size !== components.length)
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "A2UI document contains an unreachable component",
-      });
     });
 }
 

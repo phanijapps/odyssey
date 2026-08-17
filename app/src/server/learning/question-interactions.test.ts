@@ -39,7 +39,6 @@ test("permits the producer's 400-character question boundary", () => {
   expect(textResponseInteraction("P".repeat(400)).prompt).toHaveLength(400);
 });
 
-
 test("issues bounded server-owned choice and true-false interactions", () => {
   expect(multipleChoiceInteraction("Choose.", ["one", "two"])).toEqual({
     type: "multiple-choice",

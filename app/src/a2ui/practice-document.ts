@@ -131,9 +131,11 @@ export const odysseyPracticeA2uiDocumentSchema = z
       root.children[0] !== "question" ||
       root.children[1] !== "answer" ||
       byId.get("question")?.component !== "OdysseyText" ||
-      !["OdysseyTextResponse", "OdysseyMultipleChoice", "OdysseyTrueFalse"].includes(
-        byId.get("answer")?.component ?? "",
-      )
+      ![
+        "OdysseyTextResponse",
+        "OdysseyMultipleChoice",
+        "OdysseyTrueFalse",
+      ].includes(byId.get("answer")?.component ?? "")
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -193,18 +195,49 @@ export function createPracticeA2uiDocument(input: {
           };
   return parseOdysseyPracticeA2uiDocument({
     messages: [
-      { version: "v0.9", createSurface: { surfaceId: "odyssey-practice", catalogId: ODYSSEY_A2UI_CATALOG_ID } },
-      { version: "v0.9", updateDataModel: { surfaceId: "odyssey-practice", path: "/answer", value: "" } },
+      {
+        version: "v0.9",
+        createSurface: {
+          surfaceId: "odyssey-practice",
+          catalogId: ODYSSEY_A2UI_CATALOG_ID,
+        },
+      },
+      {
+        version: "v0.9",
+        updateDataModel: {
+          surfaceId: "odyssey-practice",
+          path: "/answer",
+          value: "",
+        },
+      },
       {
         version: "v0.9",
         updateComponents: {
           surfaceId: "odyssey-practice",
           components: [
-            { component: "OdysseyColumn", id: "root", children: ["question", "answer"] },
-            { component: "OdysseyText", id: "question", text: interaction.prompt, variant: "h2" },
+            {
+              component: "OdysseyColumn",
+              id: "root",
+              children: ["question", "answer"],
+            },
+            {
+              component: "OdysseyText",
+              id: "question",
+              text: interaction.prompt,
+              variant: "h2",
+            },
             {
               ...answer,
-              action: { event: { name: "practice.submit", context: { topicId: input.topicId, assignmentToken: input.assignmentToken, answer: { path: "/answer" } } } },
+              action: {
+                event: {
+                  name: "practice.submit",
+                  context: {
+                    topicId: input.topicId,
+                    assignmentToken: input.assignmentToken,
+                    answer: { path: "/answer" },
+                  },
+                },
+              },
             },
           ],
         },

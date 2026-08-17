@@ -46,14 +46,23 @@ describe("bank fallback matches the selected standard, not the domain", () => {
   });
 });
 
-
 it("retains server-owned choice and true-false source shapes", async () => {
   const existing = (count: number) =>
     questionBank.ratio.slice(0, count).map((entry) => ({
       question: entry.question,
     })) as never;
-  const multipleChoice = await generateLazyQuestion("ratio", 2, undefined, existing(1));
-  const trueFalse = await generateLazyQuestion("ratio", 2, undefined, existing(4));
+  const multipleChoice = await generateLazyQuestion(
+    "ratio",
+    2,
+    undefined,
+    existing(1),
+  );
+  const trueFalse = await generateLazyQuestion(
+    "ratio",
+    2,
+    undefined,
+    existing(4),
+  );
   expect(multipleChoice?.interaction).toEqual({
     type: "multiple-choice",
     prompt: multipleChoice?.question,
@@ -63,7 +72,7 @@ it("retains server-owned choice and true-false source shapes", async () => {
     type: "true-false",
     prompt: trueFalse?.question,
   });
-  expect(JSON.stringify([multipleChoice?.interaction, trueFalse?.interaction])).not.toMatch(
-    /expectedAnswer|correctAnswer|token|solution/i,
-  );
+  expect(
+    JSON.stringify([multipleChoice?.interaction, trueFalse?.interaction]),
+  ).not.toMatch(/expectedAnswer|correctAnswer|token|solution/i);
 });

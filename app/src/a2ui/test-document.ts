@@ -127,9 +127,11 @@ export const odysseyTestA2uiDocumentSchema = z
       root.children[0] !== "question" ||
       root.children[1] !== "answer" ||
       byId.get("question")?.component !== "OdysseyText" ||
-      !["OdysseyTextResponse", "OdysseyMultipleChoice", "OdysseyTrueFalse"].includes(
-        byId.get("answer")?.component ?? "",
-      )
+      ![
+        "OdysseyTextResponse",
+        "OdysseyMultipleChoice",
+        "OdysseyTrueFalse",
+      ].includes(byId.get("answer")?.component ?? "")
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -166,22 +168,73 @@ export function createTestA2uiDocument(input: {
   };
   const answer =
     interaction.type === "text-response"
-      ? { component: "OdysseyTextResponse" as const, id: "answer" as const, label: "Type your answer", maxLength: 100 as const, value: { path: "/answer" as const } }
+      ? {
+          component: "OdysseyTextResponse" as const,
+          id: "answer" as const,
+          label: "Type your answer",
+          maxLength: 100 as const,
+          value: { path: "/answer" as const },
+        }
       : interaction.type === "multiple-choice"
-        ? { component: "OdysseyMultipleChoice" as const, id: "answer" as const, label: "Choose one answer", options: [...interaction.options], value: { path: "/answer" as const } }
-        : { component: "OdysseyTrueFalse" as const, id: "answer" as const, label: "Choose true or false", value: { path: "/answer" as const } };
+        ? {
+            component: "OdysseyMultipleChoice" as const,
+            id: "answer" as const,
+            label: "Choose one answer",
+            options: [...interaction.options],
+            value: { path: "/answer" as const },
+          }
+        : {
+            component: "OdysseyTrueFalse" as const,
+            id: "answer" as const,
+            label: "Choose true or false",
+            value: { path: "/answer" as const },
+          };
   return parseOdysseyTestA2uiDocument({
     messages: [
-      { version: "v0.9", createSurface: { surfaceId: "odyssey-test", catalogId: ODYSSEY_A2UI_CATALOG_ID } },
-      { version: "v0.9", updateDataModel: { surfaceId: "odyssey-test", path: "/answer", value: "" } },
+      {
+        version: "v0.9",
+        createSurface: {
+          surfaceId: "odyssey-test",
+          catalogId: ODYSSEY_A2UI_CATALOG_ID,
+        },
+      },
+      {
+        version: "v0.9",
+        updateDataModel: {
+          surfaceId: "odyssey-test",
+          path: "/answer",
+          value: "",
+        },
+      },
       {
         version: "v0.9",
         updateComponents: {
           surfaceId: "odyssey-test",
           components: [
-            { component: "OdysseyColumn", id: "root", children: ["question", "answer"] },
-            { component: "OdysseyText", id: "question", text: interaction.prompt, variant: "h2" },
-            { ...answer, action: { event: { name: "test.submit", context: { assessmentId: input.assessmentId, assignmentToken: input.assignmentToken, answer: { path: "/answer" } } } } },
+            {
+              component: "OdysseyColumn",
+              id: "root",
+              children: ["question", "answer"],
+            },
+            {
+              component: "OdysseyText",
+              id: "question",
+              text: interaction.prompt,
+              variant: "h2",
+            },
+            {
+              ...answer,
+              action: {
+                event: {
+                  name: "test.submit",
+                  context: {
+                    assessmentId: input.assessmentId,
+                    assignmentToken: input.assignmentToken,
+                    answer: { path: "/answer" },
+                  },
+                },
+              },
+            },
           ],
         },
       },
