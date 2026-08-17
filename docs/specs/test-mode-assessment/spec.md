@@ -1,6 +1,6 @@
 # Spec: test mode assessment
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Example User
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0001, ADR-0002, ADR-0003
@@ -66,43 +66,43 @@ clear result report. Typecheck and build verify the Next.js integration.
 
 ## Acceptance Criteria
 
-- [ ] Given a learner chooses Practice and one reviewed skill, when they submit
+- [x] Given a learner chooses Practice and one reviewed skill, when they submit
       an answer, the application immediately shows correctness, an appropriate
       hint or solution, and an adaptive next practice question; this flow remains
       separate from an active or completed test.
-- [ ] Given a learner chooses Test, when a learner-role session selects one to
+- [x] Given a learner chooses Test, when a learner-role session selects one to
       three unique Gold record IDs from the current subject and grade and starts,
       the application resolves and snapshots those records once and creates or
       resumes that learner's sole server-owned nine-question assessment. Its skill
       assignments rotate in selection order, its difficulty plan is
       `1,1,1,2,2,2,3,3,3`, and no question text repeats within the assessment.
-- [ ] Given an active test, when a learner answers a question with its
+- [x] Given an active test, when a learner answers a question with its
       server-issued opaque assignment token, the server atomically grades only
       that retained unanswered assignment and records its server-calculated score.
       Before completion, including on a duplicate submission, its response shows
       no correct answer, hint, solution, formative correctness, or per-question
       points.
-- [ ] Given a learner reloads during an active test, when they return while their
+- [x] Given a learner reloads during an active test, when they return while their
       authenticated session remains valid, the application resumes the same
       selected Gold records, unanswered retained question and assignment token,
       answered positions, and score. A replay for an answered assignment does not
       change the score or grade the next assignment even when it is ready, and
       does not disclose formative feedback.
-- [ ] Given a learner completes all nine test questions, when the result screen
+- [x] Given a learner completes all nine test questions, when the result screen
       appears, it shows the total score out of 180, each question's correctness
       and points, and the correct answer and solution for review; it never shows
       the learner's submitted response. The completed test remains available only
       to its learner through the active session.
-- [ ] Test attempts and scores persist separately from `learning_progress`,
+- [x] Test attempts and scores persist separately from `learning_progress`,
       practice attempts, learning-memory signals, and mastery beliefs; test
       submission cannot change Practice adaptive level or streak.
-- [ ] Invalid, duplicate, foreign, unavailable, cross-subject/grade, or
+- [x] Invalid, duplicate, foreign, unavailable, cross-subject/grade, or
       more-than-three Gold-record selections are rejected before a test is
       created. Every start and answer mutation proves the same-site authenticated
       learner-role session before reading or writing state; an answer object accepts
       only its non-empty `answer` field of at most 100 characters and cannot select
       or substitute its topic, score, difficulty, or question.
-- [ ] Given supported selected Gold records, when the learner advances to an
+- [x] Given supported selected Gold records, when the learner advances to an
       assigned test question, the server serves a retained prefetched question
       when ready and otherwise generates only the current assigned question. It
       resolves selected records once at creation, scans no curriculum records on
@@ -112,17 +112,20 @@ clear result report. Typecheck and build verify the Next.js integration.
       fingerprint, generator content version, validation-schema version, and
       validation outcome before display. A failed current assignment remains
       retryable without advancing the assessment.
-- [ ] The Test setup, active-test, resume, completion, loading, and unavailable
+- [x] The Test setup, active-test, resume, completion, loading, and unavailable
       states are keyboard-operable, visibly focused, and distinguish Test from
       Practice through their heading, instructions, feedback timing, and locked
       skill selection.
-- [ ] Given an active test, when the learner confirms Exit test, the server marks
+- [x] Given an active test, when the learner confirms Exit test, the server marks
       it `partial`, records its exit time and score-to-date, retains its answered
       question review, and permits a new test without resuming the partial one.
-- [ ] Given a learner opens History, when practice attempts and completed or
-      partial tests exist, the application shows a learner-scoped chronological
-      log of both kinds with their outcome summaries; test records remain excluded
-      from Practice mastery and adaptive progression.
+- [x] Given a learner opens the learner Performance page (which replaced the
+      former History panel under the performance-guidance spec), when practice
+      attempts and completed or partial tests exist, the application shows a
+      learner-scoped summary of both kinds with their outcome summaries; test
+      records remain excluded from Practice mastery and adaptive progression.
+      (Verified in the 2026-08-17 browser journey: practice skills, the
+      completed Test event, and the separation note render separately.)
 
 ## Assumptions
 

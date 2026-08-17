@@ -1,7 +1,9 @@
 # Manual QA: test mode assessment
 
-- **Date:** 2026-08-16
-- **Environment:** existing local Next.js development server
+- **Date:** 2026-08-16 (HTTP journey); 2026-08-17 (browser journey, current UI)
+- **Environment:** existing local Next.js development server (2026-08-16);
+  isolated-port dev server with isolated databases and the documented opt-in
+  local model configuration (2026-08-17)
 
 ## Observed HTTP journey
 
@@ -20,8 +22,41 @@
 `pnpm --dir app test` passed: 122 tests passed, 3 integration tests skipped.
 `pnpm --dir app typecheck` passed.
 
-## Browser visual QA
+## Browser visual QA (2026-08-17)
 
-Pending: exercise the rendered Practice and Test journeys in a browser, including
-mixed-skill selection, reload/resume, unavailable-question retry, completion review,
-and keyboard focus. The available harness had no browser-control tool.
+Exercised the rendered Test journey end-to-end in a real browser against the
+built app:
+
+1. **Mixed-skill selection** — switched to Test mode, selected 8.EE.7 and
+   8.F.3 via the skill browser; selection chips rendered and Start enabled.
+2. **Active test** — nine-question mixed-skill assessment started;
+   navigation locked during the test; the pre-completion state showed only
+   ordinal, question, and diagram with "Your answers and solutions appear
+   when the test is complete."
+3. **Reload/resume** — after a full dev-server restart and page reload, the
+   active test resumed at exactly Question 2 of 9 from server state.
+4. **Unavailable-question retry** — observed organically twice: a generator
+   failure rendered "This question needs another try. Your test has not
+   advanced. Retry the same question when the local generator is ready,"
+   with the test position preserved. (The reviewed question-bank fallback
+   covers some skills; generation requires the documented opt-in model
+   configuration — one small local model did not fit the structured request
+   envelope, matching the recorded limitation.)
+5. **Completion review** — after the ninth answer, the review screen showed
+   the score out of 180, every question's correct answer, and worked
+   solution steps; navigation unlocked; New test / Back to practice offered.
+6. **Keyboard focus** — every answer was submitted with the Enter key from
+   the focused input; visible focus outlines are global.
+7. **Follow-through** — Performance then showed the completed Test event and
+   one guidance card per missed standard, and the "Practice this skill"
+   action opened the exact standard's Practice flow.
+
+**Observed defect (non-blocking):** in the terminal state the assessment
+header briefly reads "Question 10 of 9" — the position counter is not reset
+when the completion screen renders. Recorded as a follow-up; the review
+content itself is correct.
+
+## Automated coverage
+
+`pnpm --dir app test` passed: 122 tests passed, 3 integration tests skipped.
+`pnpm --dir app typecheck` passed.

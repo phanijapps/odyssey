@@ -1,7 +1,7 @@
 # Plan: test mode assessment
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. It changes only with
 > the spec when implementation discovers a contract mismatch.
@@ -327,5 +327,10 @@ UI to Practice-only; no external deployment or data migration is required.
   is repaired.
 
 ## Changelog
+
+- 2026-08-17: Closed as Done — browser journeys (setup, mixed-skill active
+  test, reload/resume, unavailable-question retry, completion review,
+  keyboard use, Performance follow-through) recorded in notes/manual-qa.md;
+  one non-blocking terminal-state counter defect filed for follow-up.
 
 - 2026-08-16: Initial plan from the confirmed Practice/Test separation contract.

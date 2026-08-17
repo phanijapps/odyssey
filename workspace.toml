@@ -38,5 +38,9 @@ open = [
   # surface currently accepts the guidance-card component it never emits, and
   # the performance action schema does not cross-check sourceComponentId
   # against rendered card ids. Navigation is browse-tree gated today.
-  {slug = "a2ui-action-schema-guards", source = "spec/a2ui-learning-delivery T5", summary = "Tighten A2UI action schema guards if a parent action surface is added"}
+  {slug = "a2ui-action-schema-guards", source = "spec/a2ui-learning-delivery T5", summary = "Tighten A2UI action schema guards if a parent action surface is added"},
+  # Observed 2026-08-17 in the terminal assessment state: the header briefly
+  # renders "Question 10 of 9" — the position counter is not reset when the
+  # completion screen replaces the last question.
+  {slug = "assessment-terminal-counter-off-by-one", source = "spec/test-mode-assessment QA", summary = "Reset the question counter when the completion review renders"}
 ]
