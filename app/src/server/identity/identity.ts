@@ -102,19 +102,27 @@ function fixtureAccounts(): readonly SeedAccount[] {
   return [];
 }
 
-/** Reads exactly one explicit local-development parent bootstrap. */
-function localParentBootstrapAccount(): SeedAccount | null {
-  if (
-    process.env.NODE_ENV !== "development" ||
-    process.env.ODYSSEY_ENABLE_LOCAL_PARENT_BOOTSTRAP !== "1"
-  )
-    return null;
+/**
+ * Reads one explicitly configured first-parent bootstrap. Production requires
+ * its own opt-in flag; the seed is later suppressed once any parent exists.
+ */
+function configuredParentBootstrapAccount(): SeedAccount | null {
+  const production = process.env.NODE_ENV === "production";
+  const enabled = production
+    ? process.env.ODYSSEY_ENABLE_PRODUCTION_PARENT_BOOTSTRAP === "1"
+    : process.env.NODE_ENV === "development" &&
+      process.env.ODYSSEY_ENABLE_LOCAL_PARENT_BOOTSTRAP === "1";
+  if (!enabled) return null;
   const username = process.env.ODYSSEY_PARENT_BOOTSTRAP_USERNAME?.trim();
   const password = process.env.ODYSSEY_PARENT_BOOTSTRAP_PASSWORD;
   if (!username || !password)
-    throw new Error("Local parent bootstrap credentials are incomplete");
-  if (!/^[a-zA-Z0-9_.-]{3,64}$/.test(username) || password.length < 8)
-    throw new Error("Local parent bootstrap credentials are invalid");
+    throw new Error("Parent bootstrap credentials are incomplete");
+  if (
+    !/^[a-zA-Z0-9_.-]{3,64}$/.test(username) ||
+    password.length < 8 ||
+    password.length > 256
+  )
+    throw new Error("Parent bootstrap credentials are invalid");
   return { username, password, role: "parent", childId: "" };
 }
 
@@ -133,18 +141,14 @@ function scryptSync(password: string, salt: Buffer): Promise<Buffer> {
   });
 }
 
-/** Seeds the local accounts once; existing rows are never overwritten. */
-async function seedAccounts(): Promise<void> {
-  const parentBootstrap = localParentBootstrapAccount();
-  const accounts = [
-    ...fixtureAccounts(),
-    ...(parentBootstrap ? [parentBootstrap] : []),
-  ];
+/** Seeds optional fixture accounts; existing rows are never overwritten. */
+async function seedFixtureAccounts(): Promise<void> {
+  const accounts = fixtureAccounts();
   if (accounts.length === 0) return;
   const existing = learningDb
     .prepare("SELECT username FROM accounts")
     .all() as Array<{ username: string }>;
-  const have = new Set(existing.map((r) => r.username));
+  const have = new Set(existing.map((account) => account.username));
   const insert = learningDb.prepare(
     "INSERT INTO accounts (account_id, username, password_hash, salt, role) VALUES (?, ?, ?, ?, ?) ON CONFLICT(username) DO NOTHING",
   );
@@ -160,6 +164,51 @@ async function seedAccounts(): Promise<void> {
       account.role,
     );
   }
+}
+
+/** Seeds one configured first parent under a database write lock. */
+async function seedConfiguredParentBootstrap(): Promise<void> {
+  const account = configuredParentBootstrapAccount();
+  if (!account) return;
+  const salt = randomBytes(16);
+  const passwordHash = await scryptSync(account.password, salt);
+  learningDb.exec("BEGIN IMMEDIATE");
+  try {
+    const parentExists = learningDb
+      .prepare(
+        "SELECT 1 AS parent_exists FROM accounts WHERE role = 'parent' LIMIT 1",
+      )
+      .get() as { parent_exists: number } | undefined;
+    if (parentExists) {
+      learningDb.exec("COMMIT");
+      return;
+    }
+    const existing = learningDb
+      .prepare("SELECT role FROM accounts WHERE username = ?")
+      .get(account.username) as { role: string } | undefined;
+    if (existing)
+      throw new Error("Parent bootstrap username is already provisioned");
+    learningDb
+      .prepare(
+        "INSERT INTO accounts (account_id, username, password_hash, salt, role) VALUES (?, ?, ?, ?, 'parent')",
+      )
+      .run(
+        randomBytes(16).toString("hex"),
+        account.username,
+        passwordHash,
+        salt,
+      );
+    learningDb.exec("COMMIT");
+  } catch (error) {
+    learningDb.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+/** Seeds explicitly enabled fixture and first-parent bootstrap accounts. */
+async function seedAccounts(): Promise<void> {
+  await seedFixtureAccounts();
+  await seedConfiguredParentBootstrap();
 }
 
 const seedPromise = seedAccounts();
@@ -283,7 +332,9 @@ export async function authenticateChild(_credentials: {
   const role = parseAccountRole(account.role);
   const seededAccount = [
     ...fixtureAccounts(),
-    ...(localParentBootstrapAccount() ? [localParentBootstrapAccount()!] : []),
+    ...(configuredParentBootstrapAccount()
+      ? [configuredParentBootstrapAccount()!]
+      : []),
   ].find((candidate) => candidate.username === username);
   const childId = seededAccount?.childId ?? `child:${username}`;
 
