@@ -6,14 +6,14 @@
 - **Constrained by:** RFC-0003; RFC-0004 (Open); `performance-guidance` and `a2ui-learning-delivery` (Draft)
 - **Brief:** none
 - **Discovery:** current persona/auth boundary and Performance research, 2026-08-16
-- **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is deliberately available only under explicit development configuration; production parent provisioning/recovery requires approval. Relationship creation, password reset, and revocation write an append-only minimal local audit event retained for the lifetime of the local database; create/revoke use the fixed `parent-requested` reason and reset stores no free-text reason. No Performance BFF contract exists until the shared evidence/A2UI contracts are approved.
+- **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is deliberately available only under explicit development configuration; production parent provisioning/recovery requires approval. Relationship creation, password reset, and revocation write an append-only minimal local audit event retained for the lifetime of the local database; create/revoke use the fixed `parent-requested` reason and reset stores no free-text reason. The parent BFF is read-only `GET /api/parent/performance`: it derives the complete active linked-child scope from the parent session and returns capped aggregate Practice/Test/next-Practice facts only; it accepts no child identifier.
 - **Shape:** mixed
 
 ## Implementation status
 
-The relationship foundation and local audit trail are implemented. Production
-parent provisioning and Performance/A2UI remain blocked pending explicit
-approval.
+The relationship foundation, local audit trail, and aggregate linked-child
+Performance view are implemented. Production parent provisioning and
+non-mutating Practice preview remain deferred.
 
 ## Objective
 
@@ -76,13 +76,13 @@ reset a child password or revoke that child relationship server-side.
 
 ## Acceptance Criteria
 
-- [ ] Given no valid parent↔child link, when an account requests the portal or
+- [x] Given no valid parent↔child link, when an account requests the portal or
       any Performance child scope, it receives no child projection.
-- [ ] Given a linked parent, when the portal loads, it exposes only the linked
-      learner selection and a capped/no-store/redacted Performance A2UI surface.
-- [ ] Given relationship revocation, when any existing browser tab retries or
-      reloads, access is denied without relying on client state.
-- [ ] Given parent-visible Practice/Test evidence, it remains separate, uses
+- [x] Given a linked parent, when the portal loads, it exposes only active linked
+      children and a capped/no-store/redacted aggregate Performance view.
+- [x] Given relationship revocation, when any existing browser tab retries or
+      reloads, the revoked child is omitted without relying on client state.
+- [x] Given parent-visible Practice/Test evidence, it remains separate, uses
       child-safe factual wording, and exposes no raw answer/question/key/token or
       exact event-time data.
 - [ ] Given a parent action, it is limited to a validated support/navigation

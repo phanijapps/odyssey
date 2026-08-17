@@ -33,6 +33,12 @@ test("parent creates, resets, and revokes a child account", async ({
   await page.getByLabel("Temporary password").fill("initial-child-password");
   await page.getByRole("button", { name: "Create child" }).click();
   await expect(page.getByText("Child account created.")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Child Performance" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("0 correct Practice answers · 0-day active Practice streak"),
+  ).toBeVisible();
 
   const child = page.locator("li").filter({ hasText: "e2e-child" });
   await child.getByRole("button", { name: "Reset password" }).click();

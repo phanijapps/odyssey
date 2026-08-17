@@ -1,8 +1,23 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 type Child = { accountId: string; username: string };
+type ParentPerformance = {
+  username: string;
+  performance: {
+    practice: {
+      correctPracticeAttempts: number;
+      activePracticeDayStreak: number;
+    };
+    tests: { completed: number; partial: number };
+    nextPractice: {
+      recommended: number;
+      practicing: number;
+      checkpointMet: number;
+    };
+  };
+};
 
 async function responseError(response: Response): Promise<string> {
   const body = (await response.json().catch(() => null)) as {
@@ -11,7 +26,7 @@ async function responseError(response: Response): Promise<string> {
   return typeof body?.error === "string" ? body.error : "Request failed";
 }
 
-/** Parent-only local account management. Performance remains unavailable until its linked-child BFF ships. */
+/** Parent-only local account management and aggregate linked-child Performance. */
 export default function ParentPage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [username, setUsername] = useState("");
@@ -20,6 +35,8 @@ export default function ParentPage() {
   const [resetPassword, setResetPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [performance, setPerformance] = useState<ParentPerformance[]>([]);
+  const performanceRequest = useRef(0);
 
   const loadChildren = useCallback(async () => {
     const response = await fetch("/api/parent/children", { cache: "no-store" });
@@ -31,6 +48,32 @@ export default function ParentPage() {
     const body = (await response.json()) as { children?: Child[] };
     setChildren(body.children ?? []);
     setLoading(false);
+  }, []);
+
+  const loadPerformance = useCallback(async () => {
+    const request = ++performanceRequest.current;
+    setPerformance([]);
+    try {
+      const response = await fetch("/api/parent/performance", {
+        cache: "no-store",
+      });
+      if (request !== performanceRequest.current) return;
+      if (!response.ok) {
+        setPerformance([]);
+        setMessage(await responseError(response));
+        return;
+      }
+      const body = (await response.json()) as {
+        children?: ParentPerformance[];
+      };
+      if (request === performanceRequest.current)
+        setPerformance(body.children ?? []);
+    } catch {
+      if (request === performanceRequest.current) {
+        setPerformance([]);
+        setMessage("Performance is unavailable");
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -45,9 +88,9 @@ export default function ParentPage() {
         window.location.assign("/");
         return;
       }
-      await loadChildren();
+      await Promise.all([loadChildren(), loadPerformance()]);
     })();
-  }, [loadChildren]);
+  }, [loadChildren, loadPerformance]);
 
   async function createChild(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,7 +107,7 @@ export default function ParentPage() {
     setUsername("");
     setPassword("");
     setMessage("Child account created.");
-    await loadChildren();
+    await Promise.all([loadChildren(), loadPerformance()]);
   }
 
   async function resetChildPassword(event: FormEvent<HTMLFormElement>) {
@@ -99,9 +142,9 @@ export default function ParentPage() {
       return;
     }
     setMessage("Child access revoked.");
-    setChildren((current) =>
-      current.filter((item) => item.accountId !== child.accountId),
-    );
+    performanceRequest.current += 1;
+    setPerformance([]);
+    await Promise.all([loadChildren(), loadPerformance()]);
   }
 
   return (
@@ -125,8 +168,8 @@ export default function ParentPage() {
         <p className="eyebrow">FAMILY LEARNING</p>
         <h1>Manage child accounts</h1>
         <p>
-          Create a child account now. Linked-child Performance and Practice
-          preview arrive after their protected read model is complete.
+          Create and manage child accounts. Aggregate Practice, Test, and
+          next-Practice evidence is available only for active linked children.
         </p>
       </section>
       <section className="panel" aria-labelledby="create-child-heading">
@@ -175,6 +218,38 @@ export default function ParentPage() {
                 <button type="button" onClick={() => void revokeChild(child)}>
                   Revoke
                 </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="panel" aria-labelledby="child-performance-heading">
+        <h2 id="child-performance-heading">Child Performance</h2>
+        {loading ? (
+          <p>Loading child Performance…</p>
+        ) : performance.length === 0 ? (
+          <p>No active linked-child Performance is available yet.</p>
+        ) : (
+          <ul className="history-list">
+            {performance.map((child) => (
+              <li key={child.username}>
+                <strong>{child.username}</strong>
+                <span>
+                  {child.performance.practice.correctPracticeAttempts} correct
+                  Practice answers ·{" "}
+                  {child.performance.practice.activePracticeDayStreak}-day
+                  active Practice streak
+                </span>
+                <span>
+                  Tests: {child.performance.tests.completed} completed,{" "}
+                  {child.performance.tests.partial} partial
+                </span>
+                <span>
+                  Next Practice: {child.performance.nextPractice.recommended}{" "}
+                  recommended, {child.performance.nextPractice.practicing}{" "}
+                  practicing, {child.performance.nextPractice.checkpointMet}{" "}
+                  checkpoint met
+                </span>
               </li>
             ))}
           </ul>

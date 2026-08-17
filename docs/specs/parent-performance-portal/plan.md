@@ -93,13 +93,20 @@ learner/admin boundaries.
 
 **Depends on:** T2, `spec:performance-guidance/T3`
 
-**Status:** Blocked pending the approved shared evidence/readiness model and A2UI contract. No parent Performance endpoint or projection is implemented independently.
+**Status:** Complete for the aggregate v1 view. `GET /api/parent/performance`
+derives all active children from the parent session, returns no-store aggregate
+Practice/Test/next-Practice facts, and omits IDs, answers, questions, keys,
+tokens, scores, timestamps, and target standards.
 
 **Tests:** parent-safe projection/no-store/redaction/cross-child/stale-tab tests.
 
 **Approach:** adapt shared evidence only after server link resolution.
 
 ### T4: Render parent A2UI Performance portal
+
+**Status:** In progress. The fixed parent portal renders aggregate linked-child
+Performance; a parent-specific A2UI document and non-mutating Practice preview
+remain deferred.
 
 **Depends on:** T3, `spec:a2ui-learning-delivery/T5`
 
@@ -134,3 +141,4 @@ route.
 
 - 2026-08-16: Drafted after parent portal requirement confirmation.
 - 2026-08-16: Began relationship foundation; ambiguous prototype routes fail closed pending the protected Performance BFF.
+- 2026-08-17: Added the aggregate parent-scoped Performance BFF and portal view; preview remains deferred.
