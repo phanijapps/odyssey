@@ -1,7 +1,7 @@
 # Plan: Performance and Guidance
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 
 ## Approach
 
@@ -95,6 +95,10 @@ No user-visible result depends on JavaScript timing beyond current app behavior.
 
 ### T1: Acquire and freeze the A2UI v0.9.1 integration contract
 
+**Status:** Complete for the read-only learner Performance subset. The installed
+React 0.9.1 package resolves to web core 0.9.2; only versioned v0.9 entrypoints
+and the fixed local catalog are used.
+
 **Depends on:** `spec:mistake-to-mastery/T1`
 
 **Tests:** compile a minimal React renderer callsite against the installed
@@ -106,6 +110,10 @@ catalog, renderer capability, server action registry, evidence thresholds, card
 cap, copy/tone rules, and HTTP transport contract before components exist.
 
 ### T2: Build the Performance evidence read model
+
+**Status:** In progress. The delivered projection is a capped, redacted factual
+history summary only; thresholds, readiness, and Mistake-to-Mastery guidance
+are explicitly not implemented.
 
 **Depends on:** T1, `spec:mistake-to-mastery/T2`
 
@@ -119,6 +127,10 @@ second analytics store.
 
 ### T3: Enforce the A2UI BFF and catalog boundary
 
+**Status:** In progress. The learner-only no-store route, strict dual-side
+envelope validation, component cap/graph checks, and fixed renderer are
+implemented; actions and broader variants remain deferred.
+
 **Depends on:** T2
 
 **Touches:** `app/src/server/performance-view.*`, `app/src/app/api/performance/*`
@@ -131,6 +143,10 @@ and thin learner route; exclude parent scope and make Pi insight output optional
 and validated after deterministic evidence calculation.
 
 ### T4: Deliver the A2UI Performance page in the existing visual language
+
+**Status:** In progress. Navigation and empty-state browser coverage are
+implemented; guidance, action, Test-review, and full manual accessibility
+parity remain.
 
 **Depends on:** T3
 
@@ -164,3 +180,4 @@ History API if it remains an external compatibility surface.
 ## Changelog
 
 - 2026-08-16: Drafted from learner UI and A2UI research.
+- 2026-08-17: Implemented a bounded factual learner Performance subset without guidance/actions.

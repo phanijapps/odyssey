@@ -50,3 +50,40 @@ test("parent creates, resets, and revokes a child account", async ({
   await expect(page.getByText("Child access revoked.")).toBeVisible();
   await expect(child).toHaveCount(0);
 });
+
+test("learner Performance renders the validated A2UI surface", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await signIn(page, "e2e-parent", "e2e-parent-password");
+  await page.waitForURL("**/parent");
+
+  await page.getByLabel("Child username").fill("e2e-performance-child");
+  await page
+    .getByLabel("Temporary password")
+    .fill("performance-child-password");
+  await page.getByRole("button", { name: "Create child" }).click();
+  await expect(page.getByText("Child account created.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.waitForURL("**/");
+  await signIn(page, "e2e-performance-child", "performance-child-password");
+  await page.route("**/api/performance", (route) =>
+    route.fulfill({ status: 500, body: '{"error":"unavailable"}' }),
+  );
+  await page.goto("/performance");
+  await expect(
+    page.getByText("Performance is unavailable. Please retry."),
+  ).toBeVisible();
+  await page.unroute("**/api/performance");
+  await page.getByRole("button", { name: "Retry" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Performance" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("No Practice activity is recorded yet."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Tests do not change Practice progress or mastery."),
+  ).toBeVisible();
+});

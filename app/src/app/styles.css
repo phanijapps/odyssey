@@ -2080,3 +2080,31 @@ button {
 .test-report .secondary-btn {
   margin-left: 8px;
 }
+
+/* ---- Server-issued A2UI Performance surface ---- */
+.a2ui-column {
+  display: grid;
+  gap: 12px;
+}
+.a2ui-column h1,
+.a2ui-column h2,
+.a2ui-column p {
+  margin: 0;
+}
+.a2ui-status {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-weight: 600;
+}
+.a2ui-status-neutral {
+  background: #edf2ed;
+  color: #2a3a32;
+}
+.a2ui-status-positive {
+  background: #eff9d8;
+  color: #294313;
+}
+.a2ui-status-caution {
+  background: #fffaeb;
+  color: #7a5c10;
+}

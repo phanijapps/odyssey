@@ -144,6 +144,9 @@ export function LearnerHeader({
       <button className="ixl-link" onClick={onHistoryToggle}>
         {historyOpen ? "Hide history" : "History"}
       </button>
+      <a href="/performance" className="ixl-link">
+        Performance
+      </a>
       <a href="/dashboard" className="ixl-link">
         Dashboard
       </a>

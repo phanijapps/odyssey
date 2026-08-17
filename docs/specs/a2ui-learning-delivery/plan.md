@@ -1,7 +1,7 @@
 # Plan: A2UI Learning Delivery
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 
 ## Approach
 
@@ -86,6 +86,11 @@ if separately approved.
 
 ### T1: Acquire the official renderer contract and freeze the Odyssey catalog
 
+**Status:** Complete. `@a2ui/react@0.9.1` resolves against
+`@a2ui/web_core@0.9.2`; Odyssey explicitly uses only their v0.9 entrypoints.
+The initial local catalog is `OdysseyColumn`, `OdysseyText`, and
+`OdysseyStatus`, with no functions, bindings, data model, or actions.
+
 **Depends on:** none
 
 **Tests:** typed compile probe against exact installed packages; catalog schema
@@ -97,6 +102,10 @@ components, choose supported capabilities, and specify HTTP lifecycle/action
 transport.
 
 ### T2: Render read-only A2UI surfaces with visual parity
+
+**Status:** In progress. The fixed client adapter validates a server-issued
+Performance document before processing it and is covered by authenticated
+browser rendering; wider visual/accessibility QA remains.
 
 **Depends on:** T1
 
@@ -160,3 +169,4 @@ Performance surface or dynamic insight sharing.
 ## Changelog
 
 - 2026-08-16: Drafted after user selected official A2UI integration.
+- 2026-08-17: Implemented the bounded learner Performance foundation; question actions remain deferred.

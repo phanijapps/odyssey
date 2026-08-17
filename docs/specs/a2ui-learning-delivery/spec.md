@@ -1,13 +1,22 @@
 # Spec: A2UI Learning Delivery
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0004 (Open)
 - **Brief:** none
 - **Discovery:** A2UI primary documentation and local learning architecture, 2026-08-16
-- **Contract:** none while Draft; implementation defines A2UI catalog/action and BFF contracts
+- **Contract:** learner Performance uses a validated HTTP `GET /api/performance` envelope. The current catalog is local-only: `OdysseyColumn`, `OdysseyText`, and `OdysseyStatus`; it has no functions, bindings, data model, or actions.
 - **Shape:** mixed
+
+## Implementation status
+
+The first narrow delivery is a read-only learner Performance surface. Both the
+server compiler and client adapter validate the same strict v0.9 envelope; the
+component graph must have one non-recursive `OdysseyColumn` root, contains no
+unknown or unreachable components, and is capped before the official processor
+runs. Practice/Test question migration, bindings, actions, and parent delivery
+remain deferred.
 
 ## Objective
 

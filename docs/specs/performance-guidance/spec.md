@@ -1,13 +1,22 @@
 # Spec: Performance and Guidance
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0004 (Open); `mistake-to-mastery` (Draft)
 - **Brief:** none
 - **Discovery:** local UI, privacy, and assessment research, 2026-08-16
-- **Contract:** none while Draft; implementation defines a versioned internal BFF contract
+- **Contract:** learner-only `GET /api/performance` returns `{ document }`, a strict local A2UI v0.9 envelope; it accepts no learner identifier and responds `Cache-Control: no-store`.
 - **Shape:** mixed
+
+## Implementation status
+
+The initial learner-only delivery is factual and read-only: it reports capped
+recent reviewed Practice skill codes and completed/partial Test events as separate
+sections. It has neutral empty states and intentionally makes no readiness,
+mastery, accuracy, score, or guidance claim. The server compiles and validates
+the document; the client validates it again before its fixed local catalog
+renders it. Guidance and action variants remain deferred.
 
 ## Objective
 
@@ -62,22 +71,22 @@ a validated A2UI v0.9.1 surface rendered through Odyssey’s fixed React catalog
 
 ## Acceptance Criteria
 
-- [ ] Given the learner layout, when the learner chooses Performance, a distinct
+- [x] Given the learner layout, when the learner chooses Performance, a distinct
       page opens without changing current Practice or Test layout/style contracts.
-- [ ] Given sparse or no evidence, when Performance loads, it shows a factual
+- [x] Given sparse or no evidence, when Performance loads, it shows a factual
       neutral state and no accuracy, deficiency, mastery, or comparison label.
 - [ ] Given sufficient Practice evidence, when Performance loads, it shows a
       bounded server-computed activity/skill projection with evidence status and no
       raw attempt or question data.
-- [ ] Given terminal Tests, when Performance loads, completed and partial Test
+- [x] Given terminal Tests, when Performance loads, completed and partial Test
       events appear separately from formative Practice evidence and state that Tests
       do not alter Practice mastery.
 - [ ] Given Mistake-to-Mastery targets, when Performance loads, it renders only
       the validated closed guidance variants and their validated internal actions.
-- [ ] Given an unknown/malformed view document, when the route or renderer sees
+- [x] Given an unknown/malformed view document, when the route or renderer sees
       it, it rejects it safely and shows a retryable fallback; it never silently
       ignores unknown fields or renders arbitrary content.
-- [ ] Given a learner session, when Performance data is requested, it is scoped
+- [x] Given a learner session, when Performance data is requested, it is scoped
       to that learner, `Cache-Control: no-store`, capped, redacted, and read-only.
 - [ ] Given a valid Practice action, when selected, it opens the matching
       existing Practice target; invalid/stale actions cannot select another target.
@@ -90,10 +99,10 @@ Performance uses A2UI **v0.9.1**, the current stable protocol/release documented
 at <https://a2ui.org/specification/v0.9.1-a2ui/>. Its renderer dependencies are
 recorded in RFC-0004 before installation. V1 uses HTTP request/response surfaces
 and explicit server action posts; SSE/streaming is deferred until an actual
-progressive-insight use case requires it. The approved catalog contains only
-Odyssey `Text`, `Card`, `List`, `ChoicePicker`, `TextField`, `Button`, and
-semantic status components mapped to fixed React components. True/false is a
-`ChoicePicker` restricted to exactly two server-issued choices.
+progressive-insight use case requires it. The initial catalog contains only Odyssey `Column`, `Text`, and semantic
+`Status` components mapped to fixed React components. It has no functions,
+bindings, actions, or data model. Additional question/action components remain
+subject to the existing approval gate.
 
 ## Assumptions
 
