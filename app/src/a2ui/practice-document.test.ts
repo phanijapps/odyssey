@@ -173,3 +173,23 @@ test("resolves the bound answer into the fixed submit action", async () => {
     ]);
   binder.dispose();
 });
+
+
+test("compiles bounded multiple-choice and true-false components with only /answer", () => {
+  for (const interaction of [
+    { type: "multiple-choice" as const, prompt: "Choose.", options: ["one", "two"] },
+    { type: "true-false" as const, prompt: "True or false?" },
+  ]) {
+    const document = createPracticeA2uiDocument({
+      topicId,
+      assignmentToken,
+      interaction,
+    });
+    const answer = document.messages[2].updateComponents.components[2];
+    expect(answer).toMatchObject({
+      id: "answer",
+      value: { path: "/answer" },
+    });
+    expect(JSON.stringify(document)).not.toMatch(/correctAnswer|expectedAnswer|solution/i);
+  }
+});

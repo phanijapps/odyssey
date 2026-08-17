@@ -5,6 +5,11 @@ import {
   type ResolvedGoldRecord,
 } from "../curriculum/gold-query";
 import { checkAnswer } from "./learning";
+import {
+  learnerQuestionInteractionSchema,
+  textResponseInteraction,
+  type LearnerQuestionInteraction,
+} from "./question-interactions";
 import { validateLearningPayload } from "../validation/payloads";
 import { learningDb, withLearningTransaction } from "./sqlite-repository";
 
@@ -578,6 +583,7 @@ export function getAssessmentQuestionForDisplay(input: {
   readonly ordinal: number;
   readonly total: number;
   readonly question: unknown;
+  readonly interaction: LearnerQuestionInteraction;
   readonly assignmentToken: string;
   readonly diagramSvg?: string;
 } | null {
@@ -615,14 +621,21 @@ export function getAssessmentQuestionForDisplay(input: {
     }
     const payload = JSON.parse(row.question_payload_json) as {
       question?: unknown;
+      interaction?: unknown;
       diagramSvg?: unknown;
     };
     if (typeof payload.question !== "string")
+      throw new Error("Assessment question unavailable");
+    const interaction = learnerQuestionInteractionSchema.parse(
+      payload.interaction ?? textResponseInteraction(payload.question),
+    );
+    if (interaction.prompt !== payload.question)
       throw new Error("Assessment question unavailable");
     return {
       ordinal: row.ordinal,
       total: DIFFICULTY_PLAN.length,
       question: payload.question,
+      interaction,
       assignmentToken,
       ...(typeof payload.diagramSvg === "string"
         ? { diagramSvg: payload.diagramSvg }

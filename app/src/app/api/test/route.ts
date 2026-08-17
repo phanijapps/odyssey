@@ -78,11 +78,13 @@ export async function presentAssessment(
     display && typeof display.question === "string"
       ? {
           ...display,
-          interaction: textResponseInteraction(display.question),
+          interaction:
+            display.interaction ?? textResponseInteraction(display.question),
           a2ui: createTestA2uiDocument({
             assessmentId,
             assignmentToken: display.assignmentToken,
-            question: display.question,
+            interaction:
+              display.interaction ?? textResponseInteraction(display.question),
           }),
         }
       : null;

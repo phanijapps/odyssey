@@ -178,7 +178,7 @@ function makeBankQuestion(
   return {
     id: `bank-${topicId}-${difficulty}-${Date.now()}`,
     question: entry.question,
-    interaction: textResponseInteraction(entry.question),
+    interaction: entry.interaction ?? textResponseInteraction(entry.question),
     answer: entry.expectedAnswer,
     acceptableAnswers: entry.acceptableAnswers ?? [],
     hint: entry.hint,

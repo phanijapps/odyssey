@@ -94,10 +94,63 @@ const OdysseyTextResponse = createComponentImplementation(
   ),
 );
 
+const OdysseyMultipleChoice = createComponentImplementation(
+  {
+    name: "OdysseyMultipleChoice",
+    schema: z.object({
+      label: z.string(),
+      options: z.array(z.string()).min(2).max(4),
+      value: CommonSchemas.DynamicString,
+      action: CommonSchemas.Action,
+    }),
+  },
+  ({ props }) => (
+    <form className="answer-row" onSubmit={(event) => { event.preventDefault(); props.action(); }}>
+      <fieldset>
+        <legend className="sr-only">{props.label}</legend>
+        {props.options.map((option: string, index: number) => (
+          <label key={option} htmlFor={`odyssey-a2ui-choice-${index}`}>
+            <input id={`odyssey-a2ui-choice-${index}`} type="radio" name="odyssey-a2ui-answer" value={option} checked={props.value === option} onChange={() => props.setValue(option)} />
+            {option}
+          </label>
+        ))}
+      </fieldset>
+      <button className="primary-button" type="submit" disabled={!props.value}>Check</button>
+    </form>
+  ),
+);
+
+const OdysseyTrueFalse = createComponentImplementation(
+  {
+    name: "OdysseyTrueFalse",
+    schema: z.object({
+      label: z.string(),
+      value: CommonSchemas.DynamicString,
+      action: CommonSchemas.Action,
+    }),
+  },
+  ({ props }) => (
+    <form className="answer-row" onSubmit={(event) => { event.preventDefault(); props.action(); }}>
+      <fieldset>
+        <legend className="sr-only">{props.label}</legend>
+        {["true", "false"].map((option) => (
+          <label key={option} htmlFor={`odyssey-a2ui-${option}`}>
+            <input id={`odyssey-a2ui-${option}`} type="radio" name="odyssey-a2ui-answer" value={option} checked={props.value === option} onChange={() => props.setValue(option)} />
+            {option === "true" ? "True" : "False"}
+          </label>
+        ))}
+      </fieldset>
+      <button className="primary-button" type="submit" disabled={!props.value}>Check</button>
+    </form>
+  ),
+);
+
 const testCatalog = new Catalog(ODYSSEY_A2UI_CATALOG_ID, [
   OdysseyText,
   OdysseyColumn,
   OdysseyTextResponse,
+  OdysseyMultipleChoice,
+  OdysseyTrueFalse,
 ]);
 type TestSurfaceModel = SurfaceModel<typeof OdysseyText>;
 

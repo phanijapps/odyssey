@@ -210,7 +210,9 @@ export async function GET(request: Request): Promise<Response> {
           ? createPracticeA2uiDocument({
               topicId,
               assignmentToken: claimed.assignmentToken,
-              question: claimed.question.question,
+              interaction:
+                claimed.question.interaction ??
+                textResponseInteraction(claimed.question.question),
             })
           : undefined,
       },

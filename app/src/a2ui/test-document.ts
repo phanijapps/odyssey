@@ -41,6 +41,25 @@ const textResponseComponent = z
     action: submitAction,
   })
   .strict();
+const multipleChoiceComponent = z
+  .object({
+    component: z.literal("OdysseyMultipleChoice"),
+    id: z.literal("answer"),
+    label: z.string().min(1).max(120),
+    options: z.array(z.string().min(1).max(120)).min(2).max(4),
+    value: z.object({ path: z.literal("/answer") }).strict(),
+    action: submitAction,
+  })
+  .strict();
+const trueFalseComponent = z
+  .object({
+    component: z.literal("OdysseyTrueFalse"),
+    id: z.literal("answer"),
+    label: z.string().min(1).max(120),
+    value: z.object({ path: z.literal("/answer") }).strict(),
+    action: submitAction,
+  })
+  .strict();
 const columnComponent = z
   .object({
     component: z.literal("OdysseyColumn"),
@@ -51,6 +70,8 @@ const columnComponent = z
 const component = z.discriminatedUnion("component", [
   textComponent,
   textResponseComponent,
+  multipleChoiceComponent,
+  trueFalseComponent,
   columnComponent,
 ]);
 
@@ -106,7 +127,9 @@ export const odysseyTestA2uiDocumentSchema = z
       root.children[0] !== "question" ||
       root.children[1] !== "answer" ||
       byId.get("question")?.component !== "OdysseyText" ||
-      byId.get("answer")?.component !== "OdysseyTextResponse"
+      !["OdysseyTextResponse", "OdysseyMultipleChoice", "OdysseyTrueFalse"].includes(
+        byId.get("answer")?.component ?? "",
+      )
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -125,62 +148,40 @@ export function parseOdysseyTestA2uiDocument(
   return odysseyTestA2uiDocumentSchema.parse(value);
 }
 
-/** Compiles a server-issued text-response assignment into Odyssey's fixed catalog. */
+/** Compiles one server-issued response shape into Odyssey's fixed catalog. */
 export function createTestA2uiDocument(input: {
   assessmentId: string;
   assignmentToken: string;
-  question: string;
+  /** Legacy text callers may supply question; new callers supply interaction. */
+  question?: string;
+  interaction?:
+    | { type: "text-response"; prompt: string; response: { maxLength: 100 } }
+    | { type: "multiple-choice"; prompt: string; options: readonly string[] }
+    | { type: "true-false"; prompt: string };
 }): OdysseyTestA2uiDocument {
+  const interaction = input.interaction ?? {
+    type: "text-response" as const,
+    prompt: input.question ?? "",
+    response: { maxLength: 100 as const },
+  };
+  const answer =
+    interaction.type === "text-response"
+      ? { component: "OdysseyTextResponse" as const, id: "answer" as const, label: "Type your answer", maxLength: 100 as const, value: { path: "/answer" as const } }
+      : interaction.type === "multiple-choice"
+        ? { component: "OdysseyMultipleChoice" as const, id: "answer" as const, label: "Choose one answer", options: [...interaction.options], value: { path: "/answer" as const } }
+        : { component: "OdysseyTrueFalse" as const, id: "answer" as const, label: "Choose true or false", value: { path: "/answer" as const } };
   return parseOdysseyTestA2uiDocument({
     messages: [
-      {
-        version: "v0.9",
-        createSurface: {
-          surfaceId: "odyssey-test",
-          catalogId: ODYSSEY_A2UI_CATALOG_ID,
-        },
-      },
-      {
-        version: "v0.9",
-        updateDataModel: {
-          surfaceId: "odyssey-test",
-          path: "/answer",
-          value: "",
-        },
-      },
+      { version: "v0.9", createSurface: { surfaceId: "odyssey-test", catalogId: ODYSSEY_A2UI_CATALOG_ID } },
+      { version: "v0.9", updateDataModel: { surfaceId: "odyssey-test", path: "/answer", value: "" } },
       {
         version: "v0.9",
         updateComponents: {
           surfaceId: "odyssey-test",
           components: [
-            {
-              component: "OdysseyColumn",
-              id: "root",
-              children: ["question", "answer"],
-            },
-            {
-              component: "OdysseyText",
-              id: "question",
-              text: input.question,
-              variant: "h2",
-            },
-            {
-              component: "OdysseyTextResponse",
-              id: "answer",
-              label: "Type your answer",
-              maxLength: 100,
-              value: { path: "/answer" },
-              action: {
-                event: {
-                  name: "test.submit",
-                  context: {
-                    assessmentId: input.assessmentId,
-                    assignmentToken: input.assignmentToken,
-                    answer: { path: "/answer" },
-                  },
-                },
-              },
-            },
+            { component: "OdysseyColumn", id: "root", children: ["question", "answer"] },
+            { component: "OdysseyText", id: "question", text: interaction.prompt, variant: "h2" },
+            { ...answer, action: { event: { name: "test.submit", context: { assessmentId: input.assessmentId, assignmentToken: input.assignmentToken, answer: { path: "/answer" } } } } },
           ],
         },
       },

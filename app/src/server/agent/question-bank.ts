@@ -1,10 +1,18 @@
 import "server-only";
 
+import {
+  multipleChoiceInteraction,
+  trueFalseInteraction,
+  type LearnerQuestionInteraction,
+} from "../learning/question-interactions";
+
 /** A reviewed practice question with its answer, optional hint, and diagram. */
 export type QuestionBankEntry = {
   readonly question: string;
   readonly expectedAnswer: string;
   readonly acceptableAnswers?: readonly string[];
+  /** Server-chosen response shape; its correct option is never identified. */
+  readonly interaction?: LearnerQuestionInteraction;
   readonly hint: string;
   readonly diagramSvg: string;
 };
@@ -28,6 +36,10 @@ export const questionBank: Readonly<
         "In a classroom, the ratio of boys to girls is 3:2. If there are 6 boys, how many girls are there?",
       expectedAnswer: "4",
       acceptableAnswers: ["4 girls"],
+      interaction: multipleChoiceInteraction(
+        "In a classroom, the ratio of boys to girls is 3:2. If there are 6 boys, how many girls are there?",
+        ["2", "4", "6", "8"],
+      ),
       hint: "3 boys to 2 girls. If 3 becomes 6 (doubled), what does 2 become?",
       diagramSvg:
         '<svg xmlns="http://www.w3.org/2000/svg" aria-label="ratio diagram" viewBox="0 0 200 80"><rect x="10" y="20" width="30" height="30" rx="4" fill="#6b9bd8" /><rect x="45" y="20" width="30" height="30" rx="4" fill="#6b9bd8" /><rect x="80" y="20" width="30" height="30" rx="4" fill="#6b9bd8" /><rect x="130" y="20" width="30" height="30" rx="4" fill="#e88b8b" /><rect x="165" y="20" width="30" height="30" rx="4" fill="#e88b8b" /><text x="60" y="65" fill="#333333">boys</text><text x="160" y="65" fill="#333333">girls</text></svg>',
@@ -52,10 +64,12 @@ export const questionBank: Readonly<
     },
     {
       question:
-        "A car travels 240 miles on 8 gallons of gas. What is the ratio of miles to gallons?",
-      expectedAnswer: "30:1",
-      acceptableAnswers: ["30 to 1"],
-      hint: "Divide miles by gallons to find miles per gallon, then write it as a ratio.",
+        "True or false: A car that travels 240 miles on 8 gallons uses 30 miles per gallon.",
+      expectedAnswer: "true",
+      interaction: trueFalseInteraction(
+        "True or false: A car that travels 240 miles on 8 gallons uses 30 miles per gallon.",
+      ),
+      hint: "Divide miles by gallons to find the miles traveled per gallon.",
       diagramSvg:
         '<svg xmlns="http://www.w3.org/2000/svg" aria-label="ratio diagram" viewBox="0 0 200 80"><text x="30" y="35" fill="#333333">240 miles</text><text x="120" y="35" fill="#333333">8 gallons</text><text x="70" y="60" fill="#666666">miles : gallons = ?</text></svg>',
     },

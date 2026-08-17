@@ -32,10 +32,7 @@ export type LearnerQuestionInteraction = z.infer<
   typeof learnerQuestionInteractionSchema
 >;
 
-/**
- * Current question sources issue text responses only. The response type is
- * server-chosen and deliberately contains no answer, rubric, score, or token.
- */
+/** Issues a bounded server-owned text response without answer material. */
 export function textResponseInteraction(
   prompt: string,
 ): LearnerQuestionInteraction {
@@ -44,4 +41,23 @@ export function textResponseInteraction(
     prompt,
     response: { maxLength: 100 },
   });
+}
+
+/** Issues server-selected choices; correctness remains with the assignment. */
+export function multipleChoiceInteraction(
+  prompt: string,
+  options: readonly string[],
+): LearnerQuestionInteraction {
+  return learnerQuestionInteractionSchema.parse({
+    type: "multiple-choice",
+    prompt,
+    options,
+  });
+}
+
+/** Issues the fixed boolean choices; correctness remains with the assignment. */
+export function trueFalseInteraction(
+  prompt: string,
+): LearnerQuestionInteraction {
+  return learnerQuestionInteractionSchema.parse({ type: "true-false", prompt });
 }
