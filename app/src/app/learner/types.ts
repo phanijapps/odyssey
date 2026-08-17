@@ -1,3 +1,5 @@
+import type { OdysseyTestA2uiDocument } from "../../a2ui/test-document";
+
 export type FlatStandard = {
   id: string;
   standardCode: string;
@@ -40,6 +42,7 @@ export type AssessmentQuestion = {
   question: string;
   assignmentToken: string;
   interaction?: unknown;
+  a2ui?: OdysseyTestA2uiDocument;
   diagramSvg?: string;
 };
 

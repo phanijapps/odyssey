@@ -1,0 +1,207 @@
+import { z } from "zod";
+
+import { ODYSSEY_A2UI_CATALOG_ID } from "./document";
+
+const componentId = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/);
+const assessmentId = z.string().uuid();
+const assignmentToken = z.string().regex(/^[A-Za-z0-9_-]{32,}$/);
+
+const submitAction = z
+  .object({
+    event: z
+      .object({
+        name: z.literal("test.submit"),
+        context: z
+          .object({
+            assessmentId,
+            assignmentToken,
+            answer: z.object({ path: z.literal("/answer") }).strict(),
+          })
+          .strict(),
+      })
+      .strict(),
+  })
+  .strict();
+
+const textComponent = z
+  .object({
+    component: z.literal("OdysseyText"),
+    id: componentId,
+    text: z.string().min(1).max(320),
+    variant: z.enum(["h1", "h2", "body", "caption"]).optional(),
+  })
+  .strict();
+const textResponseComponent = z
+  .object({
+    component: z.literal("OdysseyTextResponse"),
+    id: z.literal("answer"),
+    label: z.string().min(1).max(120),
+    maxLength: z.literal(100),
+    value: z.object({ path: z.literal("/answer") }).strict(),
+    action: submitAction,
+  })
+  .strict();
+const columnComponent = z
+  .object({
+    component: z.literal("OdysseyColumn"),
+    id: componentId,
+    children: z.array(componentId).max(3),
+  })
+  .strict();
+const component = z.discriminatedUnion("component", [
+  textComponent,
+  textResponseComponent,
+  columnComponent,
+]);
+
+const createSurface = z
+  .object({
+    version: z.literal("v0.9"),
+    createSurface: z
+      .object({
+        surfaceId: z.literal("odyssey-test"),
+        catalogId: z.literal(ODYSSEY_A2UI_CATALOG_ID),
+      })
+      .strict(),
+  })
+  .strict();
+const updateDataModel = z
+  .object({
+    version: z.literal("v0.9"),
+    updateDataModel: z
+      .object({
+        surfaceId: z.literal("odyssey-test"),
+        path: z.literal("/answer"),
+        value: z.literal(""),
+      })
+      .strict(),
+  })
+  .strict();
+const updateComponents = z
+  .object({
+    version: z.literal("v0.9"),
+    updateComponents: z
+      .object({
+        surfaceId: z.literal("odyssey-test"),
+        components: z.array(component).length(3),
+      })
+      .strict(),
+  })
+  .strict();
+
+/** Strict A2UI v0.9 Test surface with one server-bound submit action. */
+export const odysseyTestA2uiDocumentSchema = z
+  .object({
+    messages: z.tuple([createSurface, updateDataModel, updateComponents]),
+  })
+  .strict()
+  .superRefine((document, context) => {
+    const components = document.messages[2].updateComponents.components;
+    const byId = new Map(components.map((item) => [item.id, item]));
+    const root = byId.get("root");
+    if (
+      !root ||
+      root.component !== "OdysseyColumn" ||
+      root.children.length !== 2 ||
+      root.children[0] !== "question" ||
+      root.children[1] !== "answer" ||
+      byId.get("question")?.component !== "OdysseyText" ||
+      byId.get("answer")?.component !== "OdysseyTextResponse"
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Test A2UI document has an invalid fixed component graph",
+      });
+  });
+
+export type OdysseyTestA2uiDocument = z.infer<
+  typeof odysseyTestA2uiDocumentSchema
+>;
+
+/** Rejects every unregistered component, binding, function, and action shape. */
+export function parseOdysseyTestA2uiDocument(
+  value: unknown,
+): OdysseyTestA2uiDocument {
+  return odysseyTestA2uiDocumentSchema.parse(value);
+}
+
+/** Compiles a server-issued text-response assignment into Odyssey's fixed catalog. */
+export function createTestA2uiDocument(input: {
+  assessmentId: string;
+  assignmentToken: string;
+  question: string;
+}): OdysseyTestA2uiDocument {
+  return parseOdysseyTestA2uiDocument({
+    messages: [
+      {
+        version: "v0.9",
+        createSurface: {
+          surfaceId: "odyssey-test",
+          catalogId: ODYSSEY_A2UI_CATALOG_ID,
+        },
+      },
+      {
+        version: "v0.9",
+        updateDataModel: {
+          surfaceId: "odyssey-test",
+          path: "/answer",
+          value: "",
+        },
+      },
+      {
+        version: "v0.9",
+        updateComponents: {
+          surfaceId: "odyssey-test",
+          components: [
+            {
+              component: "OdysseyColumn",
+              id: "root",
+              children: ["question", "answer"],
+            },
+            {
+              component: "OdysseyText",
+              id: "question",
+              text: input.question,
+              variant: "h2",
+            },
+            {
+              component: "OdysseyTextResponse",
+              id: "answer",
+              label: "Type your answer",
+              maxLength: 100,
+              value: { path: "/answer" },
+              action: {
+                event: {
+                  name: "test.submit",
+                  context: {
+                    assessmentId: input.assessmentId,
+                    assignmentToken: input.assignmentToken,
+                    answer: { path: "/answer" },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    ],
+  });
+}
+
+/** The only client event accepted from the fixed Test A2UI surface. */
+export const odysseyTestA2uiActionSchema = z
+  .object({
+    name: z.literal("test.submit"),
+    surfaceId: z.literal("odyssey-test"),
+    sourceComponentId: z.literal("answer"),
+    context: z
+      .object({
+        assessmentId,
+        assignmentToken,
+        answer: z.string().trim().min(1).max(100),
+      })
+      .strict(),
+  })
+  .strict();
+
+export type OdysseyTestA2uiAction = z.infer<typeof odysseyTestA2uiActionSchema>;

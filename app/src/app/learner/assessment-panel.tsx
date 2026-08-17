@@ -1,4 +1,6 @@
 import { FormEvent } from "react";
+import { OdysseyTestA2uiSurface } from "../test-a2ui-surface";
+import type { OdysseyTestA2uiAction } from "../../a2ui/test-document";
 import { MathText } from "@/components/math-text";
 import { parseTextResponseInteraction } from "./question-interaction";
 import {
@@ -18,6 +20,7 @@ type AssessmentPanelProps = {
   testLoading: boolean;
   testSelectedIds: string[];
   onAnswerChange: (answer: string) => void;
+  onA2uiSubmit: (action: OdysseyTestA2uiAction) => Promise<void>;
   onExit: () => void;
   onLoadActiveTest: (assessmentId: string) => void;
   onNewTest: () => void;
@@ -38,6 +41,7 @@ export function AssessmentPanel({
   testLoading,
   testSelectedIds,
   onAnswerChange,
+  onA2uiSubmit,
   onExit,
   onLoadActiveTest,
   onNewTest,
@@ -177,30 +181,39 @@ export function AssessmentPanel({
       ) : assessmentQuestion ? (
         <div className="question-card">
           <div className="question-copy">
-            <h2 className="question-text">
-              <MathText>{assessmentQuestion.question}</MathText>
-            </h2>
-            <form onSubmit={onSubmitAnswer} className="answer-row">
-              <input
-                className="answer-input"
-                value={answer}
-                onChange={(event) => onAnswerChange(event.target.value)}
-                maxLength={
-                  parseTextResponseInteraction(assessmentQuestion.interaction)
-                    ?.response.maxLength ?? 100
-                }
-                placeholder="Type your answer"
-                disabled={testLoading}
-                autoFocus
+            {!assessmentQuestion.a2ui && (
+              <h2 className="question-text">
+                <MathText>{assessmentQuestion.question}</MathText>
+              </h2>
+            )}
+            {assessmentQuestion.a2ui ? (
+              <OdysseyTestA2uiSurface
+                document={assessmentQuestion.a2ui}
+                onSubmit={onA2uiSubmit}
               />
-              <button
-                className="primary-button"
-                type="submit"
-                disabled={testLoading || !answer.trim()}
-              >
-                {testLoading ? "Saving…" : "Submit answer"}
-              </button>
-            </form>
+            ) : (
+              <form onSubmit={onSubmitAnswer} className="answer-row">
+                <input
+                  className="answer-input"
+                  value={answer}
+                  onChange={(event) => onAnswerChange(event.target.value)}
+                  maxLength={
+                    parseTextResponseInteraction(assessmentQuestion.interaction)
+                      ?.response.maxLength ?? 100
+                  }
+                  placeholder="Type your answer"
+                  disabled={testLoading}
+                  autoFocus
+                />
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={testLoading || !answer.trim()}
+                >
+                  {testLoading ? "Saving…" : "Submit answer"}
+                </button>
+              </form>
+            )}
             <p className="loading-text">
               Your answers and solutions appear when the test is complete.
             </p>

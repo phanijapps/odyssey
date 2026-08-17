@@ -6,6 +6,7 @@ import type {
   OdysseyPracticeA2uiAction,
   OdysseyPracticeA2uiDocument,
 } from "../a2ui/practice-document";
+import type { OdysseyTestA2uiAction } from "../a2ui/test-document";
 import { LearnerHeader } from "./learner/learner-header";
 import { LearningHistory } from "./learner/learning-history";
 import { PracticePanel } from "./learner/practice-panel";
@@ -642,10 +643,12 @@ export default function HomePage() {
     }
   }
 
-  async function submitTestAnswer(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!assessment || !assessmentQuestion || !answer.trim() || testLoading)
-      return;
+  async function saveTestAnswer(
+    answerValue: string,
+    assessmentId: string,
+    assignmentToken: string,
+  ) {
+    if (!answerValue.trim() || testLoading) return;
     setTestLoading(true);
     setTestError("");
     try {
@@ -656,9 +659,9 @@ export default function HomePage() {
           origin: window.location.origin,
         },
         body: JSON.stringify({
-          assessmentId: assessment.id,
-          answer,
-          assignmentToken: assessmentQuestion.assignmentToken,
+          assessmentId,
+          answer: answerValue,
+          assignmentToken,
         }),
       });
       if (!res.ok) throw new Error();
@@ -672,6 +675,24 @@ export default function HomePage() {
     } finally {
       setTestLoading(false);
     }
+  }
+
+  function submitTestAnswer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!assessment || !assessmentQuestion) return;
+    void saveTestAnswer(
+      answer,
+      assessment.id,
+      assessmentQuestion.assignmentToken,
+    );
+  }
+
+  function submitA2uiTestAnswer(action: OdysseyTestA2uiAction) {
+    return saveTestAnswer(
+      action.context.answer,
+      action.context.assessmentId,
+      action.context.assignmentToken,
+    );
   }
 
   /* ---- Derived data ---- */
@@ -850,6 +871,7 @@ export default function HomePage() {
             testLoading={testLoading}
             testSelectedIds={testSelectedIds}
             onAnswerChange={setAnswer}
+            onA2uiSubmit={submitA2uiTestAnswer}
             onExit={() => void exitTest()}
             onLoadActiveTest={(assessmentId) =>
               void loadActiveTest(assessmentId)

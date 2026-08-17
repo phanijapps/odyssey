@@ -15,10 +15,10 @@ The first narrow delivery is a read-only learner Performance surface. Both the
 server compiler and client adapter validate the same strict v0.9 envelope; the
 component graph must have one non-recursive `OdysseyColumn` root, contains no
 unknown or unreachable components, and is capped before the official processor
-runs. Practice now has a fixed text-response A2UI surface with a local-only
-`/answer` binding and a strict `practice.submit` action mapped to the existing
-opaque-token route. Test A2UI migration, multiple-choice/true-false rendering,
-and parent delivery remain deferred.
+runs. Practice and Test now have fixed text-response A2UI surfaces with a local-only
+`/answer` binding and strict `practice.submit`/`test.submit` actions mapped to
+their existing opaque-token routes. Multiple-choice/true-false rendering and
+parent delivery remain deferred.
 
 ## Objective
 

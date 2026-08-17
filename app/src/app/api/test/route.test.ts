@@ -76,13 +76,13 @@ test("presents a bounded interaction without assessment answer material", async 
     ordinal: 1,
     total: 9,
     question: "Solve 2x = 8.",
-    assignmentToken: "assignment-1",
+    assignmentToken: "11111111-1111-4111-8111-111111111111",
   });
   getAssessmentState.mockReturnValue({ id: "assessment-1", status: "active" });
 
   const response = await presentAssessment(
     { learnerId: "learner-1", role: "student" },
-    "assessment-1",
+    "11111111-1111-4111-8111-111111111111",
   );
 
   expect(response).toMatchObject({
@@ -93,9 +93,16 @@ test("presents a bounded interaction without assessment answer material", async 
         prompt: "Solve 2x = 8.",
         response: { maxLength: 100 },
       },
+      a2ui: {
+        messages: [
+          { createSurface: { surfaceId: "odyssey-test" } },
+          { updateDataModel: { path: "/answer", value: "" } },
+          expect.any(Object),
+        ],
+      },
     },
   });
   expect(JSON.stringify(response.question)).not.toMatch(
-    /correctAnswer|answer|score|solution/i,
+    /correctAnswer|score|solution/i,
   );
 });

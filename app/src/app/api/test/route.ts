@@ -1,3 +1,4 @@
+import { createTestA2uiDocument } from "../../../a2ui/test-document";
 import { generateLazyQuestion } from "../../../server/agent/adaptive-pool";
 import { textResponseInteraction } from "../../../server/learning/question-interactions";
 import {
@@ -78,6 +79,11 @@ export async function presentAssessment(
       ? {
           ...display,
           interaction: textResponseInteraction(display.question),
+          a2ui: createTestA2uiDocument({
+            assessmentId,
+            assignmentToken: display.assignmentToken,
+            question: display.question,
+          }),
         }
       : null;
   return {

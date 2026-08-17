@@ -119,10 +119,10 @@ entries to existing fixed components without moving grading/state policy.
 
 **Status:** In progress. Practice now issues a bounded versioned
 `text-response` interaction DTO alongside its existing opaque assignment; Test
-also returns the same bounded DTO with no answer material. Existing Practice
-and Test inputs validate and consume the server-issued maximum-length bound.
-Multiple-choice and true-false source support and A2UI rendering remain
-deferred.
+also returns the same bounded DTO with no answer material. Both current
+text-response surfaces validate and consume the server-issued maximum-length
+bound through the fixed A2UI catalog. Multiple-choice and true-false source
+support and A2UI rendering remain deferred.
 
 **Depends on:** T1
 
@@ -135,11 +135,11 @@ server boundary.
 
 ### T4: Bind A2UI actions to token-bound Practice and Test grading
 
-**Status:** In progress. A server-compiled Practice text-response surface uses
-only `/answer` local binding and the fixed `practice.submit` event. The client
-parses its source/surface/context before a hardcoded `POST /api/answer`; the
-existing opaque assignment token remains the grading authority. Test and other
-interaction-type actions remain deferred.
+**Status:** In progress. Server-compiled Practice and Test text-response
+surfaces use only `/answer` local binding and fixed `practice.submit` and
+`test.submit` events. The client parses each source/surface/context before a
+hardcoded post to its existing answer route; opaque assignment tokens remain
+the grading authority. Other interaction-type actions remain deferred.
 
 **Depends on:** T2, T3
 
