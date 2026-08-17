@@ -3,6 +3,7 @@ import {
   authenticateChild,
   setSessionPool,
 } from "../../../server/identity/identity";
+import { withGoldDatabase } from "../../../server/curriculum/gold-database";
 import { POST } from "./route";
 import { GET as progressGET } from "../progress/route";
 
@@ -30,6 +31,37 @@ test("after answering, the next fetched question stays on the standard", async (
     password: "test-learner-password",
   });
   const token = session.sessionToken;
+  // The standard fixture belongs to this test's isolated curriculum database;
+  // never borrow whatever curriculum an interactive local server has loaded.
+  withGoldDatabase((database) => {
+    database
+      .prepare(
+        `INSERT INTO gold_curriculum_records
+          (record_id, subject, framework, content_json, source_fingerprint,
+           prompt_version, model, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        "standard-scope-8-ee-6",
+        "Mathematics",
+        "fixture",
+        JSON.stringify({
+          id: "standard-scope-8-ee-6",
+          subject: "Mathematics",
+          gradeOrCourse: "Grade 8",
+          domain: "Expressions and Equations",
+          standardCode: "8.EE.6",
+          standardText:
+            "Use similar triangles to explain why the slope m is the same between any two distinct points on a non-vertical line in the coordinate plane.",
+          topics: ["linear"],
+          source: { documentId: "fixture", page: 1 },
+        }),
+        "fixture",
+        "v1",
+        "fixture",
+        "2026-01-01",
+      );
+  });
 
   // Seed a one-question pool for 8.EE.6 so answering has an active question.
   setSessionPool(request(token, "seed"), {
@@ -86,6 +118,7 @@ test("after answering, the next fetched question stays on the standard", async (
       lower.includes("coordinate") ||
       lower.includes("y =") ||
       lower.includes("rate"),
+    q,
   ).toBe(true);
   expect(lower).not.toContain("evaluate the expression");
   expect(lower).not.toContain("exponent");

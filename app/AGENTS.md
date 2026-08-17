@@ -20,6 +20,9 @@ pnpm --dir app build
   write arbitrary records or choose authorization.
 - Reuse an abstraction only after two callers need the same policy. Preserve
   transaction and learner-scope checks when consolidating data access.
+- Vitest creates an isolated temporary learning and curriculum database for each
+  test file. Every test owns the fixture rows it needs; never rely on a local
+  developer database or another test file's state.
 - `@playwright/test` is the browser smoke/visual-QA dev dependency. Keep browser
   scenarios focused on authenticated user journeys and run `pnpm --dir app test:e2e`
   against its isolated local database; it does not ship in the application runtime.

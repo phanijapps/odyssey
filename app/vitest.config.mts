@@ -12,8 +12,8 @@ export default defineConfig({
   test: {
     // Browser journeys use Playwright's runner, never Vitest's module loader.
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    setupFiles: ["./src/test/sqlite-isolation.setup.ts"],
     env: {
-      ODYSSEY_DB_PATH: ":memory:",
       // Enables generic fixture accounts only for the Vitest process.
       ODYSSEY_TEST_FIXTURE_ACCOUNTS: "1",
     },

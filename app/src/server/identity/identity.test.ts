@@ -230,20 +230,27 @@ test("opportunistically purges expired sessions and their persisted question poo
 });
 
 test("expires an active session at the absolute timeout", async () => {
+  // Freeze issuance time before authentication. Starting the clock after an
+  // asynchronous password hash can otherwise exceed the idle boundary by a
+  // few real milliseconds and make this absolute-timeout test flaky.
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
   const absoluteSession = await authenticateChild({
     username: "test-learner",
     password: "test-learner-password",
   });
   const start = Date.now();
   const policy = getIdentityPolicy();
-  vi.useFakeTimers();
   for (
     let elapsed = policy.idleTimeoutMs - 1;
     elapsed < policy.absoluteTimeoutMs - 1;
     elapsed += policy.idleTimeoutMs - 1
   ) {
     vi.setSystemTime(start + elapsed);
-    expect(resolveSession(absoluteSession.sessionToken)).toMatchObject({
+    expect(
+      resolveSession(absoluteSession.sessionToken),
+      `elapsed=${elapsed}`,
+    ).toMatchObject({
       childId: "test-learner",
     });
   }
