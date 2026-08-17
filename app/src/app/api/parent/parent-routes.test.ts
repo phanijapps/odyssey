@@ -1,38 +1,19 @@
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../server/identity/identity";
 import { GET as summary } from "./summary/route";
 import { POST as chat } from "./chat/route";
 
-test("parent summary and chat reject missing sessions", async () => {
-  expect(
-    (await summary(new Request("http://localhost/api/parent/summary"))).status,
-  ).toBe(401);
-  expect(
-    (
-      await chat(
-        new Request("http://localhost/api/parent/chat", {
-          method: "POST",
-          body: JSON.stringify({ message: "How?" }),
-        }),
-      )
-    ).status,
-  ).toBe(401);
-});
+test("legacy parent routes fail closed until linked-child authorization ships", async () => {
+  const summaryResponse = summary();
+  expect(summaryResponse.status).toBe(410);
+  expect(summaryResponse.headers.get("cache-control")).toBe("no-store");
+  expect(await summaryResponse.json()).toEqual({
+    error: "Parent portal is not available yet",
+  });
 
-test("parent chat returns aggregate progress for the authenticated child", async () => {
-  const session = await authenticateChild({
-    username: "test-learner",
-    password: "test-learner-password",
+  const chatResponse = await chat();
+  expect(chatResponse.status).toBe(410);
+  expect(chatResponse.headers.get("cache-control")).toBe("no-store");
+  expect(await chatResponse.json()).toEqual({
+    error: "Parent portal is not available yet",
   });
-  const request = new Request("http://localhost/api/parent/chat", {
-    method: "POST",
-    headers: {
-      cookie: `session=${session.sessionToken}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ message: "How is practice going?" }),
-  });
-  const response = await chat(request);
-  expect(response.status).toBe(200);
-  expect(await response.json()).toHaveProperty("reply");
 });

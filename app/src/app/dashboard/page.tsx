@@ -50,30 +50,7 @@ type Workflow = {
   };
 };
 
-type ParentSummary = {
-  totalAttempts: number;
-  totalCorrect: number;
-  overallAccuracy: number;
-  topics: {
-    topicId: string;
-    title: string;
-    level: number;
-    attempts: number;
-    correct: number;
-    accuracy: number;
-    lastAttempt: string | null;
-  }[];
-  recentAttempts: {
-    topicId: string;
-    title: string;
-    correct: boolean;
-    levelBefore: number;
-    levelAfter: number;
-    createdAt: string;
-  }[];
-};
-
-type NavItem = "overview" | "browse" | "ingest" | "parent" | "knowledge";
+type NavItem = "overview" | "browse" | "ingest" | "knowledge";
 
 type KgStats = {
   entities: number;
@@ -121,14 +98,6 @@ const stageAction: Record<
   silver: { label: "Approve Silver", value: "approve-silver" },
   "silver-approved": { label: "Generate Gold", value: "generate-gold" },
 };
-
-const suggestedQueries = [
-  "How is my child doing overall?",
-  "What topics need the most help?",
-  "What are their strongest areas?",
-  "Show recent activity",
-  "What level are they at in each topic?",
-];
 
 /* ============================================================ Component */
 
@@ -181,16 +150,6 @@ export default function DashboardPage() {
   const [ingestError, setIngestError] = useState<string | null>(null);
   const [ingestPending, setIngestPending] = useState(false);
 
-  // Parent state
-  const [parentSummary, setParentSummary] = useState<ParentSummary | null>(
-    null,
-  );
-  const [parentMessage, setParentMessage] = useState("");
-  const [parentReply, setParentReply] = useState("");
-  const [parentHistory, setParentHistory] = useState<
-    { role: "parent" | "system"; text: string }[]
-  >([]);
-
   /* --- Data loading --- */
 
   const loadGold = useCallback(async () => {
@@ -218,15 +177,6 @@ export default function DashboardPage() {
     }
   }, [filterSubject, filterGrade, filterDomain, filterTopic, searchText]);
 
-  const loadParent = useCallback(async () => {
-    try {
-      const res = await fetch("/api/parent/summary", { cache: "no-store" });
-      if (res.ok) setParentSummary(await res.json());
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
   const loadKg = useCallback(async () => {
     try {
       const res = await fetch("/api/knowledge", { cache: "no-store" });
@@ -238,9 +188,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void loadGold();
-    void loadParent();
     void loadKg();
-  }, [loadGold, loadParent, loadKg]);
+  }, [loadGold, loadKg]);
 
   const kgSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -337,29 +286,6 @@ export default function DashboardPage() {
 
   /* --- Parent query actions --- */
 
-  async function askParent(message: string) {
-    if (!message.trim()) return;
-    setParentHistory((prev) => [...prev, { role: "parent", text: message }]);
-    setParentMessage("");
-    setParentReply("");
-    try {
-      const res = await fetch("/api/parent/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-      const data = (await res.json()) as { reply?: string; error?: string };
-      const reply = data.reply ?? data.error ?? "Unable to answer";
-      setParentReply(reply);
-      setParentHistory((prev) => [...prev, { role: "system", text: reply }]);
-    } catch {
-      const err = "Unable to connect";
-      setParentReply(err);
-      setParentHistory((prev) => [...prev, { role: "system", text: err }]);
-    }
-    await loadParent();
-  }
-
   function resetFilters() {
     setFilterSubject("");
     setFilterGrade("");
@@ -429,13 +355,6 @@ export default function DashboardPage() {
                 Ingest Source
               </button>
               <button
-                className={nav === "parent" ? "nav-item active" : "nav-item"}
-                onClick={() => setNav("parent")}
-              >
-                <span className="nav-icon">♥</span>
-                Parent Portal
-              </button>
-              <button
                 className={nav === "knowledge" ? "nav-item active" : "nav-item"}
                 onClick={() => setNav("knowledge")}
               >
@@ -458,7 +377,6 @@ export default function DashboardPage() {
                 {nav === "overview" && "Overview"}
                 {nav === "browse" && "Browse Gold Records"}
                 {nav === "ingest" && "Ingest Curriculum Source"}
-                {nav === "parent" && "Parent Portal"}
                 {nav === "knowledge" && "Knowledge Graph"}
               </h1>
             </header>
@@ -492,34 +410,6 @@ export default function DashboardPage() {
                       <span className="stat-label">Sources</span>
                     </div>
                   </div>
-
-                  {parentSummary && parentSummary.totalAttempts > 0 && (
-                    <div className="dash-card section-card">
-                      <div className="section-header">
-                        <h2>Practice at a Glance</h2>
-                        <button
-                          className="link-btn-inline"
-                          onClick={() => setNav("parent")}
-                        >
-                          View details →
-                        </button>
-                      </div>
-                      <div className="mini-stats">
-                        <div className="mini-stat">
-                          <strong>{parentSummary.totalAttempts}</strong>
-                          <small>Attempts</small>
-                        </div>
-                        <div className="mini-stat">
-                          <strong>{parentSummary.overallAccuracy}%</strong>
-                          <small>Accuracy</small>
-                        </div>
-                        <div className="mini-stat">
-                          <strong>{parentSummary.topics.length}</strong>
-                          <small>Topics</small>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {stats && stats.subjects.length > 0 && (
                     <div className="dash-card section-card">
@@ -841,182 +731,6 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </div>
-              )}
-
-              {/* ========== PARENT PORTAL ========== */}
-              {nav === "parent" && (
-                <>
-                  {/* Stats */}
-                  <div className="card-grid">
-                    <div className="dash-card stat-card">
-                      <span className="stat-number">
-                        {parentSummary?.totalAttempts ?? 0}
-                      </span>
-                      <span className="stat-label">Total Attempts</span>
-                    </div>
-                    <div className="dash-card stat-card">
-                      <span className="stat-number">
-                        {parentSummary?.overallAccuracy ?? 0}%
-                      </span>
-                      <span className="stat-label">Accuracy</span>
-                    </div>
-                    <div className="dash-card stat-card">
-                      <span className="stat-number">
-                        {parentSummary?.totalCorrect ?? 0}
-                      </span>
-                      <span className="stat-label">Correct Answers</span>
-                    </div>
-                    <div className="dash-card stat-card">
-                      <span className="stat-number">
-                        {parentSummary?.topics.length ?? 0}
-                      </span>
-                      <span className="stat-label">Topics Practiced</span>
-                    </div>
-                  </div>
-
-                  {/* Topic breakdown */}
-                  {parentSummary && parentSummary.topics.length > 0 && (
-                    <div className="dash-card section-card">
-                      <h2 className="section-title">Topic Performance</h2>
-                      <div className="topic-table">
-                        <div className="topic-table-header">
-                          <span>Topic</span>
-                          <span>Accuracy</span>
-                          <span>Level</span>
-                          <span>Attempts</span>
-                        </div>
-                        {parentSummary.topics.map((t) => (
-                          <div key={t.topicId} className="topic-table-row">
-                            <span className="topic-name">{t.title}</span>
-                            <span className="topic-acc">
-                              <div className="acc-bar-wrap">
-                                <div
-                                  className="acc-bar"
-                                  style={{
-                                    width: `${t.accuracy}%`,
-                                    background:
-                                      t.accuracy >= 75
-                                        ? "#2d6a4f"
-                                        : t.accuracy >= 50
-                                          ? "#d4a72c"
-                                          : "#c63131",
-                                  }}
-                                />
-                              </div>
-                              <span className="acc-pct">{t.accuracy}%</span>
-                            </span>
-                            <span className="topic-level">L{t.level}</span>
-                            <span className="topic-attempts">{t.attempts}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Query interface */}
-                  <div className="dash-card section-card">
-                    <div className="section-header">
-                      <h2>Ask About Progress</h2>
-                    </div>
-
-                    <div className="suggested-queries">
-                      {suggestedQueries.map((q) => (
-                        <button
-                          key={q}
-                          className="suggestion-chip"
-                          onClick={() => void askParent(q)}
-                        >
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="chat-history">
-                      {parentHistory.length === 0 && (
-                        <p className="chat-placeholder">
-                          Ask a question or pick a suggestion above. I'll answer
-                          based on your child's practice data.
-                        </p>
-                      )}
-                      {parentHistory.map((msg, i) => (
-                        <div
-                          key={i}
-                          className={
-                            msg.role === "parent"
-                              ? "chat-msg chat-parent"
-                              : "chat-msg chat-system"
-                          }
-                        >
-                          {msg.role === "parent" ? "You: " : ""}
-                          {msg.text}
-                        </div>
-                      ))}
-                    </div>
-
-                    <form
-                      className="chat-input-row"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        void askParent(parentMessage);
-                      }}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Ask about your child's progress…"
-                        value={parentMessage}
-                        onChange={(e) => setParentMessage(e.target.value)}
-                        maxLength={500}
-                      />
-                      <button type="submit" className="primary-btn">
-                        Ask
-                      </button>
-                    </form>
-                  </div>
-
-                  {/* Recent activity */}
-                  {parentSummary && parentSummary.recentAttempts.length > 0 && (
-                    <div className="dash-card section-card">
-                      <h2 className="section-title">Recent Activity</h2>
-                      <div className="activity-list">
-                        {parentSummary.recentAttempts
-                          .slice(0, 15)
-                          .map((a, i) => (
-                            <div key={i} className="activity-item">
-                              <span
-                                className={
-                                  a.correct
-                                    ? "activity-dot correct"
-                                    : "activity-dot incorrect"
-                                }
-                              >
-                                {a.correct ? "✓" : "✗"}
-                              </span>
-                              <div className="activity-info">
-                                <span className="activity-topic">
-                                  {a.title}
-                                </span>
-                                <span className="activity-meta">
-                                  Level {a.levelAfter}
-                                </span>
-                              </div>
-                              <span className="activity-time">
-                                {new Date(a.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {parentSummary?.totalAttempts === 0 && (
-                    <div className="dash-card empty-state">
-                      <p>No practice activity recorded yet.</p>
-                      <p>
-                        Practice data will appear here once your child starts.
-                      </p>
-                    </div>
-                  )}
-                </>
               )}
 
               {/* ========== KNOWLEDGE GRAPH ========== */}

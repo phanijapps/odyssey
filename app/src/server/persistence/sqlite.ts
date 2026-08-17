@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 const DEFAULT_LEARNING_DATABASE_PATH = "odyssey-learning.db";
 const DEFAULT_CURRICULUM_DATABASE_PATH = "odyssey-curriculum.db";
 const BUSY_TIMEOUT_MS = 5_000;
-const LATEST_SCHEMA_VERSION = 7;
+const LATEST_SCHEMA_VERSION = 8;
 
 export type DatabaseKind = "learning" | "curriculum" | "promotion";
 
@@ -280,7 +280,59 @@ const MIGRATIONS: readonly Migration[] = [
       `);
     },
   },
+  {
+    version: 8,
+    apply(database) {
+      // Some legacy test fixtures predate the account subsystem entirely.
+      if (!hasTable(database, "accounts")) return;
+      addColumnIfMissing(database, "accounts", "account_id", "TEXT");
+      if (hasTable(database, "auth_sessions"))
+        addColumnIfMissing(database, "auth_sessions", "principal_id", "TEXT");
+      database.exec(`
+        UPDATE accounts
+        SET account_id = lower(hex(randomblob(16)))
+        WHERE account_id IS NULL OR account_id = '';
+        CREATE UNIQUE INDEX IF NOT EXISTS accounts_account_id_unique
+          ON accounts(account_id);
+        CREATE TABLE IF NOT EXISTS parent_child_links (
+          parent_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+          child_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+          created_at INTEGER NOT NULL,
+          revoked_at INTEGER,
+          PRIMARY KEY (parent_account_id, child_account_id),
+          CHECK (parent_account_id <> child_account_id)
+        );
+        CREATE INDEX IF NOT EXISTS parent_child_links_active_parent
+          ON parent_child_links(parent_account_id, child_account_id)
+          WHERE revoked_at IS NULL;
+        CREATE TABLE IF NOT EXISTS external_identity_links (
+          account_id TEXT NOT NULL REFERENCES accounts(account_id),
+          provider TEXT NOT NULL,
+          provider_subject TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          PRIMARY KEY (provider, provider_subject),
+          UNIQUE (account_id, provider)
+        );
+      `);
+      if (hasTable(database, "auth_sessions"))
+        database.exec(`
+          UPDATE auth_sessions
+          SET principal_id = (
+            SELECT account_id FROM accounts WHERE accounts.username = auth_sessions.username
+          )
+          WHERE principal_id IS NULL OR principal_id = '';
+        `);
+    },
+  },
 ];
+
+function hasTable(database: DatabaseSync, table: string): boolean {
+  return Boolean(
+    database
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(table),
+  );
+}
 
 function hasColumn(
   database: DatabaseSync,
@@ -296,7 +348,12 @@ function hasColumn(
 
 function addColumnIfMissing(
   database: DatabaseSync,
-  table: "test_sessions" | "test_questions" | "promotion_workflows",
+  table:
+    | "accounts"
+    | "auth_sessions"
+    | "promotion_workflows"
+    | "test_questions"
+    | "test_sessions",
   column: string,
   definition: string,
 ): void {

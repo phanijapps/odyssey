@@ -30,6 +30,7 @@ test("STUB: AC2 creates a rotated session for the local seeded child", async () 
       password: "test-learner-password",
     }),
   ).resolves.toEqual({
+    principalId: expect.any(String),
     childId: expect.any(String),
     sessionToken: expect.any(String),
     username: expect.any(String),

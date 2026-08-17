@@ -6,8 +6,17 @@ import {
 } from "node:crypto";
 import { learningDb } from "../learning/sqlite-repository";
 
-/** One provisioned account: student or admin. */
+/** Distinct server-side authorization roles. */
+export type AccountRole = "admin" | "parent" | "student";
+
+function parseAccountRole(role: string): AccountRole {
+  if (role === "admin" || role === "parent" || role === "student") return role;
+  throw new Error("Invalid account role");
+}
+
+/** One provisioned account with an immutable principal ID. */
 type AccountRow = {
+  account_id: string;
   username: string;
   password_hash: Buffer;
   salt: Buffer;
@@ -17,6 +26,7 @@ type AccountRow = {
 /** Session row persisted in SQLite so sign-ins survive restarts. */
 type SessionRow = {
   token_hash: string;
+  principal_id: string | null;
   child_id: string;
   username: string;
   role: string;
@@ -27,10 +37,10 @@ type SessionRow = {
   question_pool: string | null;
 };
 
-type FixtureAccount = {
+type SeedAccount = {
   username: string;
   password: string;
-  role: "admin" | "student";
+  role: AccountRole;
   childId: string;
 };
 
@@ -39,7 +49,7 @@ type FixtureAccount = {
  * development and separately enabled by Vitest; production never seeds or
  * accepts either account.
  */
-const DEVELOPMENT_FIXTURE_ACCOUNTS: readonly FixtureAccount[] = [
+const DEVELOPMENT_FIXTURE_ACCOUNTS: readonly SeedAccount[] = [
   {
     username: "development-admin",
     password: "development-admin-password",
@@ -54,7 +64,7 @@ const DEVELOPMENT_FIXTURE_ACCOUNTS: readonly FixtureAccount[] = [
   },
 ];
 
-const TEST_FIXTURE_ACCOUNTS: readonly FixtureAccount[] = [
+const TEST_FIXTURE_ACCOUNTS: readonly SeedAccount[] = [
   {
     username: "test-admin",
     password: "test-admin-password",
@@ -81,7 +91,7 @@ function testFixturesEnabled(): boolean {
   );
 }
 
-function fixtureAccounts(): readonly FixtureAccount[] {
+function fixtureAccounts(): readonly SeedAccount[] {
   if (testFixturesEnabled()) return TEST_FIXTURE_ACCOUNTS;
   if (
     process.env.NODE_ENV === "development" &&
@@ -89,6 +99,22 @@ function fixtureAccounts(): readonly FixtureAccount[] {
   )
     return DEVELOPMENT_FIXTURE_ACCOUNTS;
   return [];
+}
+
+/** Reads exactly one explicit local-development parent bootstrap. */
+function localParentBootstrapAccount(): SeedAccount | null {
+  if (
+    process.env.NODE_ENV !== "development" ||
+    process.env.ODYSSEY_ENABLE_LOCAL_PARENT_BOOTSTRAP !== "1"
+  )
+    return null;
+  const username = process.env.ODYSSEY_PARENT_BOOTSTRAP_USERNAME?.trim();
+  const password = process.env.ODYSSEY_PARENT_BOOTSTRAP_PASSWORD;
+  if (!username || !password)
+    throw new Error("Local parent bootstrap credentials are incomplete");
+  if (!/^[a-zA-Z0-9_.-]{3,64}$/.test(username) || password.length < 8)
+    throw new Error("Local parent bootstrap credentials are invalid");
+  return { username, password, role: "parent", childId: "" };
 }
 
 function productionRuntime(
@@ -108,20 +134,30 @@ function scryptSync(password: string, salt: Buffer): Promise<Buffer> {
 
 /** Seeds the local accounts once; existing rows are never overwritten. */
 async function seedAccounts(): Promise<void> {
-  const accounts = fixtureAccounts();
+  const parentBootstrap = localParentBootstrapAccount();
+  const accounts = [
+    ...fixtureAccounts(),
+    ...(parentBootstrap ? [parentBootstrap] : []),
+  ];
   if (accounts.length === 0) return;
   const existing = learningDb
     .prepare("SELECT username FROM accounts")
     .all() as Array<{ username: string }>;
   const have = new Set(existing.map((r) => r.username));
   const insert = learningDb.prepare(
-    "INSERT INTO accounts (username, password_hash, salt, role) VALUES (?, ?, ?, ?) ON CONFLICT(username) DO NOTHING",
+    "INSERT INTO accounts (account_id, username, password_hash, salt, role) VALUES (?, ?, ?, ?, ?) ON CONFLICT(username) DO NOTHING",
   );
   for (const account of accounts) {
     if (have.has(account.username)) continue;
     const salt = randomBytes(16);
     const hash = await scryptSync(account.password, salt);
-    insert.run(account.username, hash, salt, account.role);
+    insert.run(
+      randomBytes(16).toString("hex"),
+      account.username,
+      hash,
+      salt,
+      account.role,
+    );
   }
 }
 
@@ -130,7 +166,7 @@ const seedPromise = seedAccounts();
 function findAccount(username: string): AccountRow | undefined {
   return learningDb
     .prepare(
-      "SELECT username, password_hash, salt, role FROM accounts WHERE username = ?",
+      "SELECT account_id, username, password_hash, salt, role FROM accounts WHERE username = ?",
     )
     .get(username) as AccountRow | undefined;
 }
@@ -182,7 +218,8 @@ export async function authenticateChild(_credentials: {
   childId: string;
   sessionToken: string;
   username: string;
-  role: "admin" | "student";
+  role: AccountRole;
+  principalId: string;
 }> {
   await seedPromise;
   purgeExpiredSessions();
@@ -242,12 +279,12 @@ export async function authenticateChild(_credentials: {
     .prepare("DELETE FROM failed_logins WHERE username = ?")
     .run(username);
 
-  const childId =
-    fixtureAccounts().find((account) => account.username === username)
-      ?.childId ?? `child:${username}`;
-  const role = (account.role === "admin" ? "admin" : "student") as
-    | "admin"
-    | "student";
+  const role = parseAccountRole(account.role);
+  const seededAccount = [
+    ...fixtureAccounts(),
+    ...(localParentBootstrapAccount() ? [localParentBootstrapAccount()!] : []),
+  ].find((candidate) => candidate.username === username);
+  const childId = seededAccount?.childId ?? `child:${username}`;
 
   // Rotate: one active session per account.
   learningDb
@@ -259,12 +296,26 @@ export async function authenticateChild(_credentials: {
   learningDb
     .prepare(
       `INSERT INTO auth_sessions
-        (token_hash, child_id, username, role, created_at, last_seen, generated_requests)
-       VALUES (?, ?, ?, ?, ?, ?, 0)`,
+        (token_hash, principal_id, child_id, username, role, created_at, last_seen, generated_requests)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
     )
-    .run(sessionKey(sessionToken), childId, username, role, issuedAt, issuedAt);
+    .run(
+      sessionKey(sessionToken),
+      account.account_id,
+      childId,
+      username,
+      role,
+      issuedAt,
+      issuedAt,
+    );
 
-  return { childId, sessionToken, username, role };
+  return {
+    childId,
+    sessionToken,
+    username,
+    role,
+    principalId: account.account_id,
+  };
 }
 
 /** Exposes the immutable identity controls that the local service enforces. */
@@ -318,6 +369,7 @@ function activeSession(request: Request): SessionRow | undefined {
     const now = Date.now();
     return {
       token_hash: "test",
+      principal_id: "test-learner",
       child_id: "test-learner",
       username: "test-learner",
       role: "student",
@@ -341,20 +393,28 @@ function activeSession(request: Request): SessionRow | undefined {
 }
 
 type SessionIdentity = {
+  /** Immutable authenticated account identity; never a learner scope. */
+  principalId: string;
   childId: string;
-  role: "admin" | "student";
+  role: AccountRole;
   /** Server-only binding used by atomic session-owned learning mutations. */
   sessionTokenHash: string;
 };
 
+function sessionIdentity(session: SessionRow): SessionIdentity {
+  if (!session.principal_id) throw new Error("Invalid session principal");
+  return {
+    principalId: session.principal_id,
+    childId: session.child_id,
+    role: parseAccountRole(session.role),
+    sessionTokenHash: session.token_hash,
+  };
+}
+
 function requireSessionRead(request: Request): SessionIdentity {
   const session = activeSession(request);
   if (!session) throw new Error("Sign-in required");
-  return {
-    childId: session.child_id,
-    role: session.role === "admin" ? "admin" : "student",
-    sessionTokenHash: session.token_hash,
-  };
+  return sessionIdentity(session);
 }
 
 /** Requires a signed-in learner before reading child-scoped practice data. */
@@ -369,6 +429,15 @@ export function requireAdminRead(request: Request): { childId: string } {
   const session = requireSessionRead(request);
   if (session.role !== "admin") throw new Error("Admin access required");
   return { childId: session.childId };
+}
+
+/** Requires the authenticated parent principal, never a client-selected child. */
+export function requireParentRead(request: Request): {
+  parentAccountId: string;
+} {
+  const session = requireSessionRead(request);
+  if (session.role !== "parent") throw new Error("Parent access required");
+  return { parentAccountId: session.principalId };
 }
 
 function requireSameOriginMutationProof(
@@ -391,11 +460,7 @@ function requireSameOriginMutationProof(
   ) {
     throw new Error("Mutation proof required");
   }
-  return {
-    childId: session.child_id,
-    role: session.role === "admin" ? "admin" : "student",
-    sessionTokenHash: session.token_hash,
-  };
+  return sessionIdentity(session);
 }
 
 /** Authorizes a same-origin learning POST before it reads or changes state. */
@@ -424,6 +489,19 @@ export function requireAdminMutationProof(request: Request): {
   const proof = requireSameOriginMutationProof(request, ["POST", "DELETE"]);
   if (proof.role !== "admin") throw new Error("Admin access required");
   return { childId: proof.childId };
+}
+
+/** Requires a same-origin parent lifecycle mutation. */
+export function requireParentMutationProof(request: Request): {
+  parentAccountId: string;
+} {
+  const proof = requireSameOriginMutationProof(request, [
+    "POST",
+    "PATCH",
+    "DELETE",
+  ]);
+  if (proof.role !== "parent") throw new Error("Parent access required");
+  return { parentAccountId: proof.principalId };
 }
 
 /** Grants one topic-bound provider request after an accepted local answer. */
@@ -474,13 +552,15 @@ export function requireAdmin(request: Request): { childId: string } {
 /** Resolves a session token to the signed-in identity. */
 export function resolveSession(token: string):
   | {
+      principalId: string;
       childId: string;
       username: string;
-      role: "admin" | "student";
+      role: AccountRole;
     }
   | undefined {
   if (token === "valid" && testFixturesEnabled())
     return {
+      principalId: "test-learner",
       childId: "test-learner",
       username: "test-learner",
       role: "student",
@@ -494,11 +574,188 @@ export function resolveSession(token: string):
   learningDb
     .prepare("UPDATE auth_sessions SET last_seen = ? WHERE token_hash = ?")
     .run(now, fresh.token_hash);
+  if (!fresh.principal_id) return undefined;
   return {
+    principalId: fresh.principal_id,
     childId: fresh.child_id,
     username: fresh.username,
-    role: fresh.role === "admin" ? "admin" : "student",
+    role: parseAccountRole(fresh.role),
   };
+}
+
+/** Provider-neutral subject supplied by a future verified SSO adapter. */
+export type ExternalIdentitySubject = {
+  provider: string;
+  subject: string;
+};
+
+/**
+ * Resolves a verified provider subject to an Odyssey principal. This performs
+ * no token verification and deliberately does not issue a session: a future
+ * provider adapter must establish that trust boundary before calling it.
+ */
+export function resolveExternalIdentitySubject(
+  identity: ExternalIdentitySubject,
+): { principalId: string; username: string; role: AccountRole } | undefined {
+  if (
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(identity.provider) ||
+    identity.subject.length === 0 ||
+    identity.subject.length > 256
+  )
+    return undefined;
+  const row = learningDb
+    .prepare(
+      `SELECT accounts.account_id AS account_id, accounts.username AS username, accounts.role AS role
+       FROM external_identity_links
+       JOIN accounts ON accounts.account_id = external_identity_links.account_id
+       WHERE external_identity_links.provider = ?
+         AND external_identity_links.provider_subject = ?`,
+    )
+    .get(identity.provider, identity.subject) as
+    | { account_id: string; username: string; role: string }
+    | undefined;
+  if (!row) return undefined;
+  return {
+    principalId: row.account_id,
+    username: row.username,
+    role: parseAccountRole(row.role),
+  };
+}
+
+type ChildCredentials = { username: string; password: string };
+
+function validateChildCredentials(credentials: ChildCredentials): void {
+  if (!/^[a-zA-Z0-9_.-]{3,64}$/.test(credentials.username))
+    throw new Error("Child username is invalid");
+  if (credentials.password.length < 8 || credentials.password.length > 256)
+    throw new Error("Child password is invalid");
+}
+
+function requireActiveParentChildLink(
+  parentAccountId: string,
+  childAccountId: string,
+): void {
+  const link = learningDb
+    .prepare(
+      `SELECT 1 FROM parent_child_links
+       WHERE parent_account_id = ? AND child_account_id = ? AND revoked_at IS NULL`,
+    )
+    .get(parentAccountId, childAccountId);
+  if (!link) throw new Error("Child access denied");
+}
+
+/** Creates a linked learner account without exposing a client-selected parent. */
+export async function createParentChildAccount(
+  parentAccountId: string,
+  credentials: ChildCredentials,
+): Promise<{ accountId: string; username: string }> {
+  validateChildCredentials(credentials);
+  const salt = randomBytes(16);
+  const passwordHash = await scryptSync(credentials.password, salt);
+  const accountId = randomBytes(16).toString("hex");
+  const now = Date.now();
+  learningDb.exec("BEGIN IMMEDIATE");
+  try {
+    const parent = learningDb
+      .prepare("SELECT role FROM accounts WHERE account_id = ?")
+      .get(parentAccountId) as { role: string } | undefined;
+    if (!parent || parseAccountRole(parent.role) !== "parent")
+      throw new Error("Parent access denied");
+    learningDb
+      .prepare(
+        `INSERT INTO accounts (account_id, username, password_hash, salt, role)
+         VALUES (?, ?, ?, ?, 'student')`,
+      )
+      .run(accountId, credentials.username, passwordHash, salt);
+    learningDb
+      .prepare(
+        `INSERT INTO parent_child_links
+          (parent_account_id, child_account_id, created_at)
+         VALUES (?, ?, ?)`,
+      )
+      .run(parentAccountId, accountId, now);
+    learningDb.exec("COMMIT");
+  } catch (error) {
+    learningDb.exec("ROLLBACK");
+    if (String(error).includes("UNIQUE constraint failed: accounts.username"))
+      throw new Error("Child username is unavailable");
+    throw error;
+  }
+  return { accountId, username: credentials.username };
+}
+
+/** Lists only active child accounts linked to the authenticated parent. */
+export function listParentChildren(parentAccountId: string): Array<{
+  accountId: string;
+  username: string;
+}> {
+  return learningDb
+    .prepare(
+      `SELECT accounts.account_id AS accountId, accounts.username AS username
+       FROM parent_child_links
+       JOIN accounts ON accounts.account_id = parent_child_links.child_account_id
+       WHERE parent_child_links.parent_account_id = ?
+         AND parent_child_links.revoked_at IS NULL
+         AND accounts.role = 'student'
+       ORDER BY accounts.username`,
+    )
+    .all(parentAccountId) as Array<{ accountId: string; username: string }>;
+}
+
+/** Resets a linked child's local password and invalidates all of that child's sessions. */
+export async function resetParentChildPassword(
+  parentAccountId: string,
+  childAccountId: string,
+  password: string,
+): Promise<void> {
+  validateChildCredentials({ username: "child", password });
+  const salt = randomBytes(16);
+  const passwordHash = await scryptSync(password, salt);
+  learningDb.exec("BEGIN IMMEDIATE");
+  try {
+    requireActiveParentChildLink(parentAccountId, childAccountId);
+    const child = learningDb
+      .prepare(
+        "SELECT username FROM accounts WHERE account_id = ? AND role = 'student'",
+      )
+      .get(childAccountId) as { username: string } | undefined;
+    if (!child) throw new Error("Child access denied");
+    learningDb
+      .prepare(
+        "UPDATE accounts SET password_hash = ?, salt = ? WHERE account_id = ?",
+      )
+      .run(passwordHash, salt, childAccountId);
+    learningDb
+      .prepare("DELETE FROM auth_sessions WHERE username = ?")
+      .run(child.username);
+    learningDb.exec("COMMIT");
+  } catch (error) {
+    learningDb.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+/** Revokes parent access and invalidates the parent's existing sessions. */
+export function revokeParentChildLink(
+  parentAccountId: string,
+  childAccountId: string,
+): void {
+  learningDb.exec("BEGIN IMMEDIATE");
+  try {
+    requireActiveParentChildLink(parentAccountId, childAccountId);
+    learningDb
+      .prepare(
+        `UPDATE parent_child_links SET revoked_at = ?
+         WHERE parent_account_id = ? AND child_account_id = ? AND revoked_at IS NULL`,
+      )
+      .run(Date.now(), parentAccountId, childAccountId);
+    learningDb.exec("COMMIT");
+  } catch (error) {
+    learningDb.exec("ROLLBACK");
+    throw error;
+  }
+  // Parent sessions remain valid for other linked children. Every child-scoped
+  // operation rechecks this link, so stale tabs lose only the revoked scope.
 }
 
 /** Invalidates one session (sign out). */

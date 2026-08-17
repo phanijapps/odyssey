@@ -28,7 +28,7 @@ export default function HomePage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [role, setRole] = useState<"student" | "admin" | null>(null);
+  const [role, setRole] = useState<"student" | "admin" | "parent" | null>(null);
 
   // First-time setup
   const [needsGrade, setNeedsGrade] = useState(false);
@@ -123,6 +123,10 @@ export default function HomePage() {
       if (!res.ok) return;
       setSignedIn(true);
       const account = (await res.json()) as { role?: string };
+      if (account.role === "parent") {
+        window.location.assign("/parent");
+        return;
+      }
       setRole((account.role as "student" | "admin") ?? "student");
       await loadStandards();
       // Restore mode + grade; first-time setup when no grade saved.
@@ -434,8 +438,12 @@ export default function HomePage() {
       const account = (await res.json()) as {
         childId: string;
         username: string;
-        role: "student" | "admin";
+        role: "student" | "admin" | "parent";
       };
+      if (account.role === "parent") {
+        window.location.assign("/parent");
+        return;
+      }
       setSignedIn(true);
       setRole(account.role);
       setError("");
@@ -738,7 +746,7 @@ export default function HomePage() {
         mode={mode}
         browseOpen={browseOpen}
         historyOpen={historyOpen}
-        role={role}
+        role={role === "parent" ? null : role}
         testLocked={testLocked}
         onSubjectChange={(subject) => {
           setSelSubject(subject);

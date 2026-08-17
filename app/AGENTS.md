@@ -20,6 +20,9 @@ pnpm --dir app build
   write arbitrary records or choose authorization.
 - Reuse an abstraction only after two callers need the same policy. Preserve
   transaction and learner-scope checks when consolidating data access.
+- `@playwright/test` is the browser smoke/visual-QA dev dependency. Keep browser
+  scenarios focused on authenticated user journeys and run `pnpm --dir app test:e2e`
+  against its isolated local database; it does not ship in the application runtime.
 
 Read `../AGENTS.md` and `../docs/architecture/reference.md` before structural
 or security-sensitive changes.
