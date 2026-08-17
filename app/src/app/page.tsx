@@ -50,6 +50,7 @@ export default function HomePage() {
 
   // Practice state
   const [answer, setAnswer] = useState("");
+  const [answerMaxLength, setAnswerMaxLength] = useState(100);
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
@@ -272,6 +273,11 @@ export default function HomePage() {
       setTestIndex(Math.max(0, (d.poolProgress?.position ?? 1) - 1));
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
+        setAnswerMaxLength(
+          d.nextQuestion.interaction?.type === "text-response"
+            ? d.nextQuestion.interaction.response.maxLength
+            : 100,
+        );
         setAssignmentToken(
           typeof d.nextQuestion.assignmentToken === "string"
             ? d.nextQuestion.assignmentToken
@@ -404,6 +410,11 @@ export default function HomePage() {
       if (progressVersion.current !== version) return;
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
+        setAnswerMaxLength(
+          d.nextQuestion.interaction?.type === "text-response"
+            ? d.nextQuestion.interaction.response.maxLength
+            : 100,
+        );
         setAssignmentToken(
           typeof d.nextQuestion.assignmentToken === "string"
             ? d.nextQuestion.assignmentToken
@@ -829,6 +840,7 @@ export default function HomePage() {
           <PracticePanel
             activeSkill={activeSkill}
             answer={answer}
+            answerMaxLength={answerMaxLength}
             correctStreak={correctStreak}
             diagramSvg={diagramSvg}
             feedback={feedback}

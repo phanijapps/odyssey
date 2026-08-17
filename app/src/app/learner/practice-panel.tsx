@@ -5,6 +5,7 @@ import { AnswerResult, FlatStandard, PracticeFeedback } from "./types";
 type PracticePanelProps = {
   activeSkill: FlatStandard;
   answer: string;
+  answerMaxLength: number;
   correctStreak: number;
   diagramSvg: string | null;
   feedback: PracticeFeedback | null;
@@ -31,6 +32,7 @@ type PracticePanelProps = {
 export function PracticePanel({
   activeSkill,
   answer,
+  answerMaxLength,
   correctStreak,
   diagramSvg,
   feedback,
@@ -160,6 +162,7 @@ export function PracticePanel({
                     <input
                       className="answer-input"
                       value={answer}
+                      maxLength={answerMaxLength}
                       onChange={(event) => onAnswerChange(event.target.value)}
                       placeholder="Type your answer"
                       disabled={isSubmittingAnswer}
