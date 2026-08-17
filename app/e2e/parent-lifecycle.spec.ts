@@ -57,6 +57,56 @@ test("parent creates, resets, and revokes a child account", async ({
   await expect(child).toHaveCount(0);
 });
 
+test("parent revocation ignores an older in-flight Performance response", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await signIn(page, "e2e-parent", "e2e-parent-password");
+  await page.waitForURL("**/parent");
+  await page.getByLabel("Child username").fill("e2e-stale-child");
+  await page.getByLabel("Temporary password").fill("stale-child-password");
+  await page.getByRole("button", { name: "Create child" }).click();
+  await expect(page.getByText("Child account created.")).toBeVisible();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.waitForURL("**/");
+
+  let releaseFirstResponse: (() => void) | undefined;
+  const firstResponseReleased = new Promise<void>((resolve) => {
+    releaseFirstResponse = resolve;
+  });
+  let capturedFirstResponse: (() => void) | undefined;
+  const firstResponseCaptured = new Promise<void>((resolve) => {
+    capturedFirstResponse = resolve;
+  });
+  let holdFirstResponse = true;
+  await page.route("**/api/parent/performance", async (route) => {
+    if (!holdFirstResponse) return route.continue();
+    holdFirstResponse = false;
+    const response = await route.fetch();
+    const body = await response.body();
+    capturedFirstResponse!();
+    await firstResponseReleased;
+    await route.fulfill({ response, body });
+  });
+
+  await signIn(page, "e2e-parent", "e2e-parent-password");
+  await page.waitForURL("**/parent");
+  await firstResponseCaptured;
+  const child = page.locator("li").filter({ hasText: "e2e-stale-child" });
+  page.once("dialog", (dialog) => dialog.accept());
+  await child.getByRole("button", { name: "Revoke" }).click();
+  await expect(page.getByText("Child access revoked.")).toBeVisible();
+  await expect(child).toHaveCount(0);
+  releaseFirstResponse!();
+  await expect(
+    page.getByText("No active linked-child Performance is available yet."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("0 correct Practice answers · 0-day active Practice streak"),
+  ).toHaveCount(0);
+  await page.unroute("**/api/parent/performance");
+});
+
 test("learner Performance renders the validated A2UI surface", async ({
   page,
 }) => {
