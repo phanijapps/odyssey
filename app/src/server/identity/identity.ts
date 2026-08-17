@@ -895,7 +895,7 @@ export function issueGeneratedPracticeAssignment(
   question: {
     topicId: string;
     question: string;
-    interaction?: LearnerQuestionInteraction;
+    interaction: LearnerQuestionInteraction;
     answer: string;
     acceptableAnswers: readonly string[];
     hint: string;
@@ -926,6 +926,7 @@ export function issueGeneratedPracticeAssignment(
         {
           id: questionId,
           question: question.question,
+          interaction: question.interaction,
           answer: question.answer,
           acceptableAnswers: question.acceptableAnswers,
           hint: question.hint,

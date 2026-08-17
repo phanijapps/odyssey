@@ -6,6 +6,7 @@ import {
   requireLearnerMutationProof,
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
+import { textResponseInteraction } from "../../../server/learning/question-interactions";
 import { validateLearningPayload } from "../../../server/validation/payloads";
 import { retrieveProfileMemory } from "../../../server/memory/engram-memory";
 
@@ -61,6 +62,7 @@ export async function POST(request: Request): Promise<Response> {
     const assignment = issueGeneratedPracticeAssignment(request, {
       topicId,
       question: question.question,
+      interaction: textResponseInteraction(question.question),
       answer: question.answer,
       acceptableAnswers: question.acceptableAnswers,
       hint: question.hint,
@@ -71,6 +73,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json(
       {
         question: question.question,
+        interaction: textResponseInteraction(question.question),
         diagramSvg: question.diagramSvg,
         assignmentToken: assignment.assignmentToken,
       },

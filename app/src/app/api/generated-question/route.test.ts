@@ -219,13 +219,27 @@ test("returns a generated assignment consumable by the Practice answer contract"
     question: string;
     diagramSvg: string;
     assignmentToken: string;
+    interaction: {
+      type: string;
+      prompt: string;
+      response?: { maxLength: number };
+    };
     answer?: string;
   };
   expect(payload).toMatchObject({
     question: expect.any(String),
     diagramSvg: expect.any(String),
     assignmentToken: expect.stringMatching(/^[A-Za-z0-9_-]{32,}$/),
+    interaction: {
+      type: "text-response",
+      prompt: expect.any(String),
+      response: { maxLength: 100 },
+    },
   });
+  expect(payload.interaction.prompt).toBe(payload.question);
+  expect(JSON.stringify(payload.interaction)).not.toMatch(
+    /answer|score|token|solution/i,
+  );
   expect(payload.answer).toBeUndefined();
 
   const accepted = await submitAnswer(
