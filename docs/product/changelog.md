@@ -8,6 +8,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 > identifiers and sign-in values have been redacted; use the current application
 > configuration for local access.
 
+## [unreleased-3] — 2026-08-17
+
+### Added
+
+- **Performance guidance cards** — the learner Performance page now shows one
+  card per missed standard after a completed Test, with evidence-stating copy
+  and a "Practice this skill" action that opens exactly that reviewed skill's
+  existing practice flow. Targets that left the reviewed curriculum (or exceed
+  the transport bound) show an honest unavailable card.
+- **Parent practice preview** — the parent portal offers a non-mutating preview
+  of a linked child's next recommended practice: one reviewed sample question
+  with no answer material, fetched on demand and cleared on child
+  creation/revocation.
+- **Browser journey coverage** — Playwright journeys now cover the
+  guidance-action loop, the parent preview, and the full test
+  completion/review path against isolated databases (the runner no longer
+  touches the shared default curriculum store).
+
+### Changed
+
+- **Learner History panel removed** — Performance now owns the redacted
+  activity timeline (with tighter redaction: no scores or timestamps); the
+  internal `/api/history` route is retired.
+
+### Fixed
+
+- **Parent portal duplicate heading** — the portal no longer renders both a
+  legacy and an A2UI "Child Performance" heading (this had broken two e2e
+  journeys).
+- **Long standard identities** — topic identities up to 300 characters (real
+  ELA standards exceeded the previous 100-char transport bound and made those
+  surfaces permanently unavailable).
+
 ## [unreleased-2] — 2026-08-14
 
 ### Added

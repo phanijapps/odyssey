@@ -1,6 +1,6 @@
 # Spec: A2UI Learning Delivery
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0004 (Open)
@@ -11,14 +11,12 @@
 
 ## Implementation status
 
-The first narrow delivery is a read-only learner Performance surface. Both the
-server compiler and client adapter validate the same strict v0.9 envelope; the
-component graph must have one non-recursive `OdysseyColumn` root, contains no
-unknown or unreachable components, and is capped before the official processor
-runs. Practice and Test now have fixed text-response A2UI surfaces with a local-only
-`/answer` binding and strict `practice.submit`/`test.submit` actions mapped to
-their existing opaque-token routes. Multiple-choice/true-false rendering and
-parent delivery remain deferred.
+All tasks are complete. Practice and Test issue server-selected text,
+multiple-choice, and true-false interactions through the fixed A2UI v0.9.1
+catalog with token-bound submits; the learner and parent Performance
+documents render read-only through the same validated catalog. Delivery was
+verified live (radio-group submission and grading observed in the browser)
+plus the recorded journeys and unit suites.
 
 ## Objective
 
@@ -79,19 +77,19 @@ authorization exists.
 
 ## Acceptance Criteria
 
-- [ ] Given a server-issued Practice or Test assignment, its A2UI surface has
+- [x] Given a server-issued Practice or Test assignment, its A2UI surface has
       exactly the interaction type and options/text constraints selected by the
       server and no correct-answer material.
-- [ ] Given a multiple-choice response, true/false response, or text response,
+- [x] Given a multiple-choice response, true/false response, or text response,
       when the learner submits, the existing opaque assignment token binds the
       response to exactly one server-owned question and replay/stale/tampered
       actions cannot grade another question.
-- [ ] Given an unsupported A2UI component, function, binding, capability, or
+- [x] Given an unsupported A2UI component, function, binding, capability, or
       protocol version, the server/client rejects it safely and renders a recovery
       state without executing or silently dropping content.
-- [ ] Given keyboard or assistive-technology use, each interaction has semantic
+- [x] Given keyboard or assistive-technology use, each interaction has semantic
       labels, selection/error feedback, focus order, and no pointer-only action.
-- [ ] Given an A2UI Performance insight, it derives only from the redacted
+- [x] Given an A2UI Performance insight, it derives only from the redacted
       server evidence projection, carries an allowed action, and cannot mutate
       mastery or assessment state merely by rendering.
 - [x] Given parent portal delivery, it is unavailable until a durable
@@ -99,7 +97,7 @@ authorization exists.
       are implemented and tested. (Delivered by the shipped
       parent-performance-portal spec: durable links, revocation enforced on
       every read, and the parent-scoped read contract.)
-- [ ] Given current non-A2UI Practice/Test surfaces, they continue to work until
+- [x] Given current non-A2UI Practice/Test surfaces, they continue to work until
       an explicitly approved migration/parity gate removes them.
 
 ## Assumptions

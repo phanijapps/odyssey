@@ -1,7 +1,7 @@
 # Plan: A2UI Learning Delivery
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 
 ## Approach
 
@@ -103,9 +103,10 @@ transport.
 
 ### T2: Render read-only A2UI surfaces with visual parity
 
-**Status:** In progress. The fixed client adapter validates a server-issued
-Performance document before processing it and is covered by authenticated
-browser rendering; wider visual/accessibility QA remains.
+**Status:** Complete. The fixed client adapter validates every server-issued
+document before processing; authenticated browser rendering, keyboard and
+narrow-viewport checks, and the manual QA records for the Performance,
+guidance, and portal surfaces close the wider visual/accessibility QA.
 
 **Depends on:** T1
 
@@ -117,12 +118,11 @@ entries to existing fixed components without moving grading/state policy.
 
 ### T3: Add server-owned question interaction DTOs
 
-**Status:** In progress. Practice now issues a bounded versioned
-`text-response` interaction DTO alongside its existing opaque assignment; Test
-also returns the same bounded DTO with no answer material. Both current
-text-response surfaces validate and consume the server-issued maximum-length
-bound through the fixed A2UI catalog. Multiple-choice and true-false source
-support and A2UI rendering remain deferred.
+**Status:** Complete. Practice and Test issue bounded versioned interaction
+DTOs — text-response, multiple-choice, and true-false — from reviewed bank
+sources, with no answer material and server-issued bounds consumed through the
+fixed A2UI catalog. Verified live: a Grade 6 ratio batch served text,
+multiple-choice, and true-false shapes, and the radio submission graded.
 
 **Depends on:** T1
 
@@ -135,11 +135,12 @@ server boundary.
 
 ### T4: Bind A2UI actions to token-bound Practice and Test grading
 
-**Status:** In progress. Server-compiled Practice and Test text-response
-surfaces use only `/answer` local binding and fixed `practice.submit` and
-`test.submit` events. The client parses each source/surface/context before a
-hardcoded post to its existing answer route; opaque assignment tokens remain
-the grading authority. Other interaction-type actions remain deferred.
+**Status:** Complete. Server-compiled Practice and Test surfaces use only
+`/answer` local binding and fixed `practice.submit` and `test.submit` events
+across all three interaction types; the client validates each
+source/surface/context before posting to the existing answer route, and opaque
+assignment tokens remain the grading authority (replay/stale/tamper matrix in
+the unit suites; live submission observed for radio and text shapes).
 
 **Depends on:** T2, T3
 
@@ -167,6 +168,10 @@ Pi prose only after a separate safe-schema review.
 
 ### T6: Shape and implement parent relationship foundation
 
+**Status:** Complete — delivered by the parent-performance-portal spec
+(durable links, revocation enforced on every read, parent-scoped read
+contract, and the non-mutating Practice preview).
+
 **Depends on:** T5
 
 **Tests:** parent-child link/revocation/one-to-many policy/route-isolation tests.
@@ -189,3 +194,8 @@ Performance surface or dynamic insight sharing.
 
 - 2026-08-16: Drafted after user selected official A2UI integration.
 - 2026-08-17: Implemented the bounded learner Performance foundation; question actions remain deferred.
+- 2026-08-17: Closed as Done — the earlier deferrals were stale: multiple-choice
+  and true-false sources issue and render through the fixed catalog (verified
+  live with graded radio submission), all interaction actions bind to the
+  existing token-guarded routes, and the parent foundation shipped under the
+  parent-performance-portal spec.
