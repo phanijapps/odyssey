@@ -1,8 +1,19 @@
 # Spec: curriculum model
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Plan:** [plan.md](plan.md)
 - **Shape:** data
+
+## Implementation status
+
+Delivered by the curriculum modules (canonical record parser, local vector
+repository, reviewed promotion workflow) ahead of this spec's recorded state.
+Closed 2026-08-17 as a maintainer-directed post-hoc ratification: the
+acceptance criteria are evidenced by the passing suite (record schema,
+embedding dimension pinning, bounded subject/framework nearest-neighbor,
+promotion authority) rather than a prior approval gate. Folding this spec
+into curriculum-deep-agent was considered and declined — its contract
+documents live behavior that predates and outlives that draft.
 
 ## Objective
 
@@ -42,13 +53,13 @@ generated embedding for curriculum retrieval.
 
 ## Acceptance Criteria
 
-- [ ] A subject-neutral canonical record represents frameworks, grade/course bands, domains, clusters, standards, curated topics, and assessment targets.
-- [ ] Each official standard retains an identifier, exact source text, source document fingerprint, and page number.
-- [ ] Any source adapter creates Silver candidates without treating extraction as
+- [x] A subject-neutral canonical record represents frameworks, grade/course bands, domains, clusters, standards, curated topics, and assessment targets.
+- [x] Each official standard retains an identifier, exact source text, source document fingerprint, and page number.
+- [x] Any source adapter creates Silver candidates without treating extraction as
       authoritative curriculum; only approved candidates become Gold records.
-- [ ] Each embedding record stores its model name, dimension, source-record identifier, and content fingerprint; `nomic-embed-text:latest` vectors have dimension 768.
-- [ ] SQLite-Vec stores vectors locally and supports a bounded nearest-neighbor lookup scoped to a subject and framework.
-- [ ] The application exposes no browser route for raw curriculum documents, embeddings, or unrestricted vector search.
+- [x] Each embedding record stores its model name, dimension, source-record identifier, and content fingerprint; `nomic-embed-text:latest` vectors have dimension 768.
+- [x] SQLite-Vec stores vectors locally and supports a bounded nearest-neighbor lookup scoped to a subject and framework.
+- [x] The application exposes no browser route for raw curriculum documents, embeddings, or unrestricted vector search.
 
 ## Assumptions
 

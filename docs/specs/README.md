@@ -18,7 +18,6 @@ docs/specs/<feature>/
 | Spec | Status | Constrained by | Notes |
 | --- | --- | --- | --- |
 | [curriculum-deep-agent](curriculum-deep-agent/spec.md) | Draft | ADR-0001, ADR-0003, ADR-0004, RFC-0002 | Bounded curriculum-document workflow; successor to curriculum-ingestion |
-| [curriculum-model](curriculum-model/spec.md) | Draft | — | Largely delivered by the curriculum modules; spec never passed approval — ratify or rewrite before closing |
 | [test-catalog](test-catalog/spec.md) | Draft | RFC-0004 | Green-field governance domain; T1 policy approval is the entry gate |
 
 ## Shipped specs
@@ -35,6 +34,7 @@ Shipped specs remain as historical feature contracts with their QA records.
 | [mistake-to-mastery](mistake-to-mastery/spec.md) | Shipped | RFC-0004 | Test-to-practice remediation projection |
 | [engagement-achievements](engagement-achievements/spec.md) | Shipped | — | Practice-only achievements and fun facts |
 | [parent-performance-portal](parent-performance-portal/spec.md) | Shipped | RFC-0003, RFC-0004 | Parent relationships, aggregate view, practice preview |
+| [curriculum-model](curriculum-model/spec.md) | Shipped | — | Post-hoc ratified 2026-08-17; delivered by the curriculum modules |
 
 ## Adding a new spec
 

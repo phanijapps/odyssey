@@ -1,29 +1,10 @@
-import { expect, test, type Page } from "@playwright/test";
-import { rmSync } from "node:fs";
+import { expect, test } from "@playwright/test";
+import { signIn } from "./sign-in";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 const databasePath = join(process.cwd(), ".playwright-parent.db");
 const curriculumDatabasePath = join(process.cwd(), ".playwright-curriculum.db");
-
-function removeTestDatabases(): void {
-  for (const base of [databasePath, curriculumDatabasePath])
-    for (const suffix of ["", "-shm", "-wal"])
-      rmSync(`${base}${suffix}`, { force: true });
-}
-
-test.beforeAll(removeTestDatabases);
-test.afterAll(removeTestDatabases);
-
-async function signIn(
-  page: Page,
-  username: string,
-  password: string,
-): Promise<void> {
-  await page.getByLabel("Username").fill(username);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Enter practice" }).click();
-}
 
 /** Seeds the one reviewed Gold standard the guidance target must resolve to. */
 function seedReviewedCurriculum(): void {

@@ -1,26 +1,8 @@
-import { expect, test, type Page } from "@playwright/test";
-import { rmSync } from "node:fs";
+import { expect, test } from "@playwright/test";
+import { signIn } from "./sign-in";
 import { join } from "node:path";
 
 const databasePath = join(process.cwd(), ".playwright-parent.db");
-
-function removeTestDatabase(): void {
-  for (const suffix of ["", "-shm", "-wal"])
-    rmSync(`${databasePath}${suffix}`, { force: true });
-}
-
-test.beforeAll(removeTestDatabase);
-test.afterAll(removeTestDatabase);
-
-async function signIn(
-  page: Page,
-  username: string,
-  password: string,
-): Promise<void> {
-  await page.getByLabel("Username").fill(username);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Enter practice" }).click();
-}
 
 test("parent creates, resets, and revokes a child account", async ({
   page,

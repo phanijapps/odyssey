@@ -280,7 +280,14 @@ function loadConfiguredEngramModule<T>(
   if (!artifact) return null;
   try {
     verifyConfiguredEngramArtifact(artifact);
-    const loadModule = createRequire(import.meta.url) as unknown as (
+    // Turbopack rewrites the bundled createRequire import into a shim that
+    // rejects dynamic requires in development; the platform builtin always
+    // yields the real CommonJS loader.
+    const nodeModule = process.getBuiltinModule("module") as
+      | typeof import("node:module")
+      | null;
+    const requireFrom = nodeModule?.createRequire ?? createRequire;
+    const loadModule = requireFrom(import.meta.url) as unknown as (
       moduleId: string,
     ) => T;
     return { artifact, module: loadModule(entryPoint(artifact)) };

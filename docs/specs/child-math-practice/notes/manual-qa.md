@@ -9,7 +9,8 @@ filesystem paths here.
 - Date: 2026-08-08 (initial); 2026-08-17 (reconciliation journey, current UI)
 - App revision: working tree (pre-commit smoke)
 - Node version: 24.19.0
-- Engram state: unavailable (no local native artifact configured)
+- Engram state: unavailable (2026-08-08); available via the reviewed local
+  worktree artifact (2026-08-17)
 - Engram build prerequisite: Cargo and Rust 1.85+ when compiling the native package
 - Optional native integration: run the documented integration test with its
   local environment configured; do not record environment values here.
@@ -80,12 +81,15 @@ filesystem paths here.
 
 ### M5 — Memory and recoverability
 
-- [ ] With the verified Engram artifact available, complete a learning attempt.
+- [x] With the verified Engram artifact available, complete a learning attempt.
       Confirm progress renders and the profile-memory indicator reports ready.
-      (Not exercised 2026-08-17: the reviewed local artifact configuration and
-      its digests are developer-local and unrecorded by design; the adapter's
-      ready path is covered by `engram-memory.test.ts` and the optional
-      `engram-native.integration.test.ts` probe.)
+      (2026-08-17 second pass: a pinned clean worktree of the reviewed local
+      artifact is configured with its revision and digests; the native
+      integration probe is green, the live app reports the ready state, and an
+      accepted answer wrote a child-scoped derived signal into the native
+      store. Fixing this also exposed and repaired a development-mode loader
+      defect — the bundler's createRequire shim had silently rejected the
+      dynamic native-module load.)
 - [x] Make the configured artifact unavailable or invalid, restart the app, and
       confirm a clear recoverable memory state appears. Submit an answer and confirm
       answer feedback and local progress still work. (2026-08-17: the whole
@@ -172,9 +176,9 @@ filesystem paths here.
   protection, and a console sweep. Live model-integration probes were re-run
   2026-08-17 with the documented opt-in environment configuration (structured
   agent probe and local embeddings); both are green.
-- Not exercised 2026-08-17: the Engram-native ready path (developer-local
-  reviewed artifact digests are intentionally unrecorded); left unchecked above.
+- Engram follow-up closed 2026-08-17: the native ready path is exercised and
+  recorded above; the artifact configuration remains developer-local by design.
 - Advisory: the browser flagged the sign-in inputs for missing explicit name
   attributes and password autocomplete hints (cosmetic, no secret exposure).
-- Follow-up issue: wire and verify a local Engram artifact before marking the
-  Engram-ready box.
+- Follow-up issue (closed 2026-08-17): a local Engram artifact is wired,
+  verified, and recorded above.

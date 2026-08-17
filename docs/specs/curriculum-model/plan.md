@@ -1,7 +1,7 @@
 # Plan: curriculum model
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 ## Tasks
 
@@ -33,3 +33,11 @@ Gold; adapter fixtures cover PDF, CSV, JSON, and unstructured source inputs.
 **Approach:** Build a Bronze → Silver extraction port and an approved Silver →
 Gold formalization port, each owned by a distinct bounded Pi agent. Keep Ohio
 math as one source adapter, not a pipeline assumption.
+
+## Changelog
+
+- 2026-08-17: Closed as Done via post-hoc ratification — records
+  (`curriculum-model.ts`), embedding storage (`vector-repository.ts`,
+  768-dimension pin, model + content fingerprint per record), and agent
+  promotion (`curriculum-promotion-service.ts`) shipped inside the curriculum
+  modules and are covered by the passing suite.

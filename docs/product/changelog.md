@@ -43,6 +43,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Test progress counter** — the completed-test header no longer reads
   "Question 10 of 9"; terminal and exited-partial screens now show the last
   answered ordinal instead of assuming a next question.
+- **Profile memory loads in development** — the bundler's `createRequire` shim
+  silently rejected the verified native Engram artifact's dynamic load, so
+  profile memory and the knowledge-graph addon stayed "unavailable" under the
+  dev server. The loader now takes the real CommonJS require from the platform
+  builtin; with the reviewed local artifact configured, the ready state and
+  child-scoped signal writes work end-to-end.
 
 ## [unreleased-2] — 2026-08-14
 
