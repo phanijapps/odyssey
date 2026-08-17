@@ -5,6 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { learningDb } from "../learning/sqlite-repository";
+import type { LearnerQuestionInteraction } from "../learning/question-interactions";
 
 /** Distinct server-side authorization roles. */
 export type AccountRole = "admin" | "parent" | "student";
@@ -821,6 +822,7 @@ export type SessionPool = {
   questions: readonly {
     id: string;
     question: string;
+    interaction?: LearnerQuestionInteraction;
     answer: string;
     acceptableAnswers: readonly string[];
     hint: string;
@@ -893,6 +895,7 @@ export function issueGeneratedPracticeAssignment(
   question: {
     topicId: string;
     question: string;
+    interaction?: LearnerQuestionInteraction;
     answer: string;
     acceptableAnswers: readonly string[];
     hint: string;
@@ -954,6 +957,7 @@ export function appendSessionPoolQuestion(
   q: {
     id: string;
     question: string;
+    interaction?: LearnerQuestionInteraction;
     answer: string;
     acceptableAnswers: readonly string[];
     hint: string;

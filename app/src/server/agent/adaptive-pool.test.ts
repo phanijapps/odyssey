@@ -16,6 +16,14 @@ describe("bank fallback matches the selected standard, not the domain", () => {
     );
     expect(question).not.toBeNull();
     expect(question!.question.toLowerCase()).toContain("slope");
+    expect(question!.interaction).toEqual({
+      type: "text-response",
+      prompt: question!.question,
+      response: { maxLength: 100 },
+    });
+    expect(JSON.stringify(question!.interaction)).not.toMatch(
+      /answer|score|token|solution/i,
+    );
     // The reported defect: a Grade 6 expression-evaluation question appeared.
     expect(question!.question).not.toContain("3x + 5");
   });

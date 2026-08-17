@@ -198,7 +198,9 @@ export async function GET(request: Request): Promise<Response> {
       ...progress,
       nextQuestion: {
         question: claimed.question.question,
-        interaction: textResponseInteraction(claimed.question.question),
+        interaction:
+          claimed.question.interaction ??
+          textResponseInteraction(claimed.question.question),
         diagramSvg: claimed.question.diagramSvg,
         // Contract addition: POST /api/answer requires this opaque token.
         assignmentToken: claimed.assignmentToken,

@@ -1,12 +1,18 @@
 import "server-only";
 import { questionBank, type QuestionBankEntry } from "./question-bank";
 import { isOllamaConfigured, requestOllamaLearningQuestion } from "./agent";
+import {
+  textResponseInteraction,
+  type LearnerQuestionInteraction,
+} from "../learning/question-interactions";
 
 export type Difficulty = 1 | 2 | 3;
 
 export type PoolQuestion = {
   readonly id: string;
   readonly question: string;
+  /** Server-selected learner input shape; never contains an answer key. */
+  readonly interaction: LearnerQuestionInteraction;
   readonly answer: string;
   readonly acceptableAnswers: readonly string[];
   readonly hint: string;
@@ -172,6 +178,7 @@ function makeBankQuestion(
   return {
     id: `bank-${topicId}-${difficulty}-${Date.now()}`,
     question: entry.question,
+    interaction: textResponseInteraction(entry.question),
     answer: entry.expectedAnswer,
     acceptableAnswers: entry.acceptableAnswers ?? [],
     hint: entry.hint,
@@ -205,6 +212,7 @@ async function makeQuestion(
         return {
           id: `ai-${topicId}-${difficulty}-${Date.now()}-${attempt}`,
           question: ai.question,
+          interaction: textResponseInteraction(ai.question),
           answer: ai.answer,
           acceptableAnswers: ai.acceptableAnswers,
           hint: ai.hint,
