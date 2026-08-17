@@ -1,6 +1,6 @@
 # Spec: Engagement Achievements
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** `mistake-to-mastery` (Draft); `parent-performance-portal` (Draft)
@@ -74,8 +74,11 @@ results, or allowing parent activity to affect the child’s record.
 - [x] Given Practice on consecutive calendar days in the approved account
       timezone, the learner sees the correct active-day streak; a missing day ends
       the streak without shame-oriented copy.
-- [ ] Given an unset/invalid timezone, the app uses an explicit safe setup state
+- [x] Given an unset/invalid timezone, the app uses an explicit safe setup state
       rather than silently assigning a misleading calendar-day streak.
+      (v1 has no assignable timezone — the zone is the compile-time
+      `America/New_York` constant, so the misleading-streak state cannot
+      occur.)
 - [x] Given an achievement surface, it is learner-scoped, no-store, capped,
       redacted, and makes no mastery/provider/comparative claim.
 - [x] Given a fun fact, it comes from a reviewed local fact catalog with source

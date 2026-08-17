@@ -1,7 +1,7 @@
 # Plan: Engagement Achievements
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 
 ## Approach
 
@@ -97,3 +97,4 @@ notifications or social features.
 
 - 2026-08-16: Drafted from user-directed open-ended practice engagement goals.
 - 2026-08-17: Implemented the deterministic Practice-only achievement projection and approved local fun-fact catalog.
+- 2026-08-17: Closed — all tasks complete under the passing app gates; spec moved to Shipped.
