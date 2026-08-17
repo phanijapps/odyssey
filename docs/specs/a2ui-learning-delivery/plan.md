@@ -119,8 +119,8 @@ entries to existing fixed components without moving grading/state policy.
 
 **Status:** In progress. Practice now issues a bounded versioned
 `text-response` interaction DTO alongside its existing opaque assignment; Test
-also returns the same bounded DTO with no answer material. The existing Practice
-input validates and consumes its server-issued maximum-length bound.
+also returns the same bounded DTO with no answer material. Existing Practice
+and Test inputs validate and consume the server-issued maximum-length bound.
 Multiple-choice and true-false source support and A2UI rendering remain
 deferred.
 

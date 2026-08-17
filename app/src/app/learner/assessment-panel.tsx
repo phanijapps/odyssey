@@ -1,5 +1,6 @@
 import { FormEvent } from "react";
 import { MathText } from "@/components/math-text";
+import { parseTextResponseInteraction } from "./question-interaction";
 import {
   Assessment,
   AssessmentQuestion,
@@ -184,7 +185,10 @@ export function AssessmentPanel({
                 className="answer-input"
                 value={answer}
                 onChange={(event) => onAnswerChange(event.target.value)}
-                maxLength={100}
+                maxLength={
+                  parseTextResponseInteraction(assessmentQuestion.interaction)
+                    ?.response.maxLength ?? 100
+                }
                 placeholder="Type your answer"
                 disabled={testLoading}
                 autoFocus

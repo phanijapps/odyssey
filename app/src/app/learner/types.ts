@@ -39,6 +39,7 @@ export type AssessmentQuestion = {
   total: number;
   question: string;
   assignmentToken: string;
+  interaction?: unknown;
   diagramSvg?: string;
 };
 
