@@ -1,7 +1,7 @@
 # Plan: Mistake-to-Mastery
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 
 ## Approach
 
@@ -17,7 +17,7 @@ mastery engine, prerequisite traversal, parent role, or generative coach.
 - Preserve server-issued assignment and learner-scope boundaries.
 - Preserve the current Test/Practice separation.
 - Reuse Gold snapshot identity/fingerprint; do not parse client composite IDs.
-- RFC-0004 approval is required before execution.
+- The learner-only read model follows RFC-0004’s local snapshot and isolation policy; production/catalog policy remains out of scope.
 
 ## Construction tests
 
@@ -78,6 +78,8 @@ learner-scoped reads. Meet the existing UI keyboard/focus/error-state standard.
 
 ### T1: Freeze the plan contract and evidence policy
 
+**Status:** Complete. The plan is learner-only, selects the latest completed Test, uses a three-correct-attempt checkpoint, and has no parent/Pi/persistence/action surface.
+
 **Depends on:** none
 
 **Tests:** no stub (contract/design review); table-driven examples cover no
@@ -88,6 +90,8 @@ post-test practice.
 rule, DTO, action target, and redaction policy; add contract fixture examples.
 
 ### T2: Make plan classification a pure tested module
+
+**Status:** Complete. The read model groups snapshot standards, excludes malformed data and partial Tests, caps items, and counts only later correct Practice attempts.
 
 **Depends on:** T1
 
@@ -100,6 +104,8 @@ filtering, state thresholds, caps, and empty state.
 builder; no generic analytics abstraction.
 
 ### T3: Expose the learner-scoped redacted plan
+
+**Status:** Complete. `GET /api/performance/plan` derives learner scope from the session and returns a no-store redacted DTO.
 
 **Depends on:** T2
 
@@ -141,3 +147,4 @@ learning attempts, memory, graph, assessment records, or assignment state.
 ## Changelog
 
 - 2026-08-16: Drafted from Performance/Test Catalog research.
+- 2026-08-17: Implemented the deterministic learner-only read model and BFF; action entry remains in progress.

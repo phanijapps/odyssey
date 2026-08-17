@@ -16,7 +16,7 @@ recent reviewed Practice skill codes and completed/partial Test events as separa
 sections. It has neutral empty states and intentionally makes no readiness,
 mastery, accuracy, score, or guidance claim. The server compiles and validates
 the document; the client validates it again before its fixed local catalog
-renders it. Guidance and action variants remain deferred.
+renders it. The deterministic Test-to-Practice evidence projection is now present; its action variant remains deferred.
 
 ## Objective
 

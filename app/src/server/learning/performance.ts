@@ -6,6 +6,7 @@ import {
 } from "../../a2ui/document";
 import { getBrowseTree } from "../curriculum/browse";
 import { getLearnerHistory } from "./learning";
+import { getMistakeToMasteryPlan } from "./mistake-to-mastery";
 
 const PERFORMANCE_ITEM_CAP = 5;
 type PerformanceComponents =
@@ -57,6 +58,7 @@ export function getLearnerPerformanceDocument(
     practiceTopicIds.length === 0
       ? []
       : reviewedPracticeCodes(practiceTopicIds);
+  const guidance = getMistakeToMasteryPlan(childId).items;
   const tests = history
     .filter((entry) => entry.kind === "test")
     .slice(0, PERFORMANCE_ITEM_CAP)
@@ -77,6 +79,8 @@ export function getLearnerPerformanceDocument(
         "practice-detail",
         "tests-title",
         "tests-detail",
+        "guidance-title",
+        "guidance-detail",
         "separation-note",
       ],
     },
@@ -130,6 +134,31 @@ export function getLearnerPerformanceDocument(
                 (entry) =>
                   `${entry.subject} · ${entry.grade} · ${entry.status === "completed" ? "completed" : "partial"}`,
               )
+              .join("; "),
+        320,
+      ),
+    },
+    {
+      component: "OdysseyText",
+      id: "guidance-title",
+      variant: "h2",
+      text: "Next Practice",
+    },
+    {
+      component: "OdysseyText",
+      id: "guidance-detail",
+      variant: "body",
+      text: displayText(
+        guidance.length === 0
+          ? "No Test-based Practice recommendations are available yet."
+          : guidance
+              .map((item) => {
+                if (item.state === "practice-checkpoint-met")
+                  return `${item.standardCode}: Practice checkpoint met`;
+                if (item.state === "practicing")
+                  return `${item.standardCode}: Keep practicing`;
+                return `${item.standardCode}: Recommended Practice`;
+              })
               .join("; "),
         320,
       ),

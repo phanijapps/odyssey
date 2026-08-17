@@ -1,16 +1,21 @@
 # Spec: Mistake-to-Mastery
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0004 (Open)
 - **Brief:** none
 - **Discovery:** local research synthesis, 2026-08-16
-- **Contract:** none while Draft; implementation defines a versioned internal BFF contract
+- **Contract:** learner-only `GET /api/performance/plan` returns a capped, redacted snapshot-derived plan; it accepts no learner or assessment identifier and responds `Cache-Control: no-store`.
 - **Shape:** mixed
 
-> **Spec contract:** this document defines what “done” means. Implementation
-> begins only after this Draft and RFC-0004 are approved.
+## Implementation status
+
+The first deterministic read model is implemented. It selects only the latest
+completed Test, groups missed snapshot standards, counts only later correct
+Practice attempts, and classifies each as `recommended`, `practicing`, or
+`practice-checkpoint-met` at three correct attempts. It omits malformed
+snapshots and has no action, Pi, parent, or persistence surface.
 
 ## Objective
 
@@ -61,21 +66,21 @@ or allowing a model to determine educational facts.
 
 ## Acceptance Criteria
 
-- [ ] Given no completed Test, when a learner requests their plan, they receive
+- [x] Given no completed Test, when a learner requests their plan, they receive
       an empty positive state and no assessment internals.
-- [ ] Given a completed Test with incorrect questions, when the plan loads, it
+- [x] Given a completed Test with incorrect questions, when the plan loads, it
       contains exactly one item per missed snapshotted Gold record with the correct
       answered/incorrect baseline.
-- [ ] Given a partial Test, when a plan is computed, the partial Test is not a
+- [x] Given a partial Test, when a plan is computed, the partial Test is not a
       plan source.
 - [ ] Given later Gold edits, when a plan for an earlier Test is computed, its
       target uses that Test’s snapshotted standard metadata and fingerprint.
-- [ ] Given post-Test Practice for a target, when the plan loads, it reports
+- [x] Given post-Test Practice for a target, when the plan loads, it reports
       `recommended`, `practicing`, or `practice-checkpoint-met` from documented
       post-baseline evidence only.
 - [ ] Given any Test result, Practice progress, adaptive level, memory, and
       graph beliefs remain unchanged until the learner submits normal Practice.
-- [ ] Given a learner-scoped request, the response contains no raw answer,
+- [x] Given a learner-scoped request, the response contains no raw answer,
       question, solution, token, prompt, unscoped child ID, or provider data and is
       not cacheable.
 - [ ] Given a plan item, the learner can enter existing Practice for exactly its
