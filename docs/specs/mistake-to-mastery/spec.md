@@ -1,6 +1,6 @@
 # Spec: Mistake-to-Mastery
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0004 (Open)

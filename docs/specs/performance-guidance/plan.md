@@ -1,7 +1,7 @@
 # Plan: Performance and Guidance
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 
 ## Approach
 
