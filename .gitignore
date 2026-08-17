@@ -25,6 +25,7 @@ AGENTS.local.md
 .env.local
 node_modules/
 .next/
+/app/test-results/
 *.tsbuildinfo
 *.db
 
