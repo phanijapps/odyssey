@@ -27,7 +27,7 @@ const textComponent = z
   .object({
     component: z.literal("OdysseyText"),
     id: componentId,
-    text: z.string().min(1).max(320),
+    text: z.string().min(1).max(400),
     variant: z.enum(["h1", "h2", "body", "caption"]).optional(),
   })
   .strict();

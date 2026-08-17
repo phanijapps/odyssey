@@ -46,6 +46,16 @@ describe("Practice A2UI document", () => {
     expect(JSON.stringify(document)).not.toContain("correctAnswer");
   });
 
+  test("accepts the producer's 400-character question boundary", () => {
+    expect(
+      createPracticeA2uiDocument({
+        topicId,
+        assignmentToken,
+        question: "Q".repeat(400),
+      }),
+    ).toEqual(expect.any(Object));
+  });
+
   test("rejects extra action context and altered component graphs", () => {
     const document = createPracticeA2uiDocument({
       topicId,

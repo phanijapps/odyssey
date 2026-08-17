@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-const questionPrompt = z.string().min(1).max(320);
+const questionPrompt = z.string().min(1).max(400);
 
 /** The fixed versioned response shapes Odyssey may issue to a learner. */
 export const learnerQuestionInteractionSchema = z.discriminatedUnion("type", [

@@ -27,8 +27,12 @@ test("rejects unbounded or malformed interaction variants", () => {
   expect(() =>
     learnerQuestionInteractionSchema.parse({
       type: "text-response",
-      prompt: "P".repeat(321),
+      prompt: "P".repeat(401),
       response: { maxLength: 100 },
     }),
   ).toThrow();
+});
+
+test("permits the producer's 400-character question boundary", () => {
+  expect(textResponseInteraction("P".repeat(400)).prompt).toHaveLength(400);
 });

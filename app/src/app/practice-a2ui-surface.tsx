@@ -109,6 +109,8 @@ export function OdysseyPracticeA2uiSurface({
   document: OdysseyPracticeA2uiDocument;
   onSubmit: (action: OdysseyPracticeA2uiAction) => Promise<void>;
 }) {
+  const onSubmitRef = useRef(onSubmit);
+  onSubmitRef.current = onSubmit;
   const [surface, setSurface] = useState<PracticeSurfaceModel | null>(null);
   const [error, setError] = useState(false);
   const submitting = useRef(false);
@@ -123,7 +125,7 @@ export function OdysseyPracticeA2uiSurface({
       });
       if (!parsed.success || submitting.current) return;
       submitting.current = true;
-      return onSubmit(parsed.data).finally(() => {
+      return onSubmitRef.current(parsed.data).finally(() => {
         submitting.current = false;
       });
     });
@@ -141,7 +143,7 @@ export function OdysseyPracticeA2uiSurface({
       setError(true);
     }
     return () => subscription.unsubscribe();
-  }, [document, onSubmit]);
+  }, [document]);
 
   if (error) return <p role="alert">Practice is unavailable. Please retry.</p>;
   if (!surface) return <p>Loading practice…</p>;
