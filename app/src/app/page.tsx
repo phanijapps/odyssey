@@ -2,6 +2,10 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AssessmentPanel } from "./learner/assessment-panel";
+import type {
+  OdysseyPracticeA2uiAction,
+  OdysseyPracticeA2uiDocument,
+} from "../a2ui/practice-document";
 import { LearnerHeader } from "./learner/learner-header";
 import { LearningHistory } from "./learner/learning-history";
 import { PracticePanel } from "./learner/practice-panel";
@@ -60,6 +64,8 @@ export default function HomePage() {
   const [question, setQuestion] = useState("");
   /** Opaque server-issued binding for the displayed Practice question. */
   const [assignmentToken, setAssignmentToken] = useState<string | null>(null);
+  const [practiceA2ui, setPracticeA2ui] =
+    useState<OdysseyPracticeA2uiDocument | null>(null);
   const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
   const [level, setLevel] = useState(1);
   const [correctStreak, setCorrectStreak] = useState(0);
@@ -242,6 +248,7 @@ export default function HomePage() {
     setIsLoadingQuestion(true);
     setQuestion("Loading…");
     setAssignmentToken(null);
+    setPracticeA2ui(null);
     setDiagramSvg(null);
     try {
       window.localStorage.setItem(SKILL_KEY, JSON.stringify(skill));
@@ -283,6 +290,7 @@ export default function HomePage() {
             ? d.nextQuestion.assignmentToken
             : null,
         );
+        setPracticeA2ui(d.nextQuestion.a2ui ?? null);
         setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
       } else {
         setQuestion("");
@@ -300,21 +308,26 @@ export default function HomePage() {
 
   /* ---- Answering ---- */
 
-  async function submitAnswer(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (isSubmittingAnswer || !activeSkill || result || !assignmentToken)
-      return;
+  async function savePracticeAnswer(
+    answerValue: string,
+    topicId: string,
+    token: string,
+  ) {
+    if (isSubmittingAnswer || result) return;
     const version = progressVersion.current;
     setIsSubmittingAnswer(true);
     try {
-      const topicId = `${activeSkill.subject}::${activeSkill.grade}::${activeSkill.domain}::${activeSkill.standardCode}`;
       const res = await fetch("/api/answer", {
         method: "POST",
         headers: {
           "content-type": "application/json",
           origin: window.location.origin,
         },
-        body: JSON.stringify({ topicId, answer, assignmentToken }),
+        body: JSON.stringify({
+          topicId,
+          answer: answerValue,
+          assignmentToken: token,
+        }),
       });
       if (progressVersion.current !== version) return;
       if (!res.ok) {
@@ -332,6 +345,7 @@ export default function HomePage() {
       setCorrectStreak(d.correctStreak);
       setResult(d);
       setAssignmentToken(null);
+      setPracticeA2ui(null);
       setFeedback({
         kind: d.correct ? "success" : "error",
         message: d.correct
@@ -341,9 +355,9 @@ export default function HomePage() {
           : `Not quite. The correct answer is ${d.correctAnswer}.`,
       });
       if (mode === "test") {
-        setTestScore((s) => s + d.points);
-        setTestLog((l) => [
-          ...l,
+        setTestScore((score) => score + d.points);
+        setTestLog((log) => [
+          ...log,
           {
             correct: d.correct,
             points: d.points,
@@ -358,12 +372,26 @@ export default function HomePage() {
       }
       setAnswer("");
     } catch {
-      if (progressVersion.current === version) {
+      if (progressVersion.current === version)
         setFeedback({ kind: "error", message: "Could not save answer." });
-      }
     } finally {
       if (progressVersion.current === version) setIsSubmittingAnswer(false);
     }
+  }
+
+  function submitAnswer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!activeSkill || !assignmentToken) return;
+    const topicId = `${activeSkill.subject}::${activeSkill.grade}::${activeSkill.domain}::${activeSkill.standardCode}`;
+    void savePracticeAnswer(answer, topicId, assignmentToken);
+  }
+
+  function submitA2uiPracticeAnswer(action: OdysseyPracticeA2uiAction) {
+    return savePracticeAnswer(
+      action.context.answer,
+      action.context.topicId,
+      action.context.assignmentToken,
+    );
   }
 
   /** Next: advance to the question the server already prepared. */
@@ -379,6 +407,7 @@ export default function HomePage() {
     setIsLoadingQuestion(true);
     setQuestion("Loading…");
     setAssignmentToken(null);
+    setPracticeA2ui(null);
     setDiagramSvg(null);
     if (requestedMode === "test" && currentResult) {
       const nextIndex = currentResult.testPosition; // server counts the just-served one
@@ -419,6 +448,7 @@ export default function HomePage() {
             ? d.nextQuestion.assignmentToken
             : null,
         );
+        setPracticeA2ui(d.nextQuestion.a2ui ?? null);
         setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
       } else if (requestedMode === "test") {
         setTestDone(true);
@@ -840,6 +870,7 @@ export default function HomePage() {
             activeSkill={activeSkill}
             answer={answer}
             answerMaxLength={answerMaxLength}
+            a2uiDocument={practiceA2ui}
             correctStreak={correctStreak}
             diagramSvg={diagramSvg}
             feedback={feedback}
@@ -855,6 +886,7 @@ export default function HomePage() {
             testLog={testLog}
             testScore={testScore}
             onAnswerChange={setAnswer}
+            onA2uiSubmit={submitA2uiPracticeAnswer}
             onNextQuestion={() => void nextQuestion()}
             onRetry={() => void selectSkill(activeSkill)}
             onStartNewTest={() => void selectSkill(activeSkill)}

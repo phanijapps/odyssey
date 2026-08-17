@@ -135,6 +135,12 @@ server boundary.
 
 ### T4: Bind A2UI actions to token-bound Practice and Test grading
 
+**Status:** In progress. A server-compiled Practice text-response surface uses
+only `/answer` local binding and the fixed `practice.submit` event. The client
+parses its source/surface/context before a hardcoded `POST /api/answer`; the
+existing opaque assignment token remains the grading authority. Test and other
+interaction-type actions remain deferred.
+
 **Depends on:** T2, T3
 
 **Tests:** end-to-end surface→submit→grade→next/review/replay/stale/tamper

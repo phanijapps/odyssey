@@ -1,4 +1,9 @@
 import { FormEvent } from "react";
+import { OdysseyPracticeA2uiSurface } from "../practice-a2ui-surface";
+import type {
+  OdysseyPracticeA2uiAction,
+  OdysseyPracticeA2uiDocument,
+} from "../../a2ui/practice-document";
 import { MathText } from "@/components/math-text";
 import { AnswerResult, FlatStandard, PracticeFeedback } from "./types";
 
@@ -6,6 +11,7 @@ type PracticePanelProps = {
   activeSkill: FlatStandard;
   answer: string;
   answerMaxLength: number;
+  a2uiDocument: OdysseyPracticeA2uiDocument | null;
   correctStreak: number;
   diagramSvg: string | null;
   feedback: PracticeFeedback | null;
@@ -21,6 +27,7 @@ type PracticePanelProps = {
   testLog: { correct: boolean; points: number; difficulty: number }[];
   testScore: number;
   onAnswerChange: (answer: string) => void;
+  onA2uiSubmit: (action: OdysseyPracticeA2uiAction) => Promise<void>;
   onNextQuestion: () => void;
   onRetry: () => void;
   onStartNewTest: () => void;
@@ -33,6 +40,7 @@ export function PracticePanel({
   activeSkill,
   answer,
   answerMaxLength,
+  a2uiDocument,
   correctStreak,
   diagramSvg,
   feedback,
@@ -48,6 +56,7 @@ export function PracticePanel({
   testLog,
   testScore,
   onAnswerChange,
+  onA2uiSubmit,
   onNextQuestion,
   onRetry,
   onStartNewTest,
@@ -127,9 +136,11 @@ export function PracticePanel({
               </div>
             ) : (
               <>
-                <h2 className="question-text">
-                  <MathText>{question}</MathText>
-                </h2>
+                {!a2uiDocument && (
+                  <h2 className="question-text">
+                    <MathText>{question}</MathText>
+                  </h2>
+                )}
                 {isLoadingQuestion ? (
                   <p className="loading-text">Loading your question…</p>
                 ) : result ? (
@@ -157,6 +168,11 @@ export function PracticePanel({
                       Next question →
                     </button>
                   </>
+                ) : a2uiDocument ? (
+                  <OdysseyPracticeA2uiSurface
+                    document={a2uiDocument}
+                    onSubmit={onA2uiSubmit}
+                  />
                 ) : (
                   <form onSubmit={onSubmitAnswer} className="answer-row">
                     <input

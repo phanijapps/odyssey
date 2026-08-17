@@ -220,6 +220,21 @@ test("accepts the exact topic identity for a reviewed selected standard", async 
 
   expect(response.status).toBe(200);
   await expect(response.json()).resolves.toMatchObject({
-    nextQuestion: { assignmentToken: expect.any(String) },
+    nextQuestion: {
+      assignmentToken: expect.any(String),
+      a2ui: {
+        messages: [
+          { createSurface: { surfaceId: "odyssey-practice" } },
+          { updateDataModel: { path: "/answer", value: "" } },
+          {
+            updateComponents: {
+              components: expect.arrayContaining([
+                expect.objectContaining({ component: "OdysseyTextResponse" }),
+              ]),
+            },
+          },
+        ],
+      },
+    },
   });
 });
