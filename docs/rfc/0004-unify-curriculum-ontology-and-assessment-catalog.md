@@ -1,6 +1,6 @@
 # RFC-0004: Unify curriculum ontology and assessment catalog
 
-- **Status:** Open
+- **Status:** Accepted
 - **Date:** 2026-08-16
 
 ## Summary

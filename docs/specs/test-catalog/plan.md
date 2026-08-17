@@ -1,7 +1,7 @@
 # Plan: Test Catalog
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 
 ## Approach
 
@@ -14,7 +14,7 @@ only where the policy is identical; do not mutate it into a catalog god module.
 
 ## Constraints
 
-- RFC-0004 approval is required before implementation.
+- RFC-0004 is accepted; catalog implementation must retain its original-only, reviewed-rights and local-claim boundaries.
 - The existing fixed mixed-skill Test stays supported until catalog parity and
   migration/deprecation are explicitly approved.
 - No provider content, score mapping, trademark claim, or external integration

@@ -1,12 +1,12 @@
 # Spec: Test Catalog
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0004 (Open)
+- **Constrained by:** RFC-0004 (Accepted)
 - **Brief:** none
 - **Discovery:** local catalog/assessment and content-governance research, 2026-08-16
-- **Contract:** none while Draft; implementation defines steward and learner BFF contracts
+- **Contract:** catalog implementation defines steward and learner BFF contracts; the existing fixed Test remains supported pending parity evidence.
 - **Shape:** mixed
 
 ## Objective
