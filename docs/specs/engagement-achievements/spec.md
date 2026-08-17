@@ -1,13 +1,21 @@
 # Spec: Engagement Achievements
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** `mistake-to-mastery` (Draft); `parent-performance-portal` (Draft)
 - **Brief:** none
 - **Discovery:** learner progress and engagement research, 2026-08-16
-- **Contract:** none while Draft; implementation defines a read-only achievements BFF contract
+- **Contract:** learner-only `GET /api/achievements` returns a recomputed, no-store Practice-only projection. It accepts no learner identifier and does not persist achievement events.
 - **Shape:** mixed
+
+## Implementation status
+
+The deterministic learner projection is implemented with the explicitly
+specified `America/New_York` calendar policy. It counts only correct persisted
+Practice attempts, exposes 100/1,000-answer progress, and reports a current
+active-day streak without creating a new achievement store. Reviewed fun facts,
+notifications, parent sharing, and a persistent event stream remain deferred.
 
 ## Objective
 
@@ -57,16 +65,16 @@ results, or allowing parent activity to affect the child’s record.
 
 ## Acceptance Criteria
 
-- [ ] Given 100 or 1,000 accepted learner Practice correct answers, the learner
+- [x] Given 100 or 1,000 accepted learner Practice correct answers, the learner
       earns the corresponding badge exactly once in the derived projection.
-- [ ] Given Test answers, parent preview answers, replayed assignments, or
+- [x] Given Test answers, parent preview answers, replayed assignments, or
       rejected submissions, achievement totals and streaks do not change.
-- [ ] Given Practice on consecutive calendar days in the approved account
+- [x] Given Practice on consecutive calendar days in the approved account
       timezone, the learner sees the correct active-day streak; a missing day ends
       the streak without shame-oriented copy.
 - [ ] Given an unset/invalid timezone, the app uses an explicit safe setup state
       rather than silently assigning a misleading calendar-day streak.
-- [ ] Given an achievement surface, it is learner-scoped, no-store, capped,
+- [x] Given an achievement surface, it is learner-scoped, no-store, capped,
       redacted, and makes no mastery/provider/comparative claim.
 - [ ] Given a fun fact, it comes from a reviewed local fact catalog with source
       attribution metadata and never from uncontrolled model output.

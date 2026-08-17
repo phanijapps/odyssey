@@ -89,7 +89,7 @@ test("Performance caps and redacts separate Practice and terminal Test evidence"
   expect(practice).not.toContain("8.EE.0");
   expect(tests).toBe("Mathematics · Grade 8 · completed");
   expect(JSON.stringify(document)).not.toMatch(
-    /attemptId|assessmentId|correct|levelBefore|levelAfter|occurredAt|score/,
+    /attemptId|assessmentId|levelBefore|levelAfter|occurredAt|score/,
   );
 });
 

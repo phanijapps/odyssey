@@ -5,6 +5,7 @@ import {
   type OdysseyA2uiDocument,
 } from "../../a2ui/document";
 import { getBrowseTree } from "../curriculum/browse";
+import { getAchievements } from "./achievements";
 import { getLearnerHistory } from "./learning";
 import { getMistakeToMasteryPlan } from "./mistake-to-mastery";
 
@@ -59,6 +60,7 @@ export function getLearnerPerformanceDocument(
       ? []
       : reviewedPracticeCodes(practiceTopicIds);
   const guidance = getMistakeToMasteryPlan(childId).items;
+  const achievements = getAchievements(childId);
   const tests = history
     .filter((entry) => entry.kind === "test")
     .slice(0, PERFORMANCE_ITEM_CAP)
@@ -81,6 +83,8 @@ export function getLearnerPerformanceDocument(
         "tests-detail",
         "guidance-title",
         "guidance-detail",
+        "achievements-title",
+        "achievements-detail",
         "separation-note",
       ],
     },
@@ -162,6 +166,18 @@ export function getLearnerPerformanceDocument(
               .join("; "),
         320,
       ),
+    },
+    {
+      component: "OdysseyText",
+      id: "achievements-title",
+      variant: "h2",
+      text: "Practice achievements",
+    },
+    {
+      component: "OdysseyText",
+      id: "achievements-detail",
+      variant: "body",
+      text: `${achievements.correctPracticeAttempts} correct Practice answers · ${achievements.activePracticeDayStreak}-day active Practice streak.`,
     },
     {
       component: "OdysseyText",
