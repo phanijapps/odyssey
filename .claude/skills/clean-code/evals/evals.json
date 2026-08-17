@@ -1,0 +1,45 @@
+{
+  "skill_name": "clean-code",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In answer-store.ts, add a daily attempt cap: if the child has already made 10 attempts on this topic today, throw an Error('daily attempt limit reached') instead of recording the answer. This file is a mess — bring the parts you touch up to a clean-code standard.",
+      "expected_output": "The cap is implemented and throws before the level update; the touched code is left materially cleaner (intent-revealing names for new identifiers, no swallowed write failure, dead debug block gone); exported names are preserved with renames noted as follow-up; no unrelated modules rewritten.",
+      "files": ["evals/files/answer-store.ts", "evals/files/db.ts"],
+      "expectations": [
+        "Rejects an answer past 10 same-topic attempts in a day by throwing Error('daily attempt limit reached') before the progress update runs",
+        "Every identifier the change introduces has an intent-revealing name (no new data/flag/temp/x-style names)",
+        "The broad catch around the progress UPDATE no longer silently swallows the write failure (error is surfaced or explicitly handled)",
+        "The dead `if (false)` debug block is removed from the touched function",
+        "Exported function names (handleThing, d2) are not renamed — any rename desire is recorded as follow-up instead of applied",
+        "The change stays inside answer-store.ts (+ db.ts if needed); no unrelated files are modified"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Review this patch for maintainability before I merge it — it caps how many gold records a practice request can pull. Tell me what to fix, ranked by severity.",
+      "expected_output": "A severity-ranked review that flags: the swallowed cacheRecords error, generic names (data, temp, n, arr2), narrating comments, and the magic 8 with its vague provenance comment — without demanding restructuring beyond the diff.",
+      "files": ["evals/files/pr-ladder.patch"],
+      "expectations": [
+        "Flags the silent `catch (err) {}` around cacheRecords as a defect worth fixing before merge",
+        "Flags the generic names introduced by the diff (data, temp, n, arr2) with intent-revealing replacements",
+        "Flags narrating comments ('// filter the records', '// get the band for the grade') as noise to delete",
+        "Flags the magic number 8 and asks for a named constant that carries the rule's provenance",
+        "Findings are ranked or severity-tagged (blocker vs nit), not an unordered list",
+        "Stays within the diff's scope — does not demand redesigning the surrounding module"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "exportSessionCsv in session-export.ts mixes session fetching, exportability validation, summary stats, and CSV assembly in one function. Apply single-responsibility so each concern has a home. Behavior must stay identical — the public exportSessionCsv(sessionId) call stays exactly as is.",
+      "expected_output": "The function is decomposed into a few units along the real seams (fetch/validate, compute summary, render CSV) with responsibility-revealing names; the public signature and output are unchanged; no class-per-method explosion or speculative abstractions are introduced.",
+      "files": ["evals/files/session-export.ts", "evals/files/db.ts"],
+      "expectations": [
+        "Fetching/validation, summary computation, and CSV rendering are separated into distinct named units",
+        "The public API exportSessionCsv(sessionId: string): string is preserved and the CSV output is byte-identical for the same input",
+        "No speculative abstraction beyond the real seams — no class-per-method, no factory/repository layers, no configurability nobody asked for",
+        "Extracted unit names express their responsibility (fetch/compute/render vocabulary), not generic Helper/process/split names"
+      ]
+    }
+  ]
+}

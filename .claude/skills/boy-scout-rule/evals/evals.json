@@ -1,0 +1,41 @@
+{
+  "skill_name": "boy-scout-rule",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In mastery.ts, computeMasteryLevel never promotes on exactly the 4th correct answer in a row — it waits for a 5th. Fix that.",
+      "expected_output": "The promotion comparison changes from `streak > 4` to `>= 4`; mechanical cruft the fix exposes in the same file (unused readFileSync import) is cleaned; exported names are untouched; nothing is restructured.",
+      "files": ["evals/files/mastery.ts", "evals/files/db.ts"],
+      "expectations": [
+        "The promotion comparison now promotes at a streak of exactly 4 (>= 4 or equivalent)",
+        "Removes the unused readFileSync import that the touched file carries",
+        "Does not rename or delete exported functions (computeMasteryLevel, currentStreak, oldComputeMasteryLevel all remain)",
+        "Does not restructure the module — no new files, no type rework, no helper extraction beyond the fix and mechanical tidying",
+        "The diff stays inside mastery.ts (db.ts untouched)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add total_points — the sum of points across graded questions — to the report object that buildParentReport returns in session-report.ts.",
+      "expected_output": "The field is added with a minimal diff; the module's obvious structural problems are left alone and noted as follow-up work rather than fixed; no renaming or extraction of untouched code.",
+      "files": ["evals/files/session-report.ts", "evals/files/db.ts"],
+      "expectations": [
+        "Adds a total_points field to the returned report summing the points of graded questions",
+        "No restructuring of the function — no helper extraction, no signature changes, no reordering of existing payload fields beyond adding the new one",
+        "Noticed-but-not-applied cleanup (the module's structural debt, names, comment) is recorded as follow-up notes in the response or PR notes rather than silently applied or ignored"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Review this patch before I merge — I fixed a streak-restore crash and bundled some tidying of the same function. Is the bundled cleanup OK to merge, or should I split it out?",
+      "expected_output": "The review separates the fix (missing-row guard) from the bundled cleanup (variable extraction/rename, comment changes), judges the bundle as safe because it is same-file, same-function, mechanical, and smaller than the fix — or recommends a split with a reason tied to reviewability — and names each bundled item explicitly.",
+      "files": ["evals/files/tidy-fix.patch"],
+      "expectations": [
+        "Separates the fix (the missing-row guard) from the bundled cleanup (elapsedMs extraction, decayDays→decay rename, comment changes)",
+        "Renders an explicit verdict on the bundle: safe to merge as one change, or split — with the reasoning tied to reviewability risk",
+        "Names the bundled items individually rather than treating the diff as one undifferentiated change",
+        "Does not demand reverting the cleanup or expanding it into a broader refactor"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+Subject: [PATCH] feat(practice): cap gold records per request and skip retired ones
+
+---
+ app/src/server/curriculum/gold-query.ts | 24 +++++++++++++++++++-----
+ 1 file changed, 19 insertions(+), 5 deletions(-)
+
+diff --git a/app/src/server/curriculum/gold-query.ts b/app/src/server/curriculum/gold-query.ts
+--- a/app/src/server/curriculum/gold-query.ts
++++ b/app/src/server/curriculum/gold-query.ts
+@@ -10,11 +10,25 @@ import { learningDb } from "../learning/db";
+
+ export function selectGoldRecords(grade: string, subject: string, count: number) {
+-  const records = fetchGoldRecords(grade, subject);
+-  if (!records) {
+-    return [];
+-  }
+-  return records.slice(0, count);
++  const data = fetchGoldRecords(grade, subject);
++  // filter the records
++  const temp = data.filter((r) => r.status === "active");
++  const eligible = filterByGradeBand(temp, grade);
++  // 8 is the max we allow per grade band, product said so
++  const n = Math.min(count, 8);
++  let out = eligible.slice(0, n);
++  try {
++    cacheRecords(out, grade, subject);
++  } catch (err) {}
++  return out;
+ }
+
++function filterByGradeBand(items: GoldRecord[], grade: string) {
++  // get the band for the grade
++  const band = getBand(grade);
++  const arr2 = items.filter((r) => r.band === band);
++  return arr2;
++}
++
++function getBand(grade: string): string {
++  // grades 6-8 are middle, 9-12 are high
++  const g = parseInt(grade.replace(/\D/g, ""), 10);
++  return g <= 8 ? "middle" : "high";
++}

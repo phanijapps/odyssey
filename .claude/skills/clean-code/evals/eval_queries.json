@@ -1,0 +1,21 @@
+[
+  {"query": "Implement the answer-saving endpoint following clean code principles — meaningful names, small functions, the works", "should_trigger": true},
+  {"query": "Refactor this module for readability — it works, but nobody on the team can maintain it anymore", "should_trigger": true},
+  {"query": "Review my PR diff for code quality and maintainability before I merge it", "should_trigger": true},
+  {"query": "We're adding a new feature to the checkout service. Keep the code clean — good names, no giant functions", "should_trigger": true},
+  {"query": "Apply SOLID principles while restructuring our order-processing service", "should_trigger": true},
+  {"query": "This function is 200 lines and does five different things — clean it up while you add the retry logic", "should_trigger": true},
+  {"query": "Do a maintainability review of the changes in src/server/learning before we ship the release", "should_trigger": true},
+  {"query": "The new hire's PR is full of one-letter variables, narrating comments, and dead code — review it and clean it up", "should_trigger": true},
+  {"query": "Write the grade-promotion module to a clean-code bar: one responsibility per function, intent-revealing names, no magic numbers", "should_trigger": true},
+
+  {"query": "Run the linter and fix all the formatting warnings it reports in src/app", "should_trigger": false},
+  {"query": "Audit this endpoint for security vulnerabilities — injection, broken access control, the OWASP stuff", "should_trigger": false},
+  {"query": "Make the question-generation endpoint faster — it takes 3 seconds per question and kids give up", "should_trigger": false},
+  {"query": "Write a spec for the new test-mode assessment feature", "should_trigger": false},
+  {"query": "Fix the off-by-one in the streak calculation", "should_trigger": false},
+  {"query": "Upgrade us from Next 14 to Next 15", "should_trigger": false},
+  {"query": "Rewrite this COBOL-style module from scratch in idiomatic TypeScript", "should_trigger": false},
+  {"query": "Set up the CI pipeline to run typecheck and tests on every PR", "should_trigger": false},
+  {"query": "Explain what this legacy billing module does — I need to understand it before we touch it", "should_trigger": false}
+]

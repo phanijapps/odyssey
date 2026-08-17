@@ -1,0 +1,38 @@
+Subject: [PATCH] fix(progress): guard against missing row in streak restore
+
+While fixing the crash I also tidied a couple of small things in the same
+function that were misleading me while debugging.
+
+---
+ app/src/server/learning/progress.ts | 30 ++++++++++++++++--------------
+ 1 file changed, 16 insertions(+), 14 deletions(-)
+
+diff --git a/app/src/server/learning/progress.ts b/app/src/server/learning/progress.ts
+--- a/app/src/server/learning/progress.ts
++++ b/app/src/server/learning/progress.ts
+@@ -8,25 +8,27 @@ import { learningDb } from "./db";
+
+-// restores streak, assumes a row always exists
++export function restoreStreak(childId: string, topicId: string): number {
++  const x = learningDb
++    .prepare(
++      "SELECT correct_streak FROM learning_progress WHERE child_id = ? AND topic_id = ?",
++    )
++    .get(childId, topicId) as { correct_streak: number } | undefined;
++  if (!x) {
++    return 0;
++  }
++  const elapsedMs = Date.now() - loadUpdatedAt(childId, topicId);
++  // streaks decay by one per calendar day away
++  const decay = Math.floor(elapsedMs / 86400000);
++  return Math.max(0, x.correct_streak - decay);
++}
+-export function restoreStreak(childId: string, topicId: string): number {
+-  const x = learningDb
+-    .prepare(
+-      "SELECT correct_streak FROM learning_progress WHERE child_id = ? AND topic_id = ?",
+-    )
+-    .get(childId, topicId) as { correct_streak: number };
+-  const decayDays = Math.floor((Date.now() - loadUpdatedAt(childId, topicId)) / 86400000);
+-  return Math.max(0, x.correct_streak - decayDays);
+-}

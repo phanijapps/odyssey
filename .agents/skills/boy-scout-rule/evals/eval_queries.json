@@ -1,0 +1,21 @@
+[
+  {"query": "Fix the login timeout bug, and while you're in there, clean up anything small you trip over in that file", "should_trigger": true},
+  {"query": "Leave the code better than you found it — fix the pagination bug and tidy the immediate area", "should_trigger": true},
+  {"query": "Apply the boy scout rule while you work through these small fixes", "should_trigger": true},
+  {"query": "There's a stale comment and an unused import right above the function you're fixing — take care of those too, but don't go wild", "should_trigger": true},
+  {"query": "Small drive-by cleanups are fine while you fix this, just keep the diff reviewable", "should_trigger": true},
+  {"query": "Campground rule: check the file in cleaner than you checked it out", "should_trigger": true},
+  {"query": "While fixing the crash in session-report.ts, remove the dead branch you'll pass on the way if it's trivially safe", "should_trigger": true},
+  {"query": "Review this diff — the author bundled some opportunistic cleanup with a bugfix; is that OK to merge?", "should_trigger": true},
+  {"query": "Fix the typo, then straighten up just that function while you're there — nothing big", "should_trigger": true},
+
+  {"query": "Refactor the whole order module properly — split it into services with clear responsibilities", "should_trigger": false},
+  {"query": "Do a full maintainability review of the learning module", "should_trigger": false},
+  {"query": "Apply clean code principles throughout: meaningful names, small functions, no duplication", "should_trigger": false},
+  {"query": "Plan a two-week cleanup initiative for the legacy billing code", "should_trigger": false},
+  {"query": "Add a new endpoint for exporting progress reports", "should_trigger": false},
+  {"query": "Fix the flaky test in the answer route", "should_trigger": false},
+  {"query": "Delete every unused dependency in package.json", "should_trigger": false},
+  {"query": "Sweep the entire codebase for lint violations and fix them all", "should_trigger": false},
+  {"query": "Rewrite the session module from scratch — it's beyond repair", "should_trigger": false}
+]
