@@ -14,8 +14,10 @@
 The deterministic learner projection is implemented with the explicitly
 specified `America/New_York` calendar policy. It counts only correct persisted
 Practice attempts, exposes 100/1,000-answer progress, and reports a current
-active-day streak without creating a new achievement store. Reviewed fun facts,
-notifications, parent sharing, and a persistent event stream remain deferred.
+active-day streak without creating a new achievement store. A small approved
+local fun-fact catalog carries public-domain source metadata and is selected
+deterministically; notifications, parent sharing, and a persistent event stream
+remain deferred.
 
 ## Objective
 
@@ -76,7 +78,7 @@ results, or allowing parent activity to affect the child’s record.
       rather than silently assigning a misleading calendar-day streak.
 - [x] Given an achievement surface, it is learner-scoped, no-store, capped,
       redacted, and makes no mastery/provider/comparative claim.
-- [ ] Given a fun fact, it comes from a reviewed local fact catalog with source
+- [x] Given a fun fact, it comes from a reviewed local fact catalog with source
       attribution metadata and never from uncontrolled model output.
 
 ## Assumptions

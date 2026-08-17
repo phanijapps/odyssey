@@ -35,5 +35,12 @@ test("achievements require learner scope and are no-store", async () => {
       { id: "practice-100", earned: false },
       { id: "practice-1000", earned: false },
     ],
+    funFact: {
+      id: "triangle-angle-sum",
+      source: {
+        title: "The Thirteen Books of Euclid's Elements",
+        rightsBasis: "public-domain-edition",
+      },
+    },
   });
 });

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { selectReviewedFunFact, type ReviewedFunFact } from "./fun-facts";
 import { learningDb } from "./sqlite-repository";
 
 const ACHIEVEMENT_TIMEZONE = "America/New_York";
@@ -17,6 +18,7 @@ export type AchievementProjection = {
     readonly threshold: (typeof BADGES)[number]["threshold"];
     readonly earned: boolean;
   }[];
+  readonly funFact: Pick<ReviewedFunFact, "id" | "fact" | "source">;
 };
 
 const easternDayFormatter = new Intl.DateTimeFormat("en-US", {
@@ -72,6 +74,7 @@ export function getAchievements(
     day = previousDay(day);
   }
 
+  const funFact = selectReviewedFunFact(attempts.length);
   return {
     correctPracticeAttempts: attempts.length,
     activePracticeDayStreak,
@@ -80,5 +83,6 @@ export function getAchievements(
       ...badge,
       earned: attempts.length >= badge.threshold,
     })),
+    funFact: { id: funFact.id, fact: funFact.fact, source: funFact.source },
   };
 }

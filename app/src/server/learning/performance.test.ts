@@ -88,6 +88,9 @@ test("Performance caps and redacts separate Practice and terminal Test evidence"
   expect(textById(document, "practice-evidence")).toBe(
     "Recent reviewed Practice evidence is available for 1 skill.",
   );
+  expect(textById(document, "fun-fact-detail")).toContain(
+    "In plane geometry, a triangle's three interior angles add up to 180 degrees.",
+  );
   expect(practice).toContain("8.EE.7");
   expect(practice).not.toContain("8.EE.0");
   expect(tests).toBe("Mathematics · Grade 8 · completed");

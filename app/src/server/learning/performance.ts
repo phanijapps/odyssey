@@ -87,6 +87,8 @@ export function getLearnerPerformanceDocument(
         "guidance-detail",
         "achievements-title",
         "achievements-detail",
+        "fun-fact-title",
+        "fun-fact-detail",
         "separation-note",
       ],
     },
@@ -189,6 +191,21 @@ export function getLearnerPerformanceDocument(
       id: "achievements-detail",
       variant: "body",
       text: `${achievements.correctPracticeAttempts} correct Practice answers · ${achievements.activePracticeDayStreak}-day active Practice streak.`,
+    },
+    {
+      component: "OdysseyText",
+      id: "fun-fact-title",
+      variant: "h2",
+      text: "Math fun fact",
+    },
+    {
+      component: "OdysseyText",
+      id: "fun-fact-detail",
+      variant: "body",
+      text: displayText(
+        `${achievements.funFact.fact} Source: ${achievements.funFact.source.title}, ${achievements.funFact.source.locator}.`,
+        320,
+      ),
     },
     {
       component: "OdysseyText",

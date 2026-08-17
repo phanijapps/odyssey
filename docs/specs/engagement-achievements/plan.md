@@ -36,7 +36,8 @@ the read model needs it.
 ### Component / module decomposition
 
 - `server/learning/achievements.ts`: eligibility, totals, day buckets, badges.
-- reviewed `fun-facts` catalog: immutable text/source/category metadata.
+- reviewed `fun-facts` catalog: immutable text/source/category metadata with
+  a canonical public-domain edition URL, rights basis, and review record.
 - learner/A2UI components: fixed badge/progress/fact surfaces.
 
 ### Failure, edge cases & resilience
@@ -51,7 +52,8 @@ create duplicate correctness. Facts never block progress rendering.
 
 **Status:** Complete for the recomputed Practice-only projection. The fixed
 v1 policy uses `America/New_York`, 100/1,000 correct-answer thresholds, no
-persistent events, and no unreviewed fun facts.
+persistent events, and a fixed approved local fun-fact catalog with source
+metadata.
 
 **Depends on:** `spec:parent-performance-portal/T1`
 
@@ -74,7 +76,8 @@ active-day streaks from accepted Practice records without a new write path.
 ### T3: Expose and render learner-safe achievements
 
 **Status:** Complete for the BFF and Performance surface. `GET /api/achievements`
-derives learner scope from the session and returns a no-store projection.
+derives learner scope from the session and returns a no-store projection; the
+fixed Performance surface renders the deterministic reviewed fact.
 
 **Depends on:** T2, `spec:a2ui-learning-delivery/T2`
 
@@ -93,4 +96,4 @@ notifications or social features.
 ## Changelog
 
 - 2026-08-16: Drafted from user-directed open-ended practice engagement goals.
-- 2026-08-17: Implemented the deterministic Practice-only achievement projection; reviewed fun facts remain deferred.
+- 2026-08-17: Implemented the deterministic Practice-only achievement projection and approved local fun-fact catalog.
