@@ -1,7 +1,7 @@
 # Plan: Parent Performance Portal
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 
 ## Approach
 
@@ -62,6 +62,12 @@ retired only after contract parity and security review.
 
 ### T1: Approve parent identity, link, revocation, and audit policy
 
+**Status:** Complete — the approved policy is the spec's Contract section:
+local-only relationship administration, session-derived parent scope,
+origin-protected mutations, fixed machine reasons, append-only lifetime audit
+events, and configuration-gated first-parent bootstrap with no public
+provisioning or recovery.
+
 **Depends on:** none
 
 **Tests:** policy fixtures for roles, one/many link rules, authority, revocation,
@@ -74,7 +80,7 @@ start until it is approved.
 
 **Depends on:** T1
 
-**Status:** In progress. Schema v8 now provides immutable account/session
+**Status:** Complete for the approved v1 policy. Schema v8 provides immutable account/session
 principals, active/revoked parent-child links, and provider-subject links. The
 parent-only child list/create/reset/revoke routes and local account-management
 page derive authority from the parent session and retest links transactionally.
@@ -104,9 +110,12 @@ tokens, scores, timestamps, and target standards.
 
 ### T4: Render parent A2UI Performance portal
 
-**Status:** In progress. The fixed parent portal renders aggregate linked-child
-Performance; a parent-specific A2UI document and non-mutating Practice preview
-remain deferred.
+**Status:** Complete. The parent-specific A2UI document renders the aggregate
+linked-child Performance (the portal's duplicate legacy heading was removed so
+the document owns the section), and the non-mutating Practice preview delivers
+one reviewed sample of the first linked child's next recommended target with
+no answer material and no writes (covered by route tests and the
+parent-lifecycle browser journey).
 
 **Depends on:** T3, `spec:a2ui-learning-delivery/T5`
 
@@ -119,10 +128,11 @@ no learner-work mutation actions.
 
 **Depends on:** T3, T4
 
-**Status:** Security hardening completed early: the ambiguous legacy summary and
-chat endpoints return no-store `410` responses, and the admin dashboard no
-longer invokes them. They remain reserved public paths pending the linked-child
-Performance BFF; no client compatibility claim is made.
+**Status:** Complete. The ambiguous legacy summary and chat endpoints fail
+closed with no-store `410` responses, the admin dashboard no longer invokes
+them, and their replacement — the linked-child Performance BFF — is shipped.
+With no compatibility consumers and the successor live, the `410` is the
+published deprecation decision for the local-only surface.
 
 **Tests:** API compatibility/security review and deprecated-route behavior tests.
 
@@ -142,3 +152,7 @@ route.
 - 2026-08-16: Drafted after parent portal requirement confirmation.
 - 2026-08-16: Began relationship foundation; ambiguous prototype routes fail closed pending the protected Performance BFF.
 - 2026-08-17: Added the aggregate parent-scoped Performance BFF and portal view; preview remains deferred.
+- 2026-08-17: Closed as Done — delivered the non-mutating reviewed Practice
+  preview (route, redaction, and no-mutation tests plus a browser journey),
+  removed the duplicate portal heading, and confirmed the deprecated prototype
+  endpoints' fail-closed posture.

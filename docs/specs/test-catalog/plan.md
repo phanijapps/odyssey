@@ -1,7 +1,7 @@
 # Plan: Test Catalog
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Drafting
 
 ## Approach
 
@@ -188,3 +188,6 @@ approved decision maps it to a catalog form.
 ## Changelog
 
 - 2026-08-16: Drafted from catalog architecture and content-governance research.
+- 2026-08-17: Corrected a mislabeled status: no task has begun (no catalog
+  modules exist) and T1 is itself the policy-approval entry gate. The plan
+  awaits that approval before execution starts.

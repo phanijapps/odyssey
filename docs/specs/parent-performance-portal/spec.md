@@ -1,6 +1,6 @@
 # Spec: Parent Performance Portal
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0003; RFC-0004 (Open); `performance-guidance` and `a2ui-learning-delivery` (Draft)
@@ -11,9 +11,11 @@
 
 ## Implementation status
 
-The relationship foundation, local audit trail, and aggregate linked-child
-Performance view are implemented. Production parent provisioning and
-non-mutating Practice preview remain deferred.
+The relationship foundation, local audit trail, aggregate linked-child
+Performance view (A2UI), and the non-mutating reviewed Practice preview are
+implemented and covered by route/e2e tests. Free-text revocation reasons,
+audit export, and retention changes remain Ask-first policy options, and
+first-parent recovery remains an approved-bootstrap-only mechanism.
 
 ## Objective
 
@@ -85,8 +87,12 @@ reset a child password or revoke that child relationship server-side.
 - [x] Given parent-visible Practice/Test evidence, it remains separate, uses
       child-safe factual wording, and exposes no raw answer/question/key/token or
       exact event-time data.
-- [ ] Given a parent action, it is limited to a validated support/navigation
+- [x] Given a parent action, it is limited to a validated support/navigation
       action; it cannot submit, grade, or alter a learner’s work or mastery.
+      (The portal's only parent-facing surfaces are relationship management and
+      the read-only preview; the preview route is a no-store GET whose
+      non-mutation is pinned by `api/parent/preview/route.test.ts`, and it
+      exposes no answer, hint, solution, or token material.)
 - [x] Given parent relationship creation/revocation, the request requires the
       approved authority, exact origin, validated body, and auditable lifecycle
       transition.

@@ -122,6 +122,40 @@ function bankKeysForTopic(topicId: string): string[] {
   return [];
 }
 
+/**
+ * Best reviewed bank sample for a standard's text, or null when no bank topic
+ * genuinely covers it. Used by the parent Practice preview; the entry's answer
+ * material is stripped by that caller.
+ */
+export function reviewedSampleForStandard(
+  standardText: string,
+): QuestionBankEntry | null {
+  for (const key of bankKeysForStandard(standardText)) {
+    const bank = questionBank[key];
+    if (!bank || bank.length === 0) continue;
+    const words = new Set(
+      standardText
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter((word) => word.length > 3),
+    );
+    let best = bank[0];
+    let bestScore = -1;
+    for (const entry of bank) {
+      const score = entry.question
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter((word) => words.has(word)).length;
+      if (score > bestScore) {
+        bestScore = score;
+        best = entry;
+      }
+    }
+    return best;
+  }
+  return null;
+}
+
 /** Falls back to the question bank only when it genuinely matches the skill. */
 function makeBankQuestion(
   topicId: string,

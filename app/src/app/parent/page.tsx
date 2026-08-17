@@ -8,6 +8,13 @@ import {
 } from "../../a2ui/document";
 
 type Child = { accountId: string; username: string };
+type PracticePreview = {
+  childUsername: string;
+  standardCode: string;
+  standardText: string;
+  question: string;
+  diagramSvg: string | null;
+} | null;
 async function responseError(response: Response): Promise<string> {
   const body = (await response.json().catch(() => null)) as {
     error?: unknown;
@@ -28,6 +35,9 @@ export default function ParentPage() {
     useState<OdysseyParentPerformanceA2uiDocument | null>(null);
   const [performanceLoading, setPerformanceLoading] = useState(true);
   const performanceRequest = useRef(0);
+  const [preview, setPreview] = useState<PracticePreview | null>(null);
+  const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const loadChildren = useCallback(async () => {
     const response = await fetch("/api/parent/children", { cache: "no-store" });
@@ -86,6 +96,26 @@ export default function ParentPage() {
     })();
   }, [loadChildren, loadPerformance]);
 
+  async function loadPreview() {
+    setPreviewLoading(true);
+    try {
+      const response = await fetch("/api/parent/preview", {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        setMessage(await responseError(response));
+        return;
+      }
+      const body = (await response.json()) as { preview?: PracticePreview };
+      setPreview(body.preview ?? null);
+      setPreviewLoaded(true);
+    } catch {
+      setMessage("Practice preview is unavailable");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
   async function createChild(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
@@ -101,6 +131,7 @@ export default function ParentPage() {
     setUsername("");
     setPassword("");
     setMessage("Child account created.");
+    setPreview(null);
     await Promise.all([loadChildren(), loadPerformance()]);
   }
 
@@ -138,6 +169,7 @@ export default function ParentPage() {
     setMessage("Child access revoked.");
     performanceRequest.current += 1;
     setPerformanceDocument(null);
+    setPreview(null);
     await Promise.all([loadChildren(), loadPerformance()]);
   }
 
@@ -217,8 +249,7 @@ export default function ParentPage() {
           </ul>
         )}
       </section>
-      <section className="panel" aria-labelledby="child-performance-heading">
-        <h2 id="child-performance-heading">Child Performance</h2>
+      <section className="panel" aria-label="Child Performance">
         {performanceLoading ? (
           <p>Loading child Performance…</p>
         ) : performanceDocument ? (
@@ -228,6 +259,45 @@ export default function ParentPage() {
           />
         ) : (
           <p>No active linked-child Performance is available yet.</p>
+        )}
+      </section>
+      <section className="panel" aria-label="Practice preview">
+        <h2>Preview recommended practice</h2>
+        <p className="hint">
+          See one reviewed sample of a linked child&apos;s next recommended
+          skill. A preview never affects your child&apos;s practice.
+        </p>
+        <button
+          type="button"
+          onClick={() => void loadPreview()}
+          disabled={previewLoading}
+        >
+          {previewLoading ? "Loading preview…" : "Show preview"}
+        </button>
+        {previewLoaded && !preview && !previewLoading && (
+          <p role="status">No recommended practice preview is available yet.</p>
+        )}
+        {preview && (
+          <div className="question-card">
+            <div className="question-copy">
+              <p className="eyebrow">{preview.childUsername} · NEXT PRACTICE</p>
+              <h3 className="practice-skill">{preview.standardCode}</h3>
+              <p className="practice-desc">{preview.standardText}</p>
+              <h4 className="question-text">{preview.question}</h4>
+              {preview.diagramSvg && (
+                <div className="diagram-card">
+                  <img
+                    className="generated-diagram"
+                    alt="preview diagram"
+                    src={`data:image/svg+xml,${encodeURIComponent(preview.diagramSvg)}`}
+                  />
+                </div>
+              )}
+              <p className="hint">
+                Preview only — nothing is recorded for your child.
+              </p>
+            </div>
+          </div>
         )}
       </section>
       {resetChild && (

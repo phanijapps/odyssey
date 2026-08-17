@@ -107,6 +107,81 @@ test("parent revocation ignores an older in-flight Performance response", async 
   await page.unroute("**/api/parent/performance");
 });
 
+test("parent preview shows a reviewed sample without affecting the child", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await signIn(page, "e2e-parent", "e2e-parent-password");
+  await page.waitForURL("**/parent");
+
+  // A fresh preview child with no completed Test yields the honest empty state.
+  await page.getByLabel("Child username").fill("e2e-preview-child");
+  await page.getByLabel("Temporary password").fill("preview-child-password");
+  await page.getByRole("button", { name: "Create child" }).click();
+  await expect(page.getByText("Child account created.")).toBeVisible();
+  await page.getByRole("button", { name: "Show preview" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Preview recommended practice" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("No recommended practice preview is available yet."),
+  ).toBeVisible();
+
+  // Seed one completed Test with a missed ratio standard for that child.
+  const databasePath = join(process.cwd(), ".playwright-parent.db");
+  const { DatabaseSync } = await import("node:sqlite");
+  const learning = new DatabaseSync(databasePath);
+  try {
+    const child = learning
+      .prepare("SELECT account_id FROM accounts WHERE username = ?")
+      .get("e2e-preview-child") as { account_id: string | undefined };
+    expect(child?.account_id).toBeTruthy();
+    learning
+      .prepare(
+        `INSERT INTO test_sessions
+          (id, learner_id, subject, grade, status, score, created_at, completed_at)
+         VALUES ('e2e-preview-session', ?, 'Mathematics', 'Grade 6', 'completed', 0, '2026-03-01', '2026-03-01')`,
+      )
+      .run(child.account_id);
+    learning
+      .prepare(
+        `INSERT INTO test_selected_records
+          (test_session_id, selection_ordinal, gold_record_id, subject, grade,
+           content_json, content_fingerprint)
+         VALUES ('e2e-preview-session', 1, 'e2e-preview-gold', 'Mathematics', 'Grade 6', ?, 'fixture')`,
+      )
+      .run(
+        JSON.stringify({
+          subject: "Mathematics",
+          gradeOrCourse: "Grade 6",
+          domain: "Ratios and Proportional Relationships",
+          standardCode: "6.RP.A.1",
+          standardText:
+            "Understand the concept of a ratio and use ratio language to describe a ratio relationship between two quantities.",
+        }),
+      );
+    learning
+      .prepare(
+        `INSERT INTO test_questions
+          (test_session_id, ordinal, gold_record_id, gold_content_fingerprint,
+           planned_difficulty, correct, points, graded_at)
+         VALUES ('e2e-preview-session', 1, 'e2e-preview-gold', 'fixture', 1, 0, 0, '2026-03-01')`,
+      )
+      .run();
+  } finally {
+    learning.close();
+  }
+
+  await page.getByRole("button", { name: "Show preview" }).click();
+  await expect(page.getByText("6.RP.A.1")).toBeVisible();
+  await expect(page.getByText(/ratio of flour to sugar/)).toBeVisible();
+  await expect(page.getByText(/Preview only/)).toBeVisible();
+  const pageText = await page
+    .locator("section[aria-label='Practice preview']")
+    .innerText();
+  expect(pageText).not.toMatch(/2:1|2 to 1|hint/i);
+});
+
 test("learner Performance renders the validated A2UI surface", async ({
   page,
 }) => {

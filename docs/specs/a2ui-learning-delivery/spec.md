@@ -94,9 +94,11 @@ authorization exists.
 - [ ] Given an A2UI Performance insight, it derives only from the redacted
       server evidence projection, carries an allowed action, and cannot mutate
       mastery or assessment state merely by rendering.
-- [ ] Given parent portal delivery, it is unavailable until a durable
+- [x] Given parent portal delivery, it is unavailable until a durable
       parent↔child relationship, revocation policy, and server-scoped read contract
-      are implemented and tested. (deferred: parent-performance-portal)
+      are implemented and tested. (Delivered by the shipped
+      parent-performance-portal spec: durable links, revocation enforced on
+      every read, and the parent-scoped read contract.)
 - [ ] Given current non-A2UI Practice/Test surfaces, they continue to work until
       an explicitly approved migration/parity gate removes them.
 

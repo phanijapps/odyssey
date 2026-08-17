@@ -1,6 +1,6 @@
 # Spec: Test Catalog
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0004 (Accepted)
