@@ -12,6 +12,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **3D knowledge graph** — the dashboard's Knowledge Graph tab links to a new
+  full-page interactive 3D force view (drag, rotate, zoom, hover labels) of
+  curriculum concepts, prerequisite chains, and learning patterns, with
+  kind/predicate coloring. Admin-only; data comes from a capped server
+  snapshot.
+
 - **Performance guidance cards** — the learner Performance page now shows one
   card per missed standard after a completed Test, with evidence-stating copy
   and a "Practice this skill" action that opens exactly that reviewed skill's

@@ -35,6 +35,7 @@ Shipped specs remain as historical feature contracts with their QA records.
 | [engagement-achievements](engagement-achievements/spec.md) | Shipped | — | Practice-only achievements and fun facts |
 | [parent-performance-portal](parent-performance-portal/spec.md) | Shipped | RFC-0003, RFC-0004 | Parent relationships, aggregate view, practice preview |
 | [curriculum-model](curriculum-model/spec.md) | Shipped | — | Post-hoc ratified 2026-08-17; delivered by the curriculum modules |
+| [knowledge-graph-3d](knowledge-graph-3d/spec.md) | Shipped | RFC-0003 | Admin 3D force view of the knowledge graph |
 
 ## Adding a new spec
 

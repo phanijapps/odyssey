@@ -736,6 +736,11 @@ export default function DashboardPage() {
               {/* ========== KNOWLEDGE GRAPH ========== */}
               {nav === "knowledge" && (
                 <>
+                  <div className="dash-card section-card">
+                    <a href="/dashboard/graph" className="graph3d-open">
+                      Open interactive 3D graph →
+                    </a>
+                  </div>
                   <div className="card-grid">
                     <div className="dash-card stat-card">
                       <span className="stat-number">

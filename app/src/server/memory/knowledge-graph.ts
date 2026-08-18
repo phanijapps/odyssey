@@ -319,6 +319,110 @@ export function putMasteryBelief(input: {
   }
 }
 
+export type GraphSnapshotNode = {
+  id: string;
+  kind: "curriculum" | "learning";
+  name: string;
+};
+
+export type GraphSnapshotLink = {
+  source: string;
+  target: string;
+  predicate: string;
+};
+
+const GRAPH_SNAPSHOT_NODE_CAP = 800;
+const GRAPH_SNAPSHOT_LINK_CAP = 800;
+
+function displayName(value: string, limit = 96): string {
+  return value
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, limit);
+}
+
+/**
+ * One bounded, read-only snapshot of curriculum and learning entities for
+ * visualization. Kinds and predicates are assigned here so the renderer never
+ * infers semantics; an unavailable engine yields an honest empty snapshot.
+ */
+export function graphSnapshot(
+  engineLoader: () => KnowledgeEngine | null = getKnowledgeEngine,
+): {
+  nodes: readonly GraphSnapshotNode[];
+  links: readonly GraphSnapshotLink[];
+} {
+  const engine = engineLoader();
+  if (!engine) return { nodes: [], links: [] };
+  const childScope = {
+    tenant: "odyssey",
+    subject: "child-1",
+    workspace: "learning",
+  };
+  try {
+    const read = (scope: typeof SCOPE) => ({
+      entities: JSON.parse(
+        engine.listEntitiesJson(JSON.stringify({ scope })),
+      ) as Array<{ id: string; kind: string; name: string }>,
+      relationships: JSON.parse(
+        engine.listRelationshipsJson(JSON.stringify({ scope })),
+      ) as Array<{
+        subject: { id: string };
+        predicate: string;
+        object: { id: string };
+      }>,
+    });
+    const curriculum = read(SCOPE);
+    const learning = read(childScope);
+
+    const nodes = new Map<string, GraphSnapshotNode>();
+    // Node ids are normalized once and reused as link endpoints so every
+    // serialized link resolves to a serialized node even past the id cap.
+    const nodeId = (id: string) => displayName(id, 160);
+    const push = (
+      entity: { id: string; name: string },
+      kind: "curriculum" | "learning",
+    ) => {
+      const id = nodeId(entity.id);
+      if (nodes.size >= GRAPH_SNAPSHOT_NODE_CAP || nodes.has(id)) return;
+      nodes.set(id, {
+        id,
+        kind,
+        name: displayName(entity.name),
+      });
+    };
+    for (const entity of curriculum.entities) push(entity, "curriculum");
+    for (const entity of learning.entities) push(entity, "learning");
+
+    const links: GraphSnapshotLink[] = [];
+    const seen = new Set<string>();
+    const link = (relationship: {
+      subject: { id: string };
+      predicate: string;
+      object: { id: string };
+    }) => {
+      if (links.length >= GRAPH_SNAPSHOT_LINK_CAP) return;
+      const source = nodeId(relationship.subject.id);
+      const target = nodeId(relationship.object.id);
+      const key = `${source}|${relationship.predicate}|${target}`;
+      if (seen.has(key) || !nodes.has(source) || !nodes.has(target)) return;
+      seen.add(key);
+      links.push({
+        source,
+        target,
+        predicate: displayName(relationship.predicate, 48),
+      });
+    };
+    for (const relationship of curriculum.relationships) link(relationship);
+    for (const relationship of learning.relationships) link(relationship);
+
+    return { nodes: [...nodes.values()], links };
+  } catch {
+    return { nodes: [], links: [] };
+  }
+}
+
 /** Lists graph stats for diagnostics. */
 export function graphStats(): {
   entities: number;
