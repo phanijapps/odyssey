@@ -1,7 +1,17 @@
 # RFC-0005: Define parent interaction
 
-- **Status:** Open
+- **Status:** Accepted
 - **Date:** 2026-08-18
+
+## Decision
+
+Maintainer, 2026-08-18: build **A — suggested practice** (A alone). Day-
+granularity recency ("last practiced: N days ago") is **accepted** on the
+parent surface. The parent write-path is audited via a **separate audited
+table** beside `parent_relationship_events` (no ledger rebuild).
+**Templates only** — no free-text parent→child content, confirmed as
+standing policy. B and C were not selected (B may return as a follow-up;
+C's recency half was accepted independently of the recap view).
 
 ## Summary
 
