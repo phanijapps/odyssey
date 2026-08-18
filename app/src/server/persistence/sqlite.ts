@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 const DEFAULT_LEARNING_DATABASE_PATH = "odyssey-learning.db";
 const DEFAULT_CURRICULUM_DATABASE_PATH = "odyssey-curriculum.db";
 const BUSY_TIMEOUT_MS = 5_000;
-const LATEST_SCHEMA_VERSION = 10;
+const LATEST_SCHEMA_VERSION = 11;
 
 export type DatabaseKind = "learning" | "curriculum" | "promotion";
 
@@ -377,6 +377,56 @@ const MIGRATIONS: readonly Migration[] = [
         BEFORE DELETE ON parent_relationship_events
         BEGIN
           SELECT RAISE(ABORT, 'parent relationship audit events are immutable');
+        END;
+      `);
+    },
+  },
+  {
+    version: 11,
+    apply(database) {
+      // Parent-suggested practice (RFC-0005, separate-audit-table decision):
+      // one active suggestion per child, templates only by CHECK, and an
+      // append-only audit trail alongside — never inside — the relationship
+      // ledger. Idempotent by construction so re-runs are harmless.
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS parent_practice_suggestions (
+          id TEXT PRIMARY KEY,
+          child_scope TEXT NOT NULL,
+          parent_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+          topic_id TEXT NOT NULL,
+          standard_code TEXT NOT NULL,
+          template_key TEXT NOT NULL CHECK (template_key = 'practice-together'),
+          state TEXT NOT NULL CHECK (
+            state IN ('active', 'accepted', 'dismissed', 'cancelled')
+          ),
+          created_at INTEGER NOT NULL,
+          transitioned_at INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS parent_practice_suggestions_one_active
+          ON parent_practice_suggestions(child_scope)
+          WHERE state = 'active';
+        CREATE TABLE IF NOT EXISTS parent_suggestion_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          suggestion_id TEXT NOT NULL,
+          actor TEXT NOT NULL,
+          event_type TEXT NOT NULL CHECK (
+            event_type IN (
+              'suggested', 'accepted', 'dismissed-by-child', 'cancelled-by-parent'
+            )
+          ),
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS parent_suggestion_events_suggestion
+          ON parent_suggestion_events(suggestion_id, created_at);
+        CREATE TRIGGER IF NOT EXISTS parent_suggestion_events_no_update
+        BEFORE UPDATE ON parent_suggestion_events
+        BEGIN
+          SELECT RAISE(ABORT, 'parent suggestion audit events are immutable');
+        END;
+        CREATE TRIGGER IF NOT EXISTS parent_suggestion_events_no_delete
+        BEFORE DELETE ON parent_suggestion_events
+        BEGIN
+          SELECT RAISE(ABORT, 'parent suggestion audit events are immutable');
         END;
       `);
     },

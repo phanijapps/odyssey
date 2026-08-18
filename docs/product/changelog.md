@@ -10,28 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [unreleased-3] — 2026-08-17
 
-### Changed
-
-- **Practice recency on parent cards** — each child's card and progress
-  line now shows "last practiced today / yesterday / N days ago" (or
-  "hasn't practiced yet"), computed in Eastern-Time day terms with no
-  time-of-day exposure, per the accepted RFC-0005 recency decision.
-- **Per-child progress cards** — the parent portal now leads with one card
-  per child showing their practice answers, streak, tests, and next-practice
-  counts, with account actions on the card. The performance route returns
-  the same redacted aggregates as a structured `children` list alongside the
-  A2UI document (same cap, same fields — no new evidence kinds).
-- **Parent portal redesign** — `/parent` now renders in the same design
-  language as the rest of the product (it previously referenced CSS classes
-  that no longer exist and rendered unstyled). Success and error feedback are
-  visually distinct and appear where the action happened; the reset-password
-  form opens at the child's row instead of the page bottom; revoking uses an
-  inline two-step confirmation that states what happens ("signed out
-  everywhere; progress kept") instead of a browser dialog; page and progress
-  copy is parent language with correct plurals and honest empty states; text
-  contrast meets WCAG AA and touch targets grew from 24px to 38-41px.
-
 ### Added
+
+- **Parent-suggested practice (RFC-0005)** — a parent can mark one of a
+  child's already-recommended skills as "practice together tonight" from the
+  child's card; the child sees a quiet, dismissible banner and "Practice it"
+  opens that skill's existing practice flow. Suggestions supersede
+  last-writer-wins, die with a revoked link in the same transaction, and
+  every transition lands in an append-only audit table. Templates only —
+  no free-text parent-to-child content exists anywhere.
 
 - **Admin parent management** — admins land on the dashboard at sign-in and
   manage parent accounts from a new Parents tab: list every parent with their
@@ -64,6 +51,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Practice recency on parent cards** — each child's card and progress
+  line now shows "last practiced today / yesterday / N days ago" (or
+  "hasn't practiced yet"), computed in Eastern-Time day terms with no
+  time-of-day exposure, per the accepted RFC-0005 recency decision.
+- **Per-child progress cards** — the parent portal now leads with one card
+  per child showing their practice answers, streak, tests, and next-practice
+  counts, with account actions on the card. The performance route returns
+  the same redacted aggregates as a structured `children` list alongside the
+  A2UI document (same cap, same fields — no new evidence kinds).
+- **Parent portal redesign** — `/parent` now renders in the same design
+  language as the rest of the product (it previously referenced CSS classes
+  that no longer exist and rendered unstyled). Success and error feedback are
+  visually distinct and appear where the action happened; the reset-password
+  form opens at the child's row instead of the page bottom; revoking uses an
+  inline two-step confirmation that states what happens ("signed out
+  everywhere; progress kept") instead of a browser dialog; page and progress
+  copy is parent language with correct plurals and honest empty states; text
+  contrast meets WCAG AA and touch targets grew from 24px to 38-41px.
 - **Learner History panel removed** — Performance now owns the redacted
   activity timeline (with tighter redaction: no scores or timestamps); the
   internal `/api/history` route is retired.

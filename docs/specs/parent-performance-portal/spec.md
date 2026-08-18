@@ -19,7 +19,12 @@ first-parent recovery remains an approved-bootstrap-only mechanism. Since
 `parent-progress-cards` the portal page renders one progress card per child
 (username plus the same pluralized aggregate phrases, actions inline) ahead
 of the add-account form; the route still issues the unchanged A2UI document
-alongside the structured `children` projection.
+alongside the structured `children` projection. Since `parent-suggested-practice`
+(RFC-0005 option A) the portal also carries the one approved parent
+interaction: suggesting a plan skill for tonight's practice, audited to the
+separate append-only `parent_suggestion_events` table (templates only, no
+free text; accepting never mutates mastery — the learner practice flow does
+what it already does).
 
 ## Objective
 

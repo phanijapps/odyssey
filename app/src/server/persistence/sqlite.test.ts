@@ -61,7 +61,7 @@ test("upgrades a legacy schema without losing session rows", () => {
   configureSqliteConnection(database);
   migrateDatabase(database);
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 10,
+    user_version: 11,
   });
   expect(
     database.prepare("SELECT status, score FROM test_sessions").get(),
@@ -113,7 +113,7 @@ test("removes orphaned active AI question state without losing sessions", () => 
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 10,
+    user_version: 11,
   });
   expect(
     database
@@ -152,7 +152,7 @@ test("current migration adds parent identity tables when a legacy account store 
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 10,
+    user_version: 11,
   });
   expect(
     database.prepare("SELECT account_id FROM accounts").get(),
@@ -196,7 +196,7 @@ test("v10 rebuilds compatible audit rows with fixed reasons and immutability", (
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 10,
+    user_version: 11,
   });
   expect(() =>
     database
@@ -239,10 +239,10 @@ test("concurrent startup connections converge on one current schema", () => {
   const second = openDatabase("learning");
   try {
     expect(first.prepare("PRAGMA user_version").get()).toEqual({
-      user_version: 10,
+      user_version: 11,
     });
     expect(second.prepare("PRAGMA user_version").get()).toEqual({
-      user_version: 10,
+      user_version: 11,
     });
     expect(second.prepare("PRAGMA foreign_keys").get()).toEqual({
       foreign_keys: 1,
@@ -264,4 +264,62 @@ test("concurrent startup connections converge on one current schema", () => {
     first.close();
     second.close();
   }
+});
+
+test("migration v11 creates suggestion tables with immutable audit", () => {
+  const database = new DatabaseSync(temporaryDatabasePath());
+  configureSqliteConnection(database);
+  migrateDatabase(database);
+  expect(database.prepare("PRAGMA user_version").get()).toEqual({
+    user_version: 11,
+  });
+  // Idempotent re-run: same version, artifacts unchanged.
+  migrateDatabase(database);
+  expect(database.prepare("PRAGMA user_version").get()).toEqual({
+    user_version: 11,
+  });
+
+  database.exec(`
+    INSERT INTO accounts (account_id, username, password_hash, salt, role)
+    VALUES ('p', 'sugg-parent', x'00', x'00', 'parent'),
+           ('c', 'sugg-child', x'00', x'00', 'student');
+    INSERT INTO parent_practice_suggestions
+      (id, child_scope, parent_account_id, topic_id, standard_code,
+       template_key, state, created_at, transitioned_at)
+    VALUES
+      ('s1', 'child:one', 'p', 'Mathematics::Grade 8::Expressions::8.EE.7', '8.EE.7',
+       'practice-together', 'active', 1, 1),
+      ('s2', 'child:one', 'p', 'Mathematics::Grade 8::Expressions::8.EE.9', '8.EE.9',
+       'practice-together', 'accepted', 1, 2);
+    INSERT INTO parent_suggestion_events
+      (suggestion_id, actor, event_type, created_at)
+    VALUES ('s1', 'p', 'suggested', 1);
+  `);
+  // One active suggestion per child.
+  expect(() =>
+    database.exec(`
+      INSERT INTO parent_practice_suggestions
+        (id, child_scope, parent_account_id, topic_id, standard_code,
+         template_key, state, created_at, transitioned_at)
+      VALUES ('s3', 'child:one', 'p', 'x', 'X', 'practice-together', 'active', 1, 1);
+    `),
+  ).toThrow(/UNIQUE/);
+  // Template policy is structural.
+  expect(() =>
+    database.exec(`
+      INSERT INTO parent_practice_suggestions
+        (id, child_scope, parent_account_id, topic_id, standard_code,
+         template_key, state, created_at, transitioned_at)
+      VALUES ('s4', 'child:one', 'p', 'x', 'X', 'custom-note', 'active', 1, 1);
+    `),
+  ).toThrow(/CHECK/);
+  // Audit rows are immutable.
+  expect(() =>
+    database.exec(
+      "UPDATE parent_suggestion_events SET event_type = 'accepted'",
+    ),
+  ).toThrow(/immutable/);
+  expect(() => database.exec("DELETE FROM parent_suggestion_events")).toThrow(
+    /immutable/,
+  );
 });

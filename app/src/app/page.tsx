@@ -41,6 +41,14 @@ export default function HomePage() {
   // First-time setup
   const [needsGrade, setNeedsGrade] = useState(false);
 
+  // Parent-suggested practice (quiet, dismissible; accepting never records
+  // anything — the practice flow does what it already does).
+  const [suggestedPractice, setSuggestedPractice] = useState<{
+    standardCode: string;
+    standardText: string;
+  } | null>(null);
+  const [suggestedBusy, setSuggestedBusy] = useState(false);
+
   // Browse + selection
   const [allStandards, setAllStandards] = useState<FlatStandard[]>([]);
   const [selGrade, setSelGrade] = useState("");
@@ -126,6 +134,22 @@ export default function HomePage() {
     }
   }, []);
 
+  /** Fetches the parent's active suggestion (quiet on any failure). */
+  const loadSuggestedPractice = useCallback(async () => {
+    try {
+      const response = await fetch("/api/suggested-practice", {
+        cache: "no-store",
+      });
+      if (!response.ok) return;
+      const body = (await response.json()) as {
+        suggestion?: { standardCode: string; standardText: string } | null;
+      };
+      setSuggestedPractice(body.suggestion ?? null);
+    } catch {
+      /* suggestion stays hidden on failure */
+    }
+  }, []);
+
   useEffect(() => {
     void (async () => {
       const res = await fetch("/api/session", { cache: "no-store" });
@@ -141,6 +165,7 @@ export default function HomePage() {
         return;
       }
       setRole((account.role as "student" | "admin") ?? "student");
+      void loadSuggestedPractice();
       await loadStandards();
       // Restore mode + grade; first-time setup when no grade saved.
       let savedGrade: string | null = null;
@@ -163,7 +188,7 @@ export default function HomePage() {
         setNeedsGrade(true);
       }
     })();
-  }, [loadStandards]);
+  }, [loadStandards, loadSuggestedPractice]);
 
   /** Reads and clears a server-validated Practice target handed off by Performance. */
   function requestPracticeTarget(): string | null {
@@ -525,6 +550,7 @@ export default function HomePage() {
       setSignedIn(true);
       setRole(account.role);
       setError("");
+      void loadSuggestedPractice();
       try {
         const w = window as unknown as {
           PasswordCredential?: new (data: {
@@ -826,6 +852,76 @@ export default function HomePage() {
 
   return (
     <main className="ixl-shell">
+      {signedIn && suggestedPractice && (
+        <div className="suggestion-banner" role="status">
+          <span>
+            <strong>
+              Your parent suggests practicing {suggestedPractice.standardCode}
+            </strong>{" "}
+            — {suggestedPractice.standardText}
+          </span>
+          <button
+            type="button"
+            className="primary-btn"
+            disabled={suggestedBusy}
+            onClick={() => {
+              void (async () => {
+                setSuggestedBusy(true);
+                try {
+                  const response = await fetch(
+                    "/api/suggested-practice/accept",
+                    {
+                      method: "POST",
+                      headers: {
+                        "content-type": "application/json",
+                        origin: window.location.origin,
+                      },
+                    },
+                  );
+                  if (response.status === 201) {
+                    const body = (await response.json()) as {
+                      topicId?: string;
+                    };
+                    setSuggestedPractice(null);
+                    if (body.topicId) applyPerformanceTarget(body.topicId);
+                  } else {
+                    setSuggestedPractice(null);
+                  }
+                } catch {
+                  setSuggestedPractice(null);
+                } finally {
+                  setSuggestedBusy(false);
+                }
+              })();
+            }}
+          >
+            {suggestedBusy ? "Opening…" : "Practice it"}
+          </button>
+          <button
+            type="button"
+            className="secondary-btn"
+            disabled={suggestedBusy}
+            onClick={() => {
+              void (async () => {
+                setSuggestedBusy(true);
+                try {
+                  await fetch("/api/suggested-practice/dismiss", {
+                    method: "POST",
+                    headers: { origin: window.location.origin },
+                  });
+                } catch {
+                  /* dismissal is best-effort and quiet */
+                } finally {
+                  setSuggestedPractice(null);
+                  setSuggestedBusy(false);
+                }
+              })();
+            }}
+          >
+            Not now
+          </button>
+        </div>
+      )}
       <LearnerHeader
         grades={grades}
         subjects={subjects}

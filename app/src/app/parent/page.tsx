@@ -41,6 +41,20 @@ export default function ParentPage() {
   const [resetChild, setResetChild] = useState<Child | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [confirmRevoke, setConfirmRevoke] = useState<Child | null>(null);
+  const [suggestPanel, setSuggestPanel] = useState<string | null>(null);
+  const [suggestData, setSuggestData] = useState<
+    Record<
+      string,
+      {
+        recommended: { standardCode: string; standardText: string }[];
+        active: { standardCode: string; standardText: string } | null;
+      }
+    >
+  >({});
+  const [suggestLoading, setSuggestLoading] = useState<string | null>(null);
+  const [suggestError, setSuggestError] = useState("");
+  const [suggestPick, setSuggestPick] = useState<string | null>(null);
+  const [suggestPending, setSuggestPending] = useState(false);
   const [successNotice, setSuccessNotice] = useState("");
   const [createError, setCreateError] = useState("");
   const [resetError, setResetError] = useState("");
@@ -237,9 +251,118 @@ export default function ParentPage() {
   function openRevokeConfirm(child: Child) {
     setResetChild(null);
     setResetError("");
+    setSuggestPanel(null);
     setConfirmRevoke((current) =>
       current?.accountId === child.accountId ? null : child,
     );
+  }
+
+  async function loadSuggestionState(child: Child): Promise<void> {
+    setSuggestLoading(child.accountId);
+    setSuggestError("");
+    try {
+      const response = await fetch(
+        `/api/parent/children/${child.accountId}/suggestions`,
+        { cache: "no-store" },
+      );
+      if (!response.ok) {
+        setSuggestError(
+          "Recommendations are unavailable right now. Try again in a moment.",
+        );
+        return;
+      }
+      const body = (await response.json()) as {
+        recommended?: { standardCode: string; standardText: string }[];
+        active?: { standardCode: string; standardText: string } | null;
+      };
+      setSuggestData((current) => ({
+        ...current,
+        [child.accountId]: {
+          recommended: body.recommended ?? [],
+          active: body.active ?? null,
+        },
+      }));
+    } catch {
+      setSuggestError(
+        "Recommendations are unavailable right now. Try again in a moment.",
+      );
+    } finally {
+      setSuggestLoading(null);
+    }
+  }
+
+  function openSuggest(child: Child) {
+    setResetChild(null);
+    setConfirmRevoke(null);
+    setSuggestError("");
+    setSuggestPick(null);
+    setSuggestPanel((current) => {
+      if (current === child.accountId) return null;
+      void loadSuggestionState(child);
+      return child.accountId;
+    });
+  }
+
+  async function suggestForChild(
+    child: Child,
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+    if (!suggestPick) return;
+    setSuggestPending(true);
+    setSuggestError("");
+    try {
+      const response = await fetch(
+        `/api/parent/children/${child.accountId}/suggestions`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            origin: window.location.origin,
+          },
+          body: JSON.stringify({ standardCode: suggestPick }),
+        },
+      );
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setSuggestError(
+          body.error === "Standard is not in the child's current plan"
+            ? "That skill just left the recommended list. Reopen to refresh."
+            : "Unable to suggest practice right now.",
+        );
+        await loadSuggestionState(child);
+        return;
+      }
+      setSuccessNotice(`Practice suggested for ${child.username}.`);
+      setSuggestPick(null);
+      await loadSuggestionState(child);
+    } finally {
+      setSuggestPending(false);
+    }
+  }
+
+  async function cancelSuggestionForChild(child: Child) {
+    setSuggestPending(true);
+    setSuggestError("");
+    try {
+      const response = await fetch(
+        `/api/parent/children/${child.accountId}/suggestions`,
+        {
+          method: "DELETE",
+          headers: { origin: window.location.origin },
+        },
+      );
+      if (!response.ok) {
+        setSuggestError("Unable to cancel the suggestion right now.");
+        return;
+      }
+      setSuccessNotice(`Suggestion cancelled for ${child.username}.`);
+      await loadSuggestionState(child);
+    } finally {
+      setSuggestPending(false);
+    }
   }
 
   return (
@@ -317,6 +440,13 @@ export default function ParentPage() {
                           onClick={() => openReset(child)}
                         >
                           Reset password
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() => openSuggest(child)}
+                        >
+                          Suggest practice…
                         </button>
                         <button
                           type="button"
@@ -415,6 +545,110 @@ export default function ParentPage() {
                             Keep access
                           </button>
                         </div>
+                      </div>
+                    )}
+                    {suggestPanel === child.accountId && (
+                      <div className="record-detail">
+                        <h3 className="section-title">
+                          Tonight&apos;s practice for {child.username}
+                        </h3>
+                        {suggestLoading === child.accountId ? (
+                          <p className="result-meta">
+                            Loading recommendations…
+                          </p>
+                        ) : (
+                          <>
+                            {suggestError && (
+                              <p role="alert" className="error-text">
+                                {suggestError}
+                              </p>
+                            )}
+                            {suggestData[child.accountId]?.active ? (
+                              <div>
+                                <p className="record-text">
+                                  Suggested:{" "}
+                                  {
+                                    suggestData[child.accountId].active
+                                      ?.standardCode
+                                  }{" "}
+                                  —{" "}
+                                  {
+                                    suggestData[child.accountId].active
+                                      ?.standardText
+                                  }
+                                </p>
+                                <div className="action-row">
+                                  <button
+                                    type="button"
+                                    className="clear-btn"
+                                    disabled={suggestPending}
+                                    onClick={() =>
+                                      void cancelSuggestionForChild(child)
+                                    }
+                                  >
+                                    {suggestPending
+                                      ? "Cancelling…"
+                                      : "Cancel suggestion"}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              suggestData[child.accountId] &&
+                              suggestData[child.accountId].recommended.length >
+                                0 && (
+                                <form
+                                  onSubmit={(event) =>
+                                    void suggestForChild(child, event)
+                                  }
+                                >
+                                  <p className="result-meta">
+                                    Pick one recommended skill:
+                                  </p>
+                                  <div className="suggested-queries">
+                                    {suggestData[
+                                      child.accountId
+                                    ].recommended.map((item) => (
+                                      <button
+                                        key={item.standardCode}
+                                        type="button"
+                                        className={
+                                          suggestPick === item.standardCode
+                                            ? "std-chip selected"
+                                            : "std-chip"
+                                        }
+                                        onClick={() =>
+                                          setSuggestPick(item.standardCode)
+                                        }
+                                      >
+                                        {item.standardCode}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <div className="action-row">
+                                    <button
+                                      className="primary-btn"
+                                      type="submit"
+                                      disabled={!suggestPick || suggestPending}
+                                    >
+                                      {suggestPending
+                                        ? "Suggesting…"
+                                        : "Suggest for tonight"}
+                                    </button>
+                                  </div>
+                                </form>
+                              )
+                            )}
+                            {suggestData[child.accountId] &&
+                              suggestData[child.accountId].recommended
+                                .length === 0 &&
+                              !suggestData[child.accountId].active && (
+                                <p className="result-meta">
+                                  No recommended skills yet — they appear after{" "}
+                                  {child.username} takes a test.
+                                </p>
+                              )}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

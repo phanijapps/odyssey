@@ -4,6 +4,7 @@ import {
   scrypt as deriveKey,
   timingSafeEqual,
 } from "node:crypto";
+import { cancelSuggestionsForChild } from "../learning/parent-suggestions";
 import { learningDb } from "../learning/sqlite-repository";
 import type { LearnerQuestionInteraction } from "../learning/question-interactions";
 
@@ -868,6 +869,18 @@ export function revokeParentChildLink(
       "parent-requested",
       Date.now(),
     );
+    // Same transaction as the revoke: any active practice suggestion for
+    // this child dies with the link (audited before commit).
+    const revokedUsername = (
+      learningDb
+        .prepare("SELECT username FROM accounts WHERE account_id = ?")
+        .get(childAccountId) as { username: string } | undefined
+    )?.username;
+    if (revokedUsername)
+      cancelSuggestionsForChild(
+        parentAccountId,
+        learnerScopeKeyForUsername(revokedUsername),
+      );
     learningDb.exec("COMMIT");
   } catch (error) {
     learningDb.exec("ROLLBACK");

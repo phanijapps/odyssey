@@ -2226,3 +2226,23 @@ button {
 .topbar .secondary-btn {
   margin-top: 0;
 }
+
+/* ---- Parent-suggested practice banner (learner portal) ---- */
+.suggestion-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px clamp(12px, 2vw, 28px) 0;
+  padding: 10px 16px;
+  background: #fffaeb;
+  border: 1px solid #d4a72c;
+  border-radius: 10px;
+  font-size: 0.92rem;
+}
+.suggestion-banner span {
+  flex: 1 1 320px;
+}
+.suggestion-banner .secondary-btn {
+  margin-top: 0;
+}
