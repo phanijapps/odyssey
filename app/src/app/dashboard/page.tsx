@@ -361,6 +361,10 @@ export default function DashboardPage() {
                 <span className="nav-icon">◉</span>
                 Knowledge Graph
               </button>
+              <a href="/dashboard/graph" className="nav-item">
+                <span className="nav-icon">✦</span>
+                3D Graph View
+              </a>
             </nav>
             <div className="sidebar-footer">
               <a href="/" className="nav-item">
