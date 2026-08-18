@@ -88,6 +88,16 @@ export default function Graph3DPage() {
           <span style={{ color: LINK_COLORS.mastered }}>— mastered</span>
           <span style={{ color: LINK_COLORS.struggled }}>— struggled</span>
         </span>
+        <button
+          type="button"
+          className="graph3d-signout"
+          onClick={async () => {
+            await fetch("/api/session", { method: "DELETE" });
+            window.location.assign("/");
+          }}
+        >
+          Sign out
+        </button>
       </header>
       {denied ? (
         <p role="alert" className="graph3d-note">

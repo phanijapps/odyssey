@@ -10,7 +10,7 @@
 - **Contract:** `GET /api/admin/parents` (admin session) returns a no-store
   `{ parents }` list with each parent's children usernames;
   `POST /api/admin/parents` (admin mutation proof, exact `{username,
-  password}` body) creates a parent → `201`;
+password}` body) creates a parent → `201`;
   `PATCH /api/admin/parents/{accountId}` (exact `{password}` body) rotates
   the password and invalidates that parent's sessions → `204`. Sign-in
   routes admin → `/dashboard`, parent → `/parent`. Parent performance and

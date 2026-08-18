@@ -468,6 +468,17 @@ export default function DashboardPage() {
                 <span className="nav-icon">←</span>
                 Practice
               </a>
+              <button
+                type="button"
+                className="nav-item"
+                onClick={async () => {
+                  await fetch("/api/session", { method: "DELETE" });
+                  window.location.assign("/");
+                }}
+              >
+                <span className="nav-icon">⏻</span>
+                Sign out
+              </button>
             </div>
           </aside>
 
