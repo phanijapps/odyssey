@@ -25,6 +25,15 @@ type BeliefEngine = {
 let knowledgeEngine: KnowledgeEngine | null | undefined;
 let beliefEngine: BeliefEngine | null | undefined;
 
+/**
+ * The knowledge engines open one SQLite file. This is deliberately NOT
+ * ENGRAM_DB_PATH: that variable configures the provider transport's
+ * directory-rooted store, which cannot be opened as a database file.
+ */
+export function knowledgeGraphDatabasePath(): string {
+  return process.env.ENGRAM_KNOWLEDGE_DB_PATH ?? "odyssey-knowledge-graph.db";
+}
+
 /** Loads the verified native Engram knowledge engine (cached). */
 function getKnowledgeEngine(): KnowledgeEngine | null {
   if (knowledgeEngine !== undefined) return knowledgeEngine;
@@ -34,9 +43,8 @@ function getKnowledgeEngine(): KnowledgeEngine | null {
       knowledgeEngine = null;
       return null;
     }
-    const dbPath = process.env.ENGRAM_DB_PATH ?? "odyssey-knowledge-graph.db";
     knowledgeEngine = new addon.NativeKnowledgeEngine(
-      dbPath,
+      knowledgeGraphDatabasePath(),
     ) as KnowledgeEngine;
   } catch {
     knowledgeEngine = null;
@@ -53,8 +61,9 @@ function getBeliefEngine(): BeliefEngine | null {
       beliefEngine = null;
       return null;
     }
-    const dbPath = process.env.ENGRAM_DB_PATH ?? "odyssey-knowledge-graph.db";
-    beliefEngine = new addon.NativeBeliefEngine(dbPath) as BeliefEngine;
+    beliefEngine = new addon.NativeBeliefEngine(
+      knowledgeGraphDatabasePath(),
+    ) as BeliefEngine;
   } catch {
     beliefEngine = null;
   }
