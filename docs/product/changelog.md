@@ -12,6 +12,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Admin parent management** — admins land on the dashboard at sign-in and
+  manage parent accounts from a new Parents tab: list every parent with their
+  children's usernames, create a parent, reset a password (which signs the
+  parent out everywhere). A `devparent` development fixture joins
+  `devadmin` / `devstu`.
+- **Fixed parent progress visibility** — parent Performance and practice
+  preview now aggregate by the learner scope key, so progress actually
+  appears for parent-created children (previously always zero).
+
 - **3D knowledge graph** — the dashboard's Knowledge Graph tab links to a new
   full-page interactive 3D force view (drag, rotate, zoom, hover labels) of
   curriculum concepts, prerequisite chains, and learning patterns, with
