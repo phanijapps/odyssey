@@ -58,6 +58,12 @@ const DEVELOPMENT_FIXTURE_ACCOUNTS: readonly SeedAccount[] = [
     childId: "devadmin",
   },
   {
+    username: "devparent",
+    password: "parent",
+    role: "parent",
+    childId: "",
+  },
+  {
     username: "devstu",
     password: "stu",
     role: "student",
@@ -100,6 +106,19 @@ function fixtureAccounts(): readonly SeedAccount[] {
   )
     return DEVELOPMENT_FIXTURE_ACCOUNTS;
   return [];
+}
+
+/**
+ * Resolves the learner scope key under which a student's practice data is
+ * stored: the seeded fixture child id when one applies, else
+ * `child:<username>`. Sign-in and every parent-facing aggregation must
+ * derive this the same way.
+ */
+export function learnerScopeKeyForUsername(username: string): string {
+  const seeded = fixtureAccounts().find(
+    (account) => account.username === username,
+  );
+  return seeded?.childId ?? `child:${username}`;
 }
 
 /**
@@ -207,8 +226,10 @@ async function seedConfiguredParentBootstrap(): Promise<void> {
 
 /** Seeds explicitly enabled fixture and first-parent bootstrap accounts. */
 async function seedAccounts(): Promise<void> {
-  await seedFixtureAccounts();
+  // Bootstrap first: explicitly configured credentials must win over the
+  // zero-parents guard that the devparent fixture would otherwise trip.
   await seedConfiguredParentBootstrap();
+  await seedFixtureAccounts();
 }
 
 const seedPromise = seedAccounts();
@@ -336,7 +357,8 @@ export async function authenticateChild(_credentials: {
       ? [configuredParentBootstrapAccount()!]
       : []),
   ].find((candidate) => candidate.username === username);
-  const childId = seededAccount?.childId ?? `child:${username}`;
+  const childId =
+    seededAccount?.childId ?? learnerScopeKeyForUsername(username);
 
   // Rotate: one active session per account.
   learningDb
@@ -538,7 +560,11 @@ export function requireLearnerMutationProof(request: Request): {
 export function requireAdminMutationProof(request: Request): {
   childId: string;
 } {
-  const proof = requireSameOriginMutationProof(request, ["POST", "DELETE"]);
+  const proof = requireSameOriginMutationProof(request, [
+    "POST",
+    "PATCH",
+    "DELETE",
+  ]);
   if (proof.role !== "admin") throw new Error("Admin access required");
   return { childId: proof.childId };
 }
@@ -674,13 +700,16 @@ export function resolveExternalIdentitySubject(
   };
 }
 
-type ChildCredentials = { username: string; password: string };
+type AccountCredentials = { username: string; password: string };
 
-function validateChildCredentials(credentials: ChildCredentials): void {
+function validateAccountCredentials(
+  credentials: AccountCredentials,
+  label: "Child" | "Parent",
+): void {
   if (!/^[a-zA-Z0-9_.-]{3,64}$/.test(credentials.username))
-    throw new Error("Child username is invalid");
+    throw new Error(`${label} username is invalid`);
   if (credentials.password.length < 8 || credentials.password.length > 256)
-    throw new Error("Child password is invalid");
+    throw new Error(`${label} password is invalid`);
 }
 
 function requireActiveParentChildLink(
@@ -716,9 +745,9 @@ function recordParentRelationshipEvent(
 /** Creates a linked learner account without exposing a client-selected parent. */
 export async function createParentChildAccount(
   parentAccountId: string,
-  credentials: ChildCredentials,
+  credentials: AccountCredentials,
 ): Promise<{ accountId: string; username: string }> {
-  validateChildCredentials(credentials);
+  validateAccountCredentials(credentials, "Child");
   const salt = randomBytes(16);
   const passwordHash = await scryptSync(credentials.password, salt);
   const accountId = randomBytes(16).toString("hex");
@@ -784,7 +813,7 @@ export async function resetParentChildPassword(
   childAccountId: string,
   password: string,
 ): Promise<void> {
-  validateChildCredentials({ username: "child", password });
+  validateAccountCredentials({ username: "child", password }, "Child");
   const salt = randomBytes(16);
   const passwordHash = await scryptSync(password, salt);
   learningDb.exec("BEGIN IMMEDIATE");
@@ -846,6 +875,83 @@ export function revokeParentChildLink(
   }
   // Parent sessions remain valid for other linked children. Every child-scoped
   // operation rechecks this link, so stale tabs lose only the revoked scope.
+}
+
+/** Lists every parent account with its active children usernames. */
+export function listParentAccounts(): Array<{
+  accountId: string;
+  username: string;
+  children: Array<{ username: string }>;
+}> {
+  const parents = learningDb
+    .prepare(
+      `SELECT account_id AS accountId, username FROM accounts
+       WHERE role = 'parent' ORDER BY username`,
+    )
+    .all() as Array<{ accountId: string; username: string }>;
+  return parents.map((parent) => ({
+    ...parent,
+    children: listParentChildren(parent.accountId).map((child) => ({
+      username: child.username,
+    })),
+  }));
+}
+
+/** Creates a parent account for admin use; no link row, no audit event. */
+export async function createParentAccount(
+  credentials: AccountCredentials,
+): Promise<{ accountId: string; username: string }> {
+  validateAccountCredentials(credentials, "Parent");
+  const salt = randomBytes(16);
+  const passwordHash = await scryptSync(credentials.password, salt);
+  const accountId = randomBytes(16).toString("hex");
+  learningDb.exec("BEGIN IMMEDIATE");
+  try {
+    learningDb
+      .prepare(
+        `INSERT INTO accounts (account_id, username, password_hash, salt, role)
+         VALUES (?, ?, ?, ?, 'parent')`,
+      )
+      .run(accountId, credentials.username, passwordHash, salt);
+    learningDb.exec("COMMIT");
+  } catch (error) {
+    learningDb.exec("ROLLBACK");
+    if (String(error).includes("UNIQUE constraint failed: accounts.username"))
+      throw new Error("Parent username is unavailable");
+    throw error;
+  }
+  return { accountId, username: credentials.username };
+}
+
+/** Resets a parent's password and invalidates all of that parent's sessions. */
+export async function resetParentAccountPassword(
+  parentAccountId: string,
+  password: string,
+): Promise<void> {
+  validateAccountCredentials({ username: "parent", password }, "Parent");
+  const salt = randomBytes(16);
+  const passwordHash = await scryptSync(password, salt);
+  learningDb.exec("BEGIN IMMEDIATE");
+  try {
+    const parent = learningDb
+      .prepare(
+        "SELECT username FROM accounts WHERE account_id = ? AND role = 'parent'",
+      )
+      .get(parentAccountId) as { username: string } | undefined;
+    if (!parent) throw new Error("Parent access denied");
+    learningDb
+      .prepare(
+        "UPDATE accounts SET password_hash = ?, salt = ? WHERE account_id = ?",
+      )
+      .run(passwordHash, salt, parentAccountId);
+    learningDb
+      .prepare("DELETE FROM auth_sessions WHERE username = ?")
+      .run(parent.username);
+    learningDb.exec("COMMIT");
+  } catch (error) {
+    learningDb.exec("ROLLBACK");
+    throw error;
+  }
 }
 
 /** Invalidates one session (sign out). */

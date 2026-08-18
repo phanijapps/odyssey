@@ -7,6 +7,7 @@ import {
   grantGeneratedPracticeAllowance,
   getIdentityPolicy,
   getSessionPool,
+  learnerScopeKeyForUsername,
   requireAdminMutationProof,
   requireAdminRead,
   requireLearnerRead,
@@ -20,6 +21,12 @@ import {
 } from "./identity";
 
 afterEach(() => vi.useRealTimers());
+
+test("learner scope keys match the fixture childId or derive from the username", () => {
+  // The vitest fixture set is active in this environment.
+  expect(learnerScopeKeyForUsername("test-learner")).toBe("test-learner");
+  expect(learnerScopeKeyForUsername("made-up-user")).toBe("child:made-up-user");
+});
 
 // STUB: AC2
 
