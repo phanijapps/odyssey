@@ -39,6 +39,7 @@ Shipped specs remain as historical feature contracts with their QA records.
 | [parent-management](parent-management/spec.md) | Shipped | — | Admin-managed parent accounts, role landing, learner scope-key fix |
 | [parent-portal-refresh](parent-portal-refresh/spec.md) | Shipped | — | Portal styling migration, inline account actions, parent-language copy |
 | [parent-progress-cards](parent-progress-cards/spec.md) | Shipped | — | Per-child progress cards; performance route returns structured children |
+| [parent-practice-recency](parent-practice-recency/spec.md) | Shipped | RFC-0005 | Day-granularity last-practice recency on parent surfaces |
 
 ## Adding a new spec
 

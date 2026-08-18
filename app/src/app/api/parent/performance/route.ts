@@ -10,7 +10,10 @@ import {
 import { getParentSafePerformance } from "../../../../server/learning/parent-performance";
 
 /** Returns aggregate Performance only for children with the parent's active links. */
-export function GET(request: Request): Response {
+export function GET(request: Request, now?: unknown): Response {
+  // Next.js passes its route context as the second argument in production;
+  // tests pass a frozen Date. Only a real Date overrides evaluation time.
+  const evaluatedAt = now instanceof Date ? now : new Date();
   let parentAccountId: string;
   try {
     ({ parentAccountId } = requireParentRead(request));
@@ -30,6 +33,7 @@ export function GET(request: Request): Response {
       username: child.username,
       performance: getParentSafePerformance(
         learnerScopeKeyForUsername(child.username),
+        evaluatedAt,
       ),
     }));
     return Response.json(

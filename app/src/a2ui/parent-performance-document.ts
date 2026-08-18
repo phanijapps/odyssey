@@ -12,6 +12,7 @@ type ParentPerformanceAggregate = {
     readonly practice: {
       readonly correctPracticeAttempts: number;
       readonly activePracticeDayStreak: number;
+      readonly lastPracticedDaysAgo: number | null;
     };
     readonly tests: { readonly completed: number; readonly partial: number };
     readonly nextPractice: {
@@ -30,9 +31,15 @@ export function formatPracticePhrases(performance: {
   practice: {
     correctPracticeAttempts: number;
     activePracticeDayStreak: number;
+    lastPracticedDaysAgo: number | null;
   };
   nextPractice: { checkpointMet: number };
-}): { answers: string; streak: string; checkpoints: string } {
+}): {
+  answers: string;
+  streak: string;
+  checkpoints: string;
+  recency: string;
+} {
   const { practice, nextPractice } = performance;
   return {
     answers:
@@ -47,6 +54,14 @@ export function formatPracticePhrases(performance: {
       nextPractice.checkpointMet === 1
         ? "1 checkpoint met"
         : `${nextPractice.checkpointMet} checkpoints met`,
+    recency:
+      practice.lastPracticedDaysAgo === null
+        ? "hasn't practiced yet"
+        : practice.lastPracticedDaysAgo === 0
+          ? "last practiced today"
+          : practice.lastPracticedDaysAgo === 1
+            ? "last practiced yesterday"
+            : `last practiced ${practice.lastPracticedDaysAgo} days ago`,
   };
 }
 
@@ -59,7 +74,7 @@ export function createParentPerformanceA2uiDocument(
 ): OdysseyParentPerformanceA2uiDocument {
   const displayedChildren = children.slice(0, PARENT_PERFORMANCE_CHILD_CAP);
   const childComponents = displayedChildren.map((child, index) => {
-    const { answers, streak, checkpoints } = formatPracticePhrases(
+    const { answers, streak, checkpoints, recency } = formatPracticePhrases(
       child.performance,
     );
     const { tests, nextPractice } = child.performance;
@@ -67,7 +82,7 @@ export function createParentPerformanceA2uiDocument(
       component: "OdysseyText" as const,
       id: `child-${index + 1}`,
       variant: "body" as const,
-      text: `${child.username}: ${answers} · ${streak}. Tests: ${tests.completed} completed, ${tests.partial} partial. Next Practice: ${nextPractice.recommended} recommended, ${nextPractice.practicing} practicing, ${checkpoints}.`,
+      text: `${child.username}: ${answers} · ${streak} · ${recency}. Tests: ${tests.completed} completed, ${tests.partial} partial. Next Practice: ${nextPractice.recommended} recommended, ${nextPractice.practicing} practicing, ${checkpoints}.`,
     };
   });
 

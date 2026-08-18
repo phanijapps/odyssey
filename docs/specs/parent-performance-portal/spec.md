@@ -61,7 +61,10 @@ reset a child password or revoke that child relationship server-side.
 ### Never do
 
 - Let a parent choose arbitrary learner IDs, view raw answers/questions/keys,
-  receive exact child activity timestamps, or access unsupported diagnosis.
+  receive child activity timestamps finer than day granularity
+  (day-granularity recency — "last practiced N days ago" — is accepted per
+  [RFC-0005](../../rfc/0005-define-parent-interaction.md)), or access
+  unsupported diagnosis.
 - Let parent preview answers be attributed to, displayed as, or otherwise alter
   the child’s learning record.
 - Treat admin role as parent role or retain the current prototype parent

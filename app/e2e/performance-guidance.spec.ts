@@ -119,8 +119,10 @@ test("learner starts existing Practice from a Performance guidance card", async 
   await page.waitForURL("**/parent");
   await page.getByLabel("Child username").fill("e2e-guidance-child");
   await page.getByLabel("Temporary password").fill("guidance-child-password");
-  await page.getByRole("button", { name: "Create child" }).click();
-  await expect(page.getByText("Child account created.")).toBeVisible();
+  await page.getByRole("button", { name: "Add child" }).click();
+  await expect(
+    page.getByText("Account created for e2e-guidance-child."),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
   await page.waitForURL("**/");
 

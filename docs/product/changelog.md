@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Practice recency on parent cards** — each child's card and progress
+  line now shows "last practiced today / yesterday / N days ago" (or
+  "hasn't practiced yet"), computed in Eastern-Time day terms with no
+  time-of-day exposure, per the accepted RFC-0005 recency decision.
 - **Per-child progress cards** — the parent portal now leads with one card
   per child showing their practice answers, streak, tests, and next-practice
   counts, with account actions on the card. The performance route returns

@@ -48,17 +48,22 @@ test("parent Performance derives active child scope and redacts details", async 
     .prepare(
       `INSERT INTO learning_attempts
         (child_id, topic_id, correct, level_before, level_after, created_at)
-       VALUES ('child:linked-child', 'Mathematics::Grade 8::Expressions::8.EE.7', 1, 1, 2, '2026-01-01')`,
+       VALUES ('child:linked-child', 'Mathematics::Grade 8::Expressions::8.EE.7', 1, 1, 2, '2026-08-18T16:00:00.000Z')`,
     )
     .run();
   const parent = await authenticateChild({
     username: "performance-parent",
     password: "parent-password",
   });
-  const response = GET(
+  const performanceRequest = () =>
     new Request("http://localhost/api/parent/performance", {
       headers: { cookie: `session=${parent.sessionToken}` },
-    }),
+    });
+  // Frozen evaluation times: 4pm ET on the seeded ET noon Aug 18 day, and
+  // two ET midnights later. No wall-clock dependence anywhere.
+  const response = GET(
+    performanceRequest(),
+    new Date("2026-08-18T20:00:00.000Z"),
   );
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("no-store");
@@ -73,7 +78,7 @@ test("parent Performance derives active child scope and redacts details", async 
               expect.objectContaining({
                 component: "OdysseyText",
                 text: expect.stringContaining(
-                  "linked-child: 1 correct Practice answer",
+                  "linked-child: 1 correct Practice answer · 1-day Practice streak · last practiced today",
                 ),
               }),
             ]),
@@ -88,7 +93,29 @@ test("parent Performance derives active child scope and redacts details", async 
     {
       username: "linked-child",
       performance: {
-        practice: { correctPracticeAttempts: 1, activePracticeDayStreak: 0 },
+        practice: {
+          correctPracticeAttempts: 1,
+          activePracticeDayStreak: 1,
+          lastPracticedDaysAgo: 0,
+        },
+        tests: { completed: 0, partial: 0 },
+        nextPractice: { recommended: 0, practicing: 0, checkpointMet: 0 },
+      },
+    },
+  ]);
+  const twoDaysLater = GET(
+    performanceRequest(),
+    new Date("2026-08-20T20:00:00.000Z"),
+  );
+  expect(await (await twoDaysLater.json()).children).toEqual([
+    {
+      username: "linked-child",
+      performance: {
+        practice: {
+          correctPracticeAttempts: 1,
+          activePracticeDayStreak: 0,
+          lastPracticedDaysAgo: 2,
+        },
         tests: { completed: 0, partial: 0 },
         nextPractice: { recommended: 0, practicing: 0, checkpointMet: 0 },
       },

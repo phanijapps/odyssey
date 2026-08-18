@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { getAchievements } from "./achievements";
+import { daysSinceLastCorrectPractice, getAchievements } from "./achievements";
 import { isReviewedFunFact, reviewedFunFacts } from "./fun-facts";
 import { learningDb } from "./sqlite-repository";
 
@@ -98,4 +98,61 @@ test("uses only bounded approved local facts and rotates from correct Practice",
     getAchievements("achievement-facts", new Date("2026-01-01T18:01:00.000Z"))
       .funFact.id,
   ).toBe("infinite-primes");
+});
+
+test("daysSinceLastCorrectPractice counts ET midnights and null never-practice", () => {
+  expect(
+    daysSinceLastCorrectPractice(
+      "recency-never",
+      new Date("2026-08-18T04:30:00.000Z"),
+    ),
+  ).toBeNull();
+
+  // Same ET calendar day (Aug 17): 23:45 ET attempt, 00:30 ET "now" is
+  // already Aug 18 ET, so this is the yesterday case -> 1.
+  recordAttempt({
+    learnerId: "recency-boundary",
+    correct: 1,
+    createdAt: "2026-08-18T03:45:00.000Z", // 23:45 ET Aug 17
+  });
+  expect(
+    daysSinceLastCorrectPractice(
+      "recency-boundary",
+      new Date("2026-08-18T04:30:00.000Z"), // 00:30 ET Aug 18
+    ),
+  ).toBe(1);
+
+  // Same ET calendar day -> 0 (23:00 ET is still Aug 17 in ET terms).
+  expect(
+    daysSinceLastCorrectPractice(
+      "recency-boundary",
+      new Date("2026-08-18T03:00:00.000Z"), // 23:00 ET Aug 17
+    ),
+  ).toBe(0);
+
+  // Three ET midnights later -> 3 (Aug 15 -> Aug 18).
+  recordAttempt({
+    learnerId: "recency-two-days",
+    correct: 1,
+    createdAt: "2026-08-15T16:00:00.000Z", // noon ET Aug 15
+  });
+  expect(
+    daysSinceLastCorrectPractice(
+      "recency-two-days",
+      new Date("2026-08-18T04:30:00.000Z"), // 00:30 ET Aug 18
+    ),
+  ).toBe(3);
+
+  // Incorrect attempts never count.
+  recordAttempt({
+    learnerId: "recency-incorrect-only",
+    correct: 0,
+    createdAt: "2026-08-18T03:45:00.000Z",
+  });
+  expect(
+    daysSinceLastCorrectPractice(
+      "recency-incorrect-only",
+      new Date("2026-08-18T04:30:00.000Z"),
+    ),
+  ).toBeNull();
 });

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAchievements } from "./achievements";
+import { daysSinceLastCorrectPractice, getAchievements } from "./achievements";
 import { getMistakeToMasteryPlan } from "./mistake-to-mastery";
 import { learningDb } from "./sqlite-repository";
 
@@ -8,6 +8,7 @@ export type ParentSafePerformance = {
   readonly practice: {
     readonly correctPracticeAttempts: number;
     readonly activePracticeDayStreak: number;
+    readonly lastPracticedDaysAgo: number | null;
   };
   readonly tests: {
     readonly completed: number;
@@ -27,8 +28,9 @@ export type ParentSafePerformance = {
  */
 export function getParentSafePerformance(
   childId: string,
+  now?: Date,
 ): ParentSafePerformance {
-  const achievements = getAchievements(childId);
+  const achievements = getAchievements(childId, now);
   const testCounts = learningDb
     .prepare(
       `SELECT
@@ -43,6 +45,7 @@ export function getParentSafePerformance(
     practice: {
       correctPracticeAttempts: achievements.correctPracticeAttempts,
       activePracticeDayStreak: achievements.activePracticeDayStreak,
+      lastPracticedDaysAgo: daysSinceLastCorrectPractice(childId, now),
     },
     tests: {
       completed: testCounts.completed ?? 0,

@@ -8,6 +8,7 @@ type PerformanceFacts = {
   practice: {
     correctPracticeAttempts: number;
     activePracticeDayStreak: number;
+    lastPracticedDaysAgo: number | null;
   };
   tests: { completed: number; partial: number };
   nextPractice: {
@@ -329,7 +330,8 @@ export default function ParentPage() {
                     {phrases && facts && (
                       <div className="record-detail">
                         <p className="record-text">
-                          {phrases.answers} · {phrases.streak}.
+                          {phrases.answers} · {phrases.streak} ·{" "}
+                          {phrases.recency}.
                         </p>
                         <p className="record-text">
                           Tests: {facts.tests.completed} completed,{" "}

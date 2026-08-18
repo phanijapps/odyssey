@@ -46,6 +46,39 @@ function previousDay(day: string): string {
   return date.toISOString().slice(0, 10);
 }
 
+// Both day anchors are ET calendar-day strings parsed at UTC midnight; the
+// subtraction is timezone-offset-agnostic because both anchors shift by the
+// same amount. Day arithmetic, not instant arithmetic.
+function midnightsBetween(fromDay: string, toDay: string): number {
+  const from = Date.parse(`${fromDay}T00:00:00.000Z`);
+  const to = Date.parse(`${toDay}T00:00:00.000Z`);
+  return Math.round((to - from) / 86_400_000);
+}
+
+/**
+ * Day-granularity recency for parent surfaces (RFC-0005): the number of
+ * America/New_York midnights between `now` and the most recent ET calendar
+ * day with a correct attempt. Null when the learner has no correct
+ * attempts. Never exposes time-of-day. The ET day boundary crosses at
+ * 04:00/05:00 UTC (ET midnight). Shares `easternDay` with the streak loop
+ * in `getAchievements` — changes to either must preserve their consistency.
+ */
+export function daysSinceLastCorrectPractice(
+  learnerId: string,
+  now = new Date(),
+): number | null {
+  const row = learningDb
+    .prepare(
+      `SELECT MAX(created_at) AS last FROM learning_attempts
+       WHERE child_id = ? AND correct = 1`,
+    )
+    .get(learnerId) as { last: string | null };
+  const lastDay = row.last === null ? null : easternDay(row.last);
+  const today = easternDay(now);
+  if (!lastDay || !today) return null;
+  return midnightsBetween(lastDay, today);
+}
+
 /**
  * Recomputes learner-only Practice achievements from accepted learning records.
  * Tests, parent views, and rejected/replayed submissions have no write path to
