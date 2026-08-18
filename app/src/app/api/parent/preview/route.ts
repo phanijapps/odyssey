@@ -1,4 +1,5 @@
 import {
+  learnerScopeKeyForUsername,
   listParentChildren,
   requireParentRead,
 } from "../../../../server/identity/identity";
@@ -23,7 +24,12 @@ export function GET(request: Request): Response {
   try {
     return Response.json(
       {
-        preview: getParentPracticePreview(listParentChildren(parentAccountId)),
+        preview: getParentPracticePreview(
+          listParentChildren(parentAccountId).map((child) => ({
+            scopeKey: learnerScopeKeyForUsername(child.username),
+            username: child.username,
+          })),
+        ),
       },
       { headers: { "Cache-Control": "no-store" } },
     );

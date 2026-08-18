@@ -4,7 +4,7 @@ import { reviewedSampleForStandard } from "../agent/adaptive-pool";
 import { getMistakeToMasteryPlan } from "./mistake-to-mastery";
 
 type LinkedChild = {
-  readonly accountId: string;
+  readonly scopeKey: string;
   readonly username: string;
 };
 
@@ -34,7 +34,7 @@ export function getParentPracticePreview(
   children: readonly LinkedChild[],
 ): ParentPracticePreview {
   for (const child of children) {
-    const items = getMistakeToMasteryPlan(child.accountId).items;
+    const items = getMistakeToMasteryPlan(child.scopeKey).items;
     const target = items.find(
       (item) => item.state === "recommended" || item.state === "practicing",
     );

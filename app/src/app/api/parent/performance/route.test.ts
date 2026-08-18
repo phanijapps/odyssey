@@ -20,15 +20,18 @@ function provisionAccount(
 }
 
 test("parent Performance derives active child scope and redacts details", async () => {
+  // Realistic principals: 32-hex account ids that differ from the learner
+  // scope key (`child:<username>`) under which learner data is written —
+  // the aggregation must bridge the two, as it previously did not.
   provisionAccount(
-    "parent-performance",
+    "1".repeat(32),
     "performance-parent",
     "parent-password",
     "parent",
   );
-  provisionAccount("linked-child", "linked-child", "child-password", "student");
+  provisionAccount("2".repeat(32), "linked-child", "child-password", "student");
   provisionAccount(
-    "revoked-child",
+    "3".repeat(32),
     "revoked-child",
     "child-password",
     "student",
@@ -37,15 +40,15 @@ test("parent Performance derives active child scope and redacts details", async 
     .prepare(
       `INSERT INTO parent_child_links
         (parent_account_id, child_account_id, created_at, revoked_at)
-       VALUES ('parent-performance', 'linked-child', 1, NULL),
-              ('parent-performance', 'revoked-child', 1, 2)`,
+       VALUES ('${"1".repeat(32)}', '${"2".repeat(32)}', 1, NULL),
+               ('${"1".repeat(32)}', '${"3".repeat(32)}', 1, 2)`,
     )
     .run();
   learningDb
     .prepare(
       `INSERT INTO learning_attempts
         (child_id, topic_id, correct, level_before, level_after, created_at)
-       VALUES ('linked-child', 'Mathematics::Grade 8::Expressions::8.EE.7', 1, 1, 2, '2026-01-01')`,
+       VALUES ('child:linked-child', 'Mathematics::Grade 8::Expressions::8.EE.7', 1, 1, 2, '2026-01-01')`,
     )
     .run();
   const parent = await authenticateChild({

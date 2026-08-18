@@ -20,12 +20,12 @@ function provisionAccount(
 }
 
 const PARENT = {
-  accountId: "parent-preview",
+  accountId: "4".repeat(32),
   username: "preview-parent",
   password: "parent-password",
 };
 const CHILD = {
-  accountId: "preview-child",
+  accountId: "5".repeat(32),
   username: "preview-child",
   password: "child-password",
 };
@@ -54,7 +54,7 @@ function seedChildRecommendedTarget(): void {
         (id, learner_id, subject, grade, status, score, created_at, completed_at)
        VALUES (?, ?, 'Mathematics', 'Grade 6', 'completed', 0, '2026-03-01', '2026-03-01')`,
     )
-    .run(`${CHILD.accountId}-session`, CHILD.accountId);
+    .run(`${CHILD.accountId}-session`, `child:${CHILD.username}`);
   learningDb
     .prepare(
       `INSERT INTO test_selected_records

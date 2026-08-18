@@ -1,4 +1,5 @@
 import {
+  learnerScopeKeyForUsername,
   listParentChildren,
   requireParentRead,
 } from "../../../../server/identity/identity";
@@ -24,7 +25,9 @@ export function GET(request: Request): Response {
   try {
     const children = listParentChildren(parentAccountId).map((child) => ({
       username: child.username,
-      performance: getParentSafePerformance(child.accountId),
+      performance: getParentSafePerformance(
+        learnerScopeKeyForUsername(child.username),
+      ),
     }));
     return Response.json(
       { document: createParentPerformanceA2uiDocument(children) },
