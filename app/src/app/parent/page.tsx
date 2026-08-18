@@ -51,6 +51,9 @@ export default function ParentPage() {
   const loadChildren = useCallback(async () => {
     const response = await fetch("/api/parent/children", { cache: "no-store" });
     if (!response.ok) {
+      setChildren([]);
+      setResetChild(null);
+      setConfirmRevoke(null);
       setChildrenError(await responseError(response));
       setLoading(false);
       return;
@@ -115,6 +118,8 @@ export default function ParentPage() {
         cache: "no-store",
       });
       if (!response.ok) {
+        setPreview(null);
+        setPreviewLoaded(false);
         setPreviewError(await responseError(response));
         return;
       }
@@ -122,6 +127,8 @@ export default function ParentPage() {
       setPreview(body.preview ?? null);
       setPreviewLoaded(true);
     } catch {
+      setPreview(null);
+      setPreviewLoaded(false);
       setPreviewError("Practice preview is unavailable right now.");
     } finally {
       setPreviewLoading(false);
@@ -146,9 +153,10 @@ export default function ParentPage() {
         setCreateError(await responseError(response));
         return;
       }
+      const createdUsername = username;
       setUsername("");
       setPassword("");
-      setSuccessNotice(`Account created for ${username}.`);
+      setSuccessNotice(`Account created for ${createdUsername}.`);
       setPreview(null);
       await Promise.all([loadChildren(), loadPerformance()]);
     } finally {
@@ -222,6 +230,7 @@ export default function ParentPage() {
 
   function openRevokeConfirm(child: Child) {
     setResetChild(null);
+    setResetError("");
     setConfirmRevoke((current) =>
       current?.accountId === child.accountId ? null : child,
     );
