@@ -38,6 +38,7 @@ Shipped specs remain as historical feature contracts with their QA records.
 | [knowledge-graph-3d](knowledge-graph-3d/spec.md) | Shipped | RFC-0003 | Admin 3D force view of the knowledge graph |
 | [parent-management](parent-management/spec.md) | Shipped | — | Admin-managed parent accounts, role landing, learner scope-key fix |
 | [parent-portal-refresh](parent-portal-refresh/spec.md) | Shipped | — | Portal styling migration, inline account actions, parent-language copy |
+| [parent-progress-cards](parent-progress-cards/spec.md) | Shipped | — | Per-child progress cards; performance route returns structured children |
 
 ## Adding a new spec
 

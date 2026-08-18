@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Per-child progress cards** — the parent portal now leads with one card
+  per child showing their practice answers, streak, tests, and next-practice
+  counts, with account actions on the card. The performance route returns
+  the same redacted aggregates as a structured `children` list alongside the
+  A2UI document (same cap, same fields — no new evidence kinds).
 - **Parent portal redesign** — `/parent` now renders in the same design
   language as the rest of the product (it previously referenced CSS classes
   that no longer exist and rendered unstyled). Success and error feedback are

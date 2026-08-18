@@ -6,7 +6,7 @@
 - **Constrained by:** RFC-0003; RFC-0004 (Open); `performance-guidance` and `a2ui-learning-delivery` (Draft)
 - **Brief:** none
 - **Discovery:** current persona/auth boundary and Performance research, 2026-08-16
-- **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is available only under explicit configuration. In production, `ODYSSEY_ENABLE_PRODUCTION_PARENT_BOOTSTRAP=1` plus the configured parent credentials can seed one parent only while no parent account exists; it has no public route and cannot reset an existing parent. Relationship creation, password reset, and revocation write an append-only minimal local audit event retained for the lifetime of the local database; create/revoke use the fixed `parent-requested` reason and reset stores no free-text reason. The parent BFF is read-only `GET /api/parent/performance`: it derives the complete active linked-child scope from the parent session and returns capped aggregate Practice/Test/next-Practice facts only; it accepts no child identifier.
+- **Contract:** relationship administration is local-only: `GET`/`POST /api/parent/children` and `PATCH`/`DELETE /api/parent/children/:accountId` derive scope from a parent principal and active link. First-parent bootstrap is available only under explicit configuration. In production, `ODYSSEY_ENABLE_PRODUCTION_PARENT_BOOTSTRAP=1` plus the configured parent credentials can seed one parent only while no parent account exists; it has no public route and cannot reset an existing parent. Relationship creation, password reset, and revocation write an append-only minimal local audit event retained for the lifetime of the local database; create/revoke use the fixed `parent-requested` reason and reset stores no free-text reason. The parent BFF is read-only `GET /api/parent/performance`: it derives the complete active linked-child scope from the parent session and returns capped aggregate Practice/Test/next-Practice facts only; it accepts no child identifier. Since `parent-progress-cards` those facts ship as two projections of one aggregation — the bounded A2UI document (unchanged compilation) and a structured `children` array (`username` plus the same aggregate fields, username-ascending, same 13-child cap, no new evidence kinds) — and the portal page renders per-child progress cards from the structured projection with the account actions inline.
 - **Shape:** mixed
 
 ## Implementation status
@@ -15,7 +15,11 @@ The relationship foundation, local audit trail, aggregate linked-child
 Performance view (A2UI), and the non-mutating reviewed Practice preview are
 implemented and covered by route/e2e tests. Free-text revocation reasons,
 audit export, and retention changes remain Ask-first policy options, and
-first-parent recovery remains an approved-bootstrap-only mechanism.
+first-parent recovery remains an approved-bootstrap-only mechanism. Since
+`parent-progress-cards` the portal page renders one progress card per child
+(username plus the same pluralized aggregate phrases, actions inline) ahead
+of the add-account form; the route still issues the unchanged A2UI document
+alongside the structured `children` projection.
 
 ## Objective
 

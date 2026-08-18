@@ -3,7 +3,10 @@ import {
   listParentChildren,
   requireParentRead,
 } from "../../../../server/identity/identity";
-import { createParentPerformanceA2uiDocument } from "../../../../a2ui/parent-performance-document";
+import {
+  createParentPerformanceA2uiDocument,
+  PARENT_PERFORMANCE_CHILD_CAP,
+} from "../../../../a2ui/parent-performance-document";
 import { getParentSafePerformance } from "../../../../server/learning/parent-performance";
 
 /** Returns aggregate Performance only for children with the parent's active links. */
@@ -30,7 +33,12 @@ export function GET(request: Request): Response {
       ),
     }));
     return Response.json(
-      { document: createParentPerformanceA2uiDocument(children) },
+      {
+        document: createParentPerformanceA2uiDocument(children),
+        // Second projection of the same aggregates (no new evidence kinds);
+        // capped identically to the document's child components.
+        children: children.slice(0, PARENT_PERFORMANCE_CHILD_CAP),
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {

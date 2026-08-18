@@ -82,8 +82,66 @@ test("parent Performance derives active child scope and redacts details", async 
       ],
     },
   });
+  // The structured children projection: active links only (revoked-child
+  // absent), exact ParentSafePerformance field set, username-ascending.
+  expect(body.children).toEqual([
+    {
+      username: "linked-child",
+      performance: {
+        practice: { correctPracticeAttempts: 1, activePracticeDayStreak: 0 },
+        tests: { completed: 0, partial: 0 },
+        nextPractice: { recommended: 0, practicing: 0, checkpointMet: 0 },
+      },
+    },
+  ]);
   expect(JSON.stringify(body)).not.toMatch(
     /accountId|childId|topicId|occurredAt|standardCode|assignmentToken/,
+  );
+});
+
+test("parent Performance caps the children projection at the document cap", async () => {
+  provisionAccount("a".repeat(32), "cap-parent", "parent-password", "parent");
+  const children = Array.from(
+    { length: 15 },
+    (_, index) => `${"b".repeat(31)}${index.toString(16)}`,
+  );
+  const insert = learningDb.prepare(
+    `INSERT INTO accounts (account_id, username, password_hash, salt, role)
+     VALUES (?, ?, ?, ?, 'student')`,
+  );
+  const link = learningDb.prepare(
+    `INSERT INTO parent_child_links
+       (parent_account_id, child_account_id, created_at, revoked_at)
+     VALUES ('${"a".repeat(32)}', ?, 1, NULL)`,
+  );
+  const salt = randomBytes(16);
+  for (const [index, accountId] of children.entries()) {
+    insert.run(
+      accountId,
+      `cap-child-${index.toString().padStart(2, "0")}`,
+      scryptSync("child-password", salt, 32),
+      salt,
+    );
+    link.run(accountId);
+  }
+  const parent = await authenticateChild({
+    username: "cap-parent",
+    password: "parent-password",
+  });
+  const response = GET(
+    new Request("http://localhost/api/parent/performance", {
+      headers: { cookie: `session=${parent.sessionToken}` },
+    }),
+  );
+  const body = await response.json();
+  expect(body.children).toHaveLength(13);
+  expect(
+    body.children.map((child: { username: string }) => child.username),
+  ).toEqual(
+    Array.from(
+      { length: 13 },
+      (_, index) => `cap-child-${index.toString().padStart(2, "0")}`,
+    ),
   );
 });
 

@@ -4,7 +4,7 @@ import {
   type OdysseyParentPerformanceA2uiDocument,
 } from "./document";
 
-const PARENT_PERFORMANCE_CHILD_CAP = 13;
+export const PARENT_PERFORMANCE_CHILD_CAP = 13;
 
 type ParentPerformanceAggregate = {
   readonly username: string;
@@ -23,6 +23,34 @@ type ParentPerformanceAggregate = {
 };
 
 /**
+ * Phrase helpers shared by the A2UI document and the portal's child cards —
+ * one wording source for both projections of the same aggregates.
+ */
+export function formatPracticePhrases(performance: {
+  practice: {
+    correctPracticeAttempts: number;
+    activePracticeDayStreak: number;
+  };
+  nextPractice: { checkpointMet: number };
+}): { answers: string; streak: string; checkpoints: string } {
+  const { practice, nextPractice } = performance;
+  return {
+    answers:
+      practice.correctPracticeAttempts === 1
+        ? "1 correct Practice answer"
+        : `${practice.correctPracticeAttempts} correct Practice answers`,
+    streak:
+      practice.activePracticeDayStreak === 0
+        ? "no Practice streak yet"
+        : `${practice.activePracticeDayStreak}-day Practice streak`,
+    checkpoints:
+      nextPractice.checkpointMet === 1
+        ? "1 checkpoint met"
+        : `${nextPractice.checkpointMet} checkpoints met`,
+  };
+}
+
+/**
  * Compiles already-redacted linked-child aggregates into a bounded, read-only
  * parent surface. The catalog has no data bindings or actions.
  */
@@ -31,19 +59,10 @@ export function createParentPerformanceA2uiDocument(
 ): OdysseyParentPerformanceA2uiDocument {
   const displayedChildren = children.slice(0, PARENT_PERFORMANCE_CHILD_CAP);
   const childComponents = displayedChildren.map((child, index) => {
-    const { practice, tests, nextPractice } = child.performance;
-    const answers =
-      practice.correctPracticeAttempts === 1
-        ? "1 correct Practice answer"
-        : `${practice.correctPracticeAttempts} correct Practice answers`;
-    const streak =
-      practice.activePracticeDayStreak === 0
-        ? "no Practice streak yet"
-        : `${practice.activePracticeDayStreak}-day Practice streak`;
-    const checkpoints =
-      nextPractice.checkpointMet === 1
-        ? "1 checkpoint met"
-        : `${nextPractice.checkpointMet} checkpoints met`;
+    const { answers, streak, checkpoints } = formatPracticePhrases(
+      child.performance,
+    );
+    const { tests, nextPractice } = child.performance;
     return {
       component: "OdysseyText" as const,
       id: `child-${index + 1}`,

@@ -1,13 +1,22 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { OdysseyA2uiSurface } from "../a2ui-surface";
-import {
-  parseOdysseyParentPerformanceA2uiDocument,
-  type OdysseyParentPerformanceA2uiDocument,
-} from "../../a2ui/document";
+import { formatPracticePhrases } from "../../a2ui/parent-performance-document";
 
 type Child = { accountId: string; username: string };
+type PerformanceFacts = {
+  practice: {
+    correctPracticeAttempts: number;
+    activePracticeDayStreak: number;
+  };
+  tests: { completed: number; partial: number };
+  nextPractice: {
+    recommended: number;
+    practicing: number;
+    checkpointMet: number;
+  };
+};
+type ChildProgress = { username: string; performance: PerformanceFacts };
 type PracticePreview = {
   childUsername: string;
   standardCode: string;
@@ -22,9 +31,10 @@ async function responseError(response: Response): Promise<string> {
   return typeof body?.error === "string" ? body.error : "Request failed";
 }
 
-/** Parent-only local account management and aggregate linked-child progress. */
+/** Parent-only local account management and per-child aggregate progress. */
 export default function ParentPage() {
   const [children, setChildren] = useState<Child[]>([]);
+  const [progress, setProgress] = useState<ChildProgress[] | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [resetChild, setResetChild] = useState<Child | null>(null);
@@ -34,16 +44,14 @@ export default function ParentPage() {
   const [createError, setCreateError] = useState("");
   const [resetError, setResetError] = useState("");
   const [childrenError, setChildrenError] = useState("");
-  const [performanceError, setPerformanceError] = useState("");
+  const [progressError, setProgressError] = useState("");
   const [previewError, setPreviewError] = useState("");
   const [createPending, setCreatePending] = useState(false);
   const [resetPending, setResetPending] = useState(false);
   const [revokePending, setRevokePending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [performanceDocument, setPerformanceDocument] =
-    useState<OdysseyParentPerformanceA2uiDocument | null>(null);
-  const [performanceLoading, setPerformanceLoading] = useState(true);
-  const performanceRequest = useRef(0);
+  const [progressLoading, setProgressLoading] = useState(true);
+  const progressRequest = useRef(0);
   const [preview, setPreview] = useState<PracticePreview | null>(null);
   const [previewLoaded, setPreviewLoaded] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -64,33 +72,31 @@ export default function ParentPage() {
     setLoading(false);
   }, []);
 
-  const loadPerformance = useCallback(async () => {
-    const request = ++performanceRequest.current;
-    setPerformanceDocument(null);
-    setPerformanceLoading(true);
+  const loadProgress = useCallback(async () => {
+    const request = ++progressRequest.current;
+    setProgressLoading(true);
     try {
       const response = await fetch("/api/parent/performance", {
         cache: "no-store",
       });
-      if (request !== performanceRequest.current) return;
+      if (request !== progressRequest.current) return;
       if (!response.ok) {
-        setPerformanceDocument(null);
-        setPerformanceError(await responseError(response));
+        setProgress(null);
+        setProgressError(await responseError(response));
         return;
       }
-      const body = (await response.json()) as { document?: unknown };
-      if (request === performanceRequest.current)
-        setPerformanceDocument(
-          parseOdysseyParentPerformanceA2uiDocument(body.document),
-        );
-      setPerformanceError("");
+      const body = (await response.json()) as { children?: ChildProgress[] };
+      if (request === progressRequest.current) {
+        setProgress(body.children ?? []);
+        setProgressError("");
+      }
     } catch {
-      if (request === performanceRequest.current) {
-        setPerformanceDocument(null);
-        setPerformanceError("Progress is unavailable right now.");
+      if (request === progressRequest.current) {
+        setProgress(null);
+        setProgressError("Progress is unavailable right now.");
       }
     } finally {
-      if (request === performanceRequest.current) setPerformanceLoading(false);
+      if (request === progressRequest.current) setProgressLoading(false);
     }
   }, []);
 
@@ -106,9 +112,9 @@ export default function ParentPage() {
         window.location.assign("/");
         return;
       }
-      await Promise.all([loadChildren(), loadPerformance()]);
+      await Promise.all([loadChildren(), loadProgress()]);
     })();
-  }, [loadChildren, loadPerformance]);
+  }, [loadChildren, loadProgress]);
 
   async function loadPreview() {
     setPreviewLoading(true);
@@ -158,7 +164,7 @@ export default function ParentPage() {
       setPassword("");
       setSuccessNotice(`Account created for ${createdUsername}.`);
       setPreview(null);
-      await Promise.all([loadChildren(), loadPerformance()]);
+      await Promise.all([loadChildren(), loadProgress()]);
     } finally {
       setCreatePending(false);
     }
@@ -211,10 +217,9 @@ export default function ParentPage() {
       }
       setSuccessNotice(`Access revoked for ${child.username}.`);
       setConfirmRevoke(null);
-      performanceRequest.current += 1;
-      setPerformanceDocument(null);
+      setProgress(null);
       setPreview(null);
-      await Promise.all([loadChildren(), loadPerformance()]);
+      await Promise.all([loadChildren(), loadProgress()]);
     } finally {
       setRevokePending(false);
     }
@@ -260,13 +265,160 @@ export default function ParentPage() {
           <p className="eyebrow">FAMILY LEARNING</p>
           <h1>Your children</h1>
           <p className="lede">
-            Add an account for each child, then follow their practice and
-            progress here.
+            Follow each child&apos;s practice and progress, and manage their
+            accounts.
           </p>
           {successNotice && (
             <p role="status" className="success-box">
               {successNotice}
             </p>
+          )}
+        </section>
+        <section className="dash-card" aria-labelledby="children-heading">
+          <h2 className="section-title" id="children-heading">
+            Your children
+          </h2>
+          {progressError && (
+            <p role="alert" className="error-text">
+              {progressError}
+            </p>
+          )}
+          {loading ? (
+            <p className="result-meta">Loading accounts…</p>
+          ) : childrenError ? (
+            <p role="alert" className="error-text">
+              {childrenError}
+            </p>
+          ) : children.length === 0 ? (
+            <p className="empty-state">
+              No children yet — add the first one below.
+            </p>
+          ) : (
+            <div className="record-list">
+              {children.map((child) => {
+                // Both this list and the progress projection derive from the
+                // same listParentChildren query (active links, username
+                // ascending), so the username join cannot miss a child.
+                const facts = progress?.find(
+                  (entry) => entry.username === child.username,
+                )?.performance;
+                const phrases = facts ? formatPracticePhrases(facts) : null;
+                return (
+                  <div key={child.accountId} className="dash-card record-card">
+                    <div className="record-header">
+                      <div className="record-main">
+                        <span className="record-code">{child.username}</span>
+                      </div>
+                      <div className="action-row">
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() => openReset(child)}
+                        >
+                          Reset password
+                        </button>
+                        <button
+                          type="button"
+                          className="clear-btn"
+                          onClick={() => openRevokeConfirm(child)}
+                        >
+                          Revoke…
+                        </button>
+                      </div>
+                    </div>
+                    {phrases && facts && (
+                      <div className="record-detail">
+                        <p className="record-text">
+                          {phrases.answers} · {phrases.streak}.
+                        </p>
+                        <p className="record-text">
+                          Tests: {facts.tests.completed} completed,{" "}
+                          {facts.tests.partial} partial · Next Practice:{" "}
+                          {facts.nextPractice.recommended} recommended,{" "}
+                          {facts.nextPractice.practicing} practicing,{" "}
+                          {phrases.checkpoints}.
+                        </p>
+                      </div>
+                    )}
+                    {resetChild?.accountId === child.accountId && (
+                      <form
+                        onSubmit={resetChildPassword}
+                        className="stack"
+                        aria-label={`Reset ${child.username}'s password`}
+                      >
+                        <label>
+                          New temporary password
+                          <input
+                            required
+                            autoFocus
+                            type="password"
+                            minLength={8}
+                            maxLength={256}
+                            autoComplete="new-password"
+                            value={resetPassword}
+                            onChange={(event) =>
+                              setResetPassword(event.target.value)
+                            }
+                          />
+                        </label>
+                        <p className="hint">
+                          This signs {child.username} out of Odyssey everywhere.
+                        </p>
+                        <div className="action-row">
+                          <button
+                            className="primary-btn"
+                            type="submit"
+                            disabled={resetPending}
+                          >
+                            {resetPending ? "Resetting…" : "Reset password"}
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            onClick={() => {
+                              setResetChild(null);
+                              setResetPassword("");
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {resetError && (
+                          <p role="alert" className="error-text">
+                            {resetError}
+                          </p>
+                        )}
+                      </form>
+                    )}
+                    {confirmRevoke?.accountId === child.accountId && (
+                      <div>
+                        <p className="result-meta">
+                          Revoke {child.username}&apos;s access? They are signed
+                          out everywhere; their progress is kept.
+                        </p>
+                        <div className="action-row">
+                          <button
+                            type="button"
+                            className="clear-btn"
+                            disabled={revokePending}
+                            onClick={() => void revokeChild(child)}
+                          >
+                            {revokePending ? "Revoking…" : "Revoke access"}
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            onClick={() => setConfirmRevoke(null)}
+                          >
+                            Keep access
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </section>
         <section className="dash-card" aria-labelledby="create-child-heading">
@@ -310,143 +462,6 @@ export default function ParentPage() {
           {createError && (
             <p role="alert" className="error-text">
               {createError}
-            </p>
-          )}
-        </section>
-        <section className="dash-card" aria-labelledby="children-heading">
-          <h2 className="section-title" id="children-heading">
-            Your children
-          </h2>
-          {loading ? (
-            <p className="result-meta">Loading accounts…</p>
-          ) : childrenError ? (
-            <p role="alert" className="error-text">
-              {childrenError}
-            </p>
-          ) : children.length === 0 ? (
-            <p className="empty-state">
-              No children yet — add the first one above.
-            </p>
-          ) : (
-            <ul className="activity-list">
-              {children.map((child) => (
-                <li key={child.accountId}>
-                  <div className="activity-item">
-                    <span className="activity-info">
-                      <span className="activity-topic">{child.username}</span>
-                    </span>
-                    <div className="action-row">
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        onClick={() => openReset(child)}
-                      >
-                        Reset password
-                      </button>
-                      <button
-                        type="button"
-                        className="clear-btn"
-                        onClick={() => openRevokeConfirm(child)}
-                      >
-                        Revoke…
-                      </button>
-                    </div>
-                  </div>
-                  {resetChild?.accountId === child.accountId && (
-                    <form
-                      onSubmit={resetChildPassword}
-                      className="stack"
-                      aria-label={`Reset ${child.username}'s password`}
-                    >
-                      <label>
-                        New temporary password
-                        <input
-                          required
-                          autoFocus
-                          type="password"
-                          minLength={8}
-                          maxLength={256}
-                          autoComplete="new-password"
-                          value={resetPassword}
-                          onChange={(event) =>
-                            setResetPassword(event.target.value)
-                          }
-                        />
-                      </label>
-                      <p className="hint">
-                        This signs {child.username} out of Odyssey everywhere.
-                      </p>
-                      <div className="action-row">
-                        <button
-                          className="primary-btn"
-                          type="submit"
-                          disabled={resetPending}
-                        >
-                          {resetPending ? "Resetting…" : "Reset password"}
-                        </button>
-                        <button
-                          type="button"
-                          className="secondary-btn"
-                          onClick={() => {
-                            setResetChild(null);
-                            setResetPassword("");
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                      {resetError && (
-                        <p role="alert" className="error-text">
-                          {resetError}
-                        </p>
-                      )}
-                    </form>
-                  )}
-                  {confirmRevoke?.accountId === child.accountId && (
-                    <div>
-                      <p className="result-meta">
-                        Revoke {child.username}&apos;s access? They are signed
-                        out everywhere; their progress is kept.
-                      </p>
-                      <div className="action-row">
-                        <button
-                          type="button"
-                          className="clear-btn"
-                          disabled={revokePending}
-                          onClick={() => void revokeChild(child)}
-                        >
-                          {revokePending ? "Revoking…" : "Revoke access"}
-                        </button>
-                        <button
-                          type="button"
-                          className="secondary-btn"
-                          onClick={() => setConfirmRevoke(null)}
-                        >
-                          Keep access
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-        <section className="dash-card" aria-label="Child progress">
-          {performanceLoading ? (
-            <p className="result-meta">Loading child progress…</p>
-          ) : performanceError ? (
-            <p role="alert" className="error-text">
-              {performanceError}
-            </p>
-          ) : performanceDocument ? (
-            <OdysseyA2uiSurface
-              document={performanceDocument}
-              surfaceId="odyssey-parent-performance"
-            />
-          ) : (
-            <p className="empty-state">
-              Progress appears here once your children practice.
             </p>
           )}
         </section>
