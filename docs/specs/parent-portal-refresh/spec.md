@@ -1,6 +1,6 @@
 # Spec: Parent Portal Refresh
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Mode:** light (no risk trigger fired)
 - **Owner:** Product and Engineering
 - **Plan:** [`plan.md`](plan.md)
@@ -28,21 +28,21 @@ guarantees are unchanged.
 
 ## Acceptance criteria
 
-- [ ] Every section renders with the shared design language: cards, real
+- [x] Every section renders with the shared design language: cards, real
       buttons, row structure — verified in-browser (computed styles), not just
       in markup.
-- [ ] Success feedback is visually distinct from error feedback.
-- [ ] `.hint` and `.eyebrow` text meets WCAG AA contrast (≥ 4.5:1) on their
+- [x] Success feedback is visually distinct from error feedback.
+- [x] `.hint` and `.eyebrow` text meets WCAG AA contrast (≥ 4.5:1) on their
       actual backgrounds; interactive targets are ≥ 40px tall.
-- [ ] The reset-password form opens at the child's row it belongs to, not at
+- [x] The reset-password form opens at the child's row it belongs to, not at
       the page bottom.
-- [ ] Revoking uses an inline two-step confirm that states the consequence
+- [x] Revoking uses an inline two-step confirm that states the consequence
       (child signed out everywhere, progress kept) — no native `confirm()`.
-- [ ] Password fields carry `autoComplete="new-password"`; submit buttons
+- [x] Password fields carry `autoComplete="new-password"`; submit buttons
       disable while a request is in flight.
-- [ ] Page and document copy is parent language: no "next-Practice evidence"
+- [x] Page and document copy is parent language: no "next-Practice evidence"
       jargon, correct plurals ("1 correct answer"), and honest zero states.
-- [ ] Gates green: `pnpm test`, `typecheck`, `lint`, `build`; existing route
+- [x] Gates green: `pnpm test`, `typecheck`, `lint`, `build`; existing route
       tests updated for the copy change, none weakened.
 
 ## Boundaries

@@ -10,6 +10,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [unreleased-3] — 2026-08-17
 
+### Changed
+
+- **Parent portal redesign** — `/parent` now renders in the same design
+  language as the rest of the product (it previously referenced CSS classes
+  that no longer exist and rendered unstyled). Success and error feedback are
+  visually distinct and appear where the action happened; the reset-password
+  form opens at the child's row instead of the page bottom; revoking uses an
+  inline two-step confirmation that states what happens ("signed out
+  everywhere; progress kept") instead of a browser dialog; page and progress
+  copy is parent language with correct plurals and honest empty states; text
+  contrast meets WCAG AA and touch targets grew from 24px to 38-41px.
+
 ### Added
 
 - **Admin parent management** — admins land on the dashboard at sign-in and

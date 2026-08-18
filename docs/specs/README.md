@@ -37,6 +37,7 @@ Shipped specs remain as historical feature contracts with their QA records.
 | [curriculum-model](curriculum-model/spec.md) | Shipped | — | Post-hoc ratified 2026-08-17; delivered by the curriculum modules |
 | [knowledge-graph-3d](knowledge-graph-3d/spec.md) | Shipped | RFC-0003 | Admin 3D force view of the knowledge graph |
 | [parent-management](parent-management/spec.md) | Shipped | — | Admin-managed parent accounts, role landing, learner scope-key fix |
+| [parent-portal-refresh](parent-portal-refresh/spec.md) | Shipped | — | Portal styling migration, inline account actions, parent-language copy |
 
 ## Adding a new spec
 

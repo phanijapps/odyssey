@@ -30,12 +30,27 @@ export function createParentPerformanceA2uiDocument(
   children: readonly ParentPerformanceAggregate[],
 ): OdysseyParentPerformanceA2uiDocument {
   const displayedChildren = children.slice(0, PARENT_PERFORMANCE_CHILD_CAP);
-  const childComponents = displayedChildren.map((child, index) => ({
-    component: "OdysseyText" as const,
-    id: `child-${index + 1}`,
-    variant: "body" as const,
-    text: `${child.username}: ${child.performance.practice.correctPracticeAttempts} correct Practice answers · ${child.performance.practice.activePracticeDayStreak}-day active Practice streak. Tests: ${child.performance.tests.completed} completed, ${child.performance.tests.partial} partial. Next Practice: ${child.performance.nextPractice.recommended} recommended, ${child.performance.nextPractice.practicing} practicing, ${child.performance.nextPractice.checkpointMet} checkpoint met.`,
-  }));
+  const childComponents = displayedChildren.map((child, index) => {
+    const { practice, tests, nextPractice } = child.performance;
+    const answers =
+      practice.correctPracticeAttempts === 1
+        ? "1 correct Practice answer"
+        : `${practice.correctPracticeAttempts} correct Practice answers`;
+    const streak =
+      practice.activePracticeDayStreak === 0
+        ? "no Practice streak yet"
+        : `${practice.activePracticeDayStreak}-day Practice streak`;
+    const checkpoints =
+      nextPractice.checkpointMet === 1
+        ? "1 checkpoint met"
+        : `${nextPractice.checkpointMet} checkpoints met`;
+    return {
+      component: "OdysseyText" as const,
+      id: `child-${index + 1}`,
+      variant: "body" as const,
+      text: `${child.username}: ${answers} · ${streak}. Tests: ${tests.completed} completed, ${tests.partial} partial. Next Practice: ${nextPractice.recommended} recommended, ${nextPractice.practicing} practicing, ${checkpoints}.`,
+    };
+  });
 
   return parseOdysseyParentPerformanceA2uiDocument({
     messages: [
@@ -64,7 +79,7 @@ export function createParentPerformanceA2uiDocument(
               component: "OdysseyText",
               id: "title",
               variant: "h2",
-              text: "Child Performance",
+              text: "Child progress",
             },
             {
               component: "OdysseyStatus",
@@ -72,10 +87,10 @@ export function createParentPerformanceA2uiDocument(
               tone: children.length === 0 ? "neutral" : "positive",
               text:
                 children.length === 0
-                  ? "No active linked-child Performance is available yet."
+                  ? "No progress yet — it appears here as your children practice."
                   : children.length > PARENT_PERFORMANCE_CHILD_CAP
-                    ? `Aggregate Practice, Test, and next-Practice facts are shown for the first ${PARENT_PERFORMANCE_CHILD_CAP} active linked children.`
-                    : "Aggregate Practice, Test, and next-Practice facts are shown for active linked children.",
+                    ? `Showing your first ${PARENT_PERFORMANCE_CHILD_CAP} children.`
+                    : "Progress for each of your active children.",
             },
             ...childComponents,
           ],

@@ -73,7 +73,7 @@ test("parent Performance derives active child scope and redacts details", async 
               expect.objectContaining({
                 component: "OdysseyText",
                 text: expect.stringContaining(
-                  "linked-child: 1 correct Practice answers",
+                  "linked-child: 1 correct Practice answer",
                 ),
               }),
             ]),

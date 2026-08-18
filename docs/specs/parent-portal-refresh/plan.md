@@ -1,6 +1,6 @@
 # Plan: Parent Portal Refresh
 
-- **Status:** Drafting
+- **Status:** Done
 
 ## Assumption trio
 
@@ -28,7 +28,7 @@
 
 ## Tasks
 
-### T1 — Styling migration + a11y mechanics (Phase 1)
+### T1 — Styling migration + a11y mechanics (Phase 1) — Complete
 
 Verification: **Visual / manual QA** (`no stub (visual QA)`).
 
@@ -42,7 +42,7 @@ topbar, `dash-card` sections with `section-title` headings, `stack` forms,
 `.stack` top margin. Fix `.hint` (#859189 → #637169) and `.eyebrow`
 (#718078 → #5f6d64) contrast. Commit.
 
-### T2 — Interaction mechanics + copy (Phase 2)
+### T2 — Interaction mechanics + copy (Phase 2) — Complete
 
 Verification: **Visual / manual QA** (`no stub (visual QA)`), plus updated
 deterministic anchor.
@@ -54,7 +54,7 @@ mutations (dashboard idiom). Copy pass client-side (hero, headings, hints,
 empty states) and server-side in `parent-performance-document.ts` (plurals,
 zero-streak wording, summary sentence) + anchor test update. Commit.
 
-### T3 — Records
+### T3 — Records — Complete
 
 Verification: **Goal-based check** — `lint-spec-status.py` clean, `git status`
 clean, changelog + specs README updated. `no stub (goal-based)`.

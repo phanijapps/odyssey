@@ -15,7 +15,6 @@ type PracticePreview = {
   question: string;
   diagramSvg: string | null;
 } | null;
-type Notice = { text: string; kind: "success" | "error" };
 async function responseError(response: Response): Promise<string> {
   const body = (await response.json().catch(() => null)) as {
     error?: unknown;
@@ -23,16 +22,23 @@ async function responseError(response: Response): Promise<string> {
   return typeof body?.error === "string" ? body.error : "Request failed";
 }
 
-/** Parent-only local account management and aggregate linked-child Performance. */
+/** Parent-only local account management and aggregate linked-child progress. */
 export default function ParentPage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [resetChild, setResetChild] = useState<Child | null>(null);
   const [resetPassword, setResetPassword] = useState("");
-  const [notice, setNotice] = useState<Notice | null>(null);
+  const [confirmRevoke, setConfirmRevoke] = useState<Child | null>(null);
+  const [successNotice, setSuccessNotice] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [childrenError, setChildrenError] = useState("");
+  const [performanceError, setPerformanceError] = useState("");
+  const [previewError, setPreviewError] = useState("");
   const [createPending, setCreatePending] = useState(false);
   const [resetPending, setResetPending] = useState(false);
+  const [revokePending, setRevokePending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [performanceDocument, setPerformanceDocument] =
     useState<OdysseyParentPerformanceA2uiDocument | null>(null);
@@ -45,12 +51,13 @@ export default function ParentPage() {
   const loadChildren = useCallback(async () => {
     const response = await fetch("/api/parent/children", { cache: "no-store" });
     if (!response.ok) {
-      setNotice({ text: await responseError(response), kind: "error" });
+      setChildrenError(await responseError(response));
       setLoading(false);
       return;
     }
     const body = (await response.json()) as { children?: Child[] };
     setChildren(body.children ?? []);
+    setChildrenError("");
     setLoading(false);
   }, []);
 
@@ -65,7 +72,7 @@ export default function ParentPage() {
       if (request !== performanceRequest.current) return;
       if (!response.ok) {
         setPerformanceDocument(null);
-        setNotice({ text: await responseError(response), kind: "error" });
+        setPerformanceError(await responseError(response));
         return;
       }
       const body = (await response.json()) as { document?: unknown };
@@ -73,10 +80,11 @@ export default function ParentPage() {
         setPerformanceDocument(
           parseOdysseyParentPerformanceA2uiDocument(body.document),
         );
+      setPerformanceError("");
     } catch {
       if (request === performanceRequest.current) {
         setPerformanceDocument(null);
-        setNotice({ text: "Performance is unavailable", kind: "error" });
+        setPerformanceError("Progress is unavailable right now.");
       }
     } finally {
       if (request === performanceRequest.current) setPerformanceLoading(false);
@@ -101,19 +109,20 @@ export default function ParentPage() {
 
   async function loadPreview() {
     setPreviewLoading(true);
+    setPreviewError("");
     try {
       const response = await fetch("/api/parent/preview", {
         cache: "no-store",
       });
       if (!response.ok) {
-        setNotice({ text: await responseError(response), kind: "error" });
+        setPreviewError(await responseError(response));
         return;
       }
       const body = (await response.json()) as { preview?: PracticePreview };
       setPreview(body.preview ?? null);
       setPreviewLoaded(true);
     } catch {
-      setNotice({ text: "Practice preview is unavailable", kind: "error" });
+      setPreviewError("Practice preview is unavailable right now.");
     } finally {
       setPreviewLoading(false);
     }
@@ -121,21 +130,25 @@ export default function ParentPage() {
 
   async function createChild(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice(null);
+    setSuccessNotice("");
+    setCreateError("");
     setCreatePending(true);
     try {
       const response = await fetch("/api/parent/children", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          origin: window.location.origin,
+        },
         body: JSON.stringify({ username, password }),
       });
       if (!response.ok) {
-        setNotice({ text: await responseError(response), kind: "error" });
+        setCreateError(await responseError(response));
         return;
       }
       setUsername("");
       setPassword("");
-      setNotice({ text: "Child account created.", kind: "success" });
+      setSuccessNotice(`Account created for ${username}.`);
       setPreview(null);
       await Promise.all([loadChildren(), loadPerformance()]);
     } finally {
@@ -146,47 +159,72 @@ export default function ParentPage() {
   async function resetChildPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!resetChild) return;
-    setNotice(null);
+    setSuccessNotice("");
+    setResetError("");
     setResetPending(true);
     try {
       const response = await fetch(
         `/api/parent/children/${resetChild.accountId}`,
         {
           method: "PATCH",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            origin: window.location.origin,
+          },
           body: JSON.stringify({ password: resetPassword }),
         },
       );
       if (!response.ok) {
-        setNotice({ text: await responseError(response), kind: "error" });
+        setResetError(await responseError(response));
         return;
       }
+      setSuccessNotice(
+        `Password reset for ${resetChild.username}. They will need to sign in again.`,
+      );
       setResetPassword("");
       setResetChild(null);
-      setNotice({
-        text: `Password reset for ${resetChild.username}.`,
-        kind: "success",
-      });
     } finally {
       setResetPending(false);
     }
   }
 
   async function revokeChild(child: Child) {
-    if (!window.confirm(`Revoke access to ${child.username}?`)) return;
-    setNotice(null);
-    const response = await fetch(`/api/parent/children/${child.accountId}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) {
-      setNotice({ text: await responseError(response), kind: "error" });
-      return;
+    setSuccessNotice("");
+    setChildrenError("");
+    setRevokePending(true);
+    try {
+      const response = await fetch(`/api/parent/children/${child.accountId}`, {
+        method: "DELETE",
+        headers: { origin: window.location.origin },
+      });
+      if (!response.ok) {
+        setChildrenError(await responseError(response));
+        return;
+      }
+      setSuccessNotice(`Access revoked for ${child.username}.`);
+      setConfirmRevoke(null);
+      performanceRequest.current += 1;
+      setPerformanceDocument(null);
+      setPreview(null);
+      await Promise.all([loadChildren(), loadPerformance()]);
+    } finally {
+      setRevokePending(false);
     }
-    setNotice({ text: "Child access revoked.", kind: "success" });
-    performanceRequest.current += 1;
-    setPerformanceDocument(null);
-    setPreview(null);
-    await Promise.all([loadChildren(), loadPerformance()]);
+  }
+
+  function openReset(child: Child) {
+    setConfirmRevoke(null);
+    setResetError("");
+    setResetChild((current) =>
+      current?.accountId === child.accountId ? null : child,
+    );
+  }
+
+  function openRevokeConfirm(child: Child) {
+    setResetChild(null);
+    setConfirmRevoke((current) =>
+      current?.accountId === child.accountId ? null : child,
+    );
   }
 
   return (
@@ -211,15 +249,20 @@ export default function ParentPage() {
       <div className="parent-page">
         <section>
           <p className="eyebrow">FAMILY LEARNING</p>
-          <h1>Manage child accounts</h1>
+          <h1>Your children</h1>
           <p className="lede">
-            Create and manage child accounts. Aggregate Practice, Test, and
-            next-Practice evidence is available only for active linked children.
+            Add an account for each child, then follow their practice and
+            progress here.
           </p>
+          {successNotice && (
+            <p role="status" className="success-box">
+              {successNotice}
+            </p>
+          )}
         </section>
         <section className="dash-card" aria-labelledby="create-child-heading">
           <h2 className="section-title" id="create-child-heading">
-            Create child account
+            Add a child account
           </h2>
           <form onSubmit={createChild} className="stack">
             <label>
@@ -245,55 +288,148 @@ export default function ParentPage() {
                 onChange={(event) => setPassword(event.target.value)}
               />
             </label>
-            <button
-              className="primary-btn"
-              type="submit"
-              disabled={createPending}
-            >
-              {createPending ? "Creating…" : "Create child"}
-            </button>
+            <div className="action-row">
+              <button
+                className="primary-btn"
+                type="submit"
+                disabled={createPending}
+              >
+                {createPending ? "Adding…" : "Add child"}
+              </button>
+            </div>
           </form>
+          {createError && (
+            <p role="alert" className="error-text">
+              {createError}
+            </p>
+          )}
         </section>
         <section className="dash-card" aria-labelledby="children-heading">
           <h2 className="section-title" id="children-heading">
-            Linked children
+            Your children
           </h2>
           {loading ? (
             <p className="result-meta">Loading accounts…</p>
+          ) : childrenError ? (
+            <p role="alert" className="error-text">
+              {childrenError}
+            </p>
           ) : children.length === 0 ? (
-            <p className="empty-state">No child accounts are linked yet.</p>
+            <p className="empty-state">
+              No children yet — add the first one above.
+            </p>
           ) : (
             <ul className="activity-list">
               {children.map((child) => (
-                <li key={child.accountId} className="activity-item">
-                  <span className="activity-info">
-                    <span className="activity-topic">{child.username}</span>
-                  </span>
-                  <div className="action-row">
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      onClick={() => setResetChild(child)}
-                    >
-                      Reset password
-                    </button>
-                    <button
-                      type="button"
-                      className="clear-btn"
-                      onClick={() => void revokeChild(child)}
-                    >
-                      Revoke
-                    </button>
+                <li key={child.accountId}>
+                  <div className="activity-item">
+                    <span className="activity-info">
+                      <span className="activity-topic">{child.username}</span>
+                    </span>
+                    <div className="action-row">
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => openReset(child)}
+                      >
+                        Reset password
+                      </button>
+                      <button
+                        type="button"
+                        className="clear-btn"
+                        onClick={() => openRevokeConfirm(child)}
+                      >
+                        Revoke…
+                      </button>
+                    </div>
                   </div>
+                  {resetChild?.accountId === child.accountId && (
+                    <form
+                      onSubmit={resetChildPassword}
+                      className="stack"
+                      aria-label={`Reset ${child.username}'s password`}
+                    >
+                      <label>
+                        New temporary password
+                        <input
+                          required
+                          autoFocus
+                          type="password"
+                          minLength={8}
+                          maxLength={256}
+                          autoComplete="new-password"
+                          value={resetPassword}
+                          onChange={(event) =>
+                            setResetPassword(event.target.value)
+                          }
+                        />
+                      </label>
+                      <p className="hint">
+                        This signs {child.username} out of Odyssey everywhere.
+                      </p>
+                      <div className="action-row">
+                        <button
+                          className="primary-btn"
+                          type="submit"
+                          disabled={resetPending}
+                        >
+                          {resetPending ? "Resetting…" : "Reset password"}
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() => {
+                            setResetChild(null);
+                            setResetPassword("");
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {resetError && (
+                        <p role="alert" className="error-text">
+                          {resetError}
+                        </p>
+                      )}
+                    </form>
+                  )}
+                  {confirmRevoke?.accountId === child.accountId && (
+                    <div>
+                      <p className="result-meta">
+                        Revoke {child.username}&apos;s access? They are signed
+                        out everywhere; their progress is kept.
+                      </p>
+                      <div className="action-row">
+                        <button
+                          type="button"
+                          className="clear-btn"
+                          disabled={revokePending}
+                          onClick={() => void revokeChild(child)}
+                        >
+                          {revokePending ? "Revoking…" : "Revoke access"}
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() => setConfirmRevoke(null)}
+                        >
+                          Keep access
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
           )}
         </section>
-        <section className="dash-card" aria-label="Child Performance">
-          <h2 className="section-title">Child Performance</h2>
+        <section className="dash-card" aria-label="Child progress">
           {performanceLoading ? (
-            <p className="result-meta">Loading child Performance…</p>
+            <p className="result-meta">Loading child progress…</p>
+          ) : performanceError ? (
+            <p role="alert" className="error-text">
+              {performanceError}
+            </p>
           ) : performanceDocument ? (
             <OdysseyA2uiSurface
               document={performanceDocument}
@@ -301,17 +437,17 @@ export default function ParentPage() {
             />
           ) : (
             <p className="empty-state">
-              No active linked-child Performance is available yet.
+              Progress appears here once your children practice.
             </p>
           )}
         </section>
         <section className="dash-card" aria-labelledby="preview-heading">
           <h2 className="section-title" id="preview-heading">
-            Preview recommended practice
+            Preview next practice
           </h2>
           <p className="hint">
-            See one reviewed sample of a linked child&apos;s next recommended
-            skill. A preview never affects your child&apos;s practice.
+            See one child&apos;s next recommended skill. A preview never changes
+            your child&apos;s practice.
           </p>
           <div className="action-row">
             <button
@@ -323,9 +459,14 @@ export default function ParentPage() {
               {previewLoading ? "Loading preview…" : "Show preview"}
             </button>
           </div>
+          {previewError && (
+            <p role="alert" className="error-text">
+              {previewError}
+            </p>
+          )}
           {previewLoaded && !preview && !previewLoading && (
             <p role="status" className="result-meta">
-              No recommended practice preview is available yet.
+              No preview yet — one appears here after a child takes a test.
             </p>
           )}
           {preview && (
@@ -342,7 +483,9 @@ export default function ParentPage() {
                     <img
                       className="generated-diagram"
                       alt="preview diagram"
-                      src={`data:image/svg+xml,${encodeURIComponent(preview.diagramSvg)}`}
+                      src={`data:image/svg+xml,${encodeURIComponent(
+                        preview.diagramSvg,
+                      )}`}
                     />
                   </div>
                 )}
@@ -353,58 +496,6 @@ export default function ParentPage() {
             </div>
           )}
         </section>
-        {resetChild && (
-          <section
-            className="dash-card"
-            aria-labelledby="reset-password-heading"
-          >
-            <h2 className="section-title" id="reset-password-heading">
-              Reset {resetChild.username}&apos;s password
-            </h2>
-            <form onSubmit={resetChildPassword} className="stack">
-              <label>
-                New temporary password
-                <input
-                  required
-                  autoFocus
-                  type="password"
-                  minLength={8}
-                  maxLength={256}
-                  autoComplete="new-password"
-                  value={resetPassword}
-                  onChange={(event) => setResetPassword(event.target.value)}
-                />
-              </label>
-              <div className="action-row">
-                <button
-                  className="primary-btn"
-                  type="submit"
-                  disabled={resetPending}
-                >
-                  {resetPending ? "Resetting…" : "Reset password"}
-                </button>
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={() => {
-                    setResetChild(null);
-                    setResetPassword("");
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </section>
-        )}
-        {notice && (
-          <p
-            role="status"
-            className={notice.kind === "success" ? "success-box" : "error-text"}
-          >
-            {notice.text}
-          </p>
-        )}
       </div>
     </main>
   );
