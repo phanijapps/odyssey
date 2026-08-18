@@ -136,6 +136,10 @@ export default function HomePage() {
         window.location.assign("/parent");
         return;
       }
+      if (account.role === "admin") {
+        window.location.assign("/dashboard");
+        return;
+      }
       setRole((account.role as "student" | "admin") ?? "student");
       await loadStandards();
       // Restore mode + grade; first-time setup when no grade saved.
@@ -512,6 +516,10 @@ export default function HomePage() {
       };
       if (account.role === "parent") {
         window.location.assign("/parent");
+        return;
+      }
+      if (account.role === "admin") {
+        window.location.assign("/dashboard");
         return;
       }
       setSignedIn(true);

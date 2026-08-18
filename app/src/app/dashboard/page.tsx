@@ -50,7 +50,13 @@ type Workflow = {
   };
 };
 
-type NavItem = "overview" | "browse" | "ingest" | "knowledge";
+type NavItem = "overview" | "browse" | "ingest" | "knowledge" | "parents";
+
+type ParentAccount = {
+  accountId: string;
+  username: string;
+  children: Array<{ username: string }>;
+};
 
 type KgStats = {
   entities: number;
@@ -150,6 +156,15 @@ export default function DashboardPage() {
   const [ingestError, setIngestError] = useState<string | null>(null);
   const [ingestPending, setIngestPending] = useState(false);
 
+  // Parent management state
+  const [parents, setParents] = useState<ParentAccount[]>([]);
+  const [parentUsername, setParentUsername] = useState("");
+  const [parentPassword, setParentPassword] = useState("");
+  const [parentsError, setParentsError] = useState<string | null>(null);
+  const [parentsPending, setParentsPending] = useState(false);
+  const [resetTarget, setResetTarget] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+
   /* --- Data loading --- */
 
   const loadGold = useCallback(async () => {
@@ -186,10 +201,23 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const loadParents = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/parents", { cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as { parents?: ParentAccount[] };
+        setParents(data.parents ?? []);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     void loadGold();
     void loadKg();
-  }, [loadGold, loadKg]);
+    void loadParents();
+  }, [loadGold, loadKg, loadParents]);
 
   const kgSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -284,6 +312,65 @@ export default function DashboardPage() {
     }
   }
 
+  /* --- Parent management actions --- */
+
+  async function createParent(event: React.FormEvent) {
+    event.preventDefault();
+    setParentsPending(true);
+    setParentsError(null);
+    try {
+      const res = await fetch("/api/admin/parents", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: window.location.origin,
+        },
+        body: JSON.stringify({
+          username: parentUsername,
+          password: parentPassword,
+        }),
+      });
+      const body = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(body.error ?? "Unable to create parent");
+      setParentUsername("");
+      setParentPassword("");
+      await loadParents();
+    } catch (cause) {
+      setParentsError(
+        cause instanceof Error ? cause.message : "Unable to create parent",
+      );
+    } finally {
+      setParentsPending(false);
+    }
+  }
+
+  async function resetParentPassword(event: React.FormEvent) {
+    event.preventDefault();
+    if (!resetTarget) return;
+    setParentsPending(true);
+    setParentsError(null);
+    try {
+      const res = await fetch(`/api/admin/parents/${resetTarget}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          origin: window.location.origin,
+        },
+        body: JSON.stringify({ password: resetPasswordValue }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(body.error ?? "Unable to reset password");
+      setResetTarget(null);
+      setResetPasswordValue("");
+    } catch (cause) {
+      setParentsError(
+        cause instanceof Error ? cause.message : "Unable to reset password",
+      );
+    } finally {
+      setParentsPending(false);
+    }
+  }
+
   /* --- Parent query actions --- */
 
   function resetFilters() {
@@ -361,6 +448,16 @@ export default function DashboardPage() {
                 <span className="nav-icon">◉</span>
                 Knowledge Graph
               </button>
+              <button
+                className={nav === "parents" ? "nav-item active" : "nav-item"}
+                onClick={() => setNav("parents")}
+              >
+                <span className="nav-icon">⌘</span>
+                Parents
+                {parents.length > 0 && (
+                  <span className="nav-badge">{parents.length}</span>
+                )}
+              </button>
               <a href="/dashboard/graph" className="nav-item">
                 <span className="nav-icon">✦</span>
                 3D Graph View
@@ -382,6 +479,7 @@ export default function DashboardPage() {
                 {nav === "browse" && "Browse Gold Records"}
                 {nav === "ingest" && "Ingest Curriculum Source"}
                 {nav === "knowledge" && "Knowledge Graph"}
+                {nav === "parents" && "Manage Parents"}
               </h1>
             </header>
             <div className="app-content">
@@ -873,6 +971,130 @@ export default function DashboardPage() {
                         <p className="result-meta">No matches.</p>
                       )}
                     </div>
+                  </div>
+                </>
+              )}
+
+              {/* ========== PARENTS ========== */}
+              {nav === "parents" && (
+                <>
+                  <div className="dash-card section-card">
+                    <h2 className="section-title">Create a parent</h2>
+                    <form className="chat-input-row" onSubmit={createParent}>
+                      <input
+                        type="text"
+                        placeholder="Parent username"
+                        value={parentUsername}
+                        onChange={(e) => setParentUsername(e.target.value)}
+                        autoComplete="off"
+                      />
+                      <input
+                        type="password"
+                        minLength={8}
+                        maxLength={256}
+                        placeholder="Temporary password (8+ characters)"
+                        value={parentPassword}
+                        onChange={(e) => setParentPassword(e.target.value)}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="submit"
+                        className="primary-btn"
+                        disabled={parentsPending}
+                      >
+                        {parentsPending ? "…" : "Create"}
+                      </button>
+                    </form>
+                    <p className="ingest-hint">
+                      The parent signs in with these credentials and manages
+                      their own children from the parent portal.
+                    </p>
+                    {parentsError && (
+                      <p className="error-text">{parentsError}</p>
+                    )}
+                  </div>
+
+                  <div className="dash-card section-card">
+                    <h2 className="section-title">
+                      Parents ({parents.length})
+                    </h2>
+                    {parents.length === 0 ? (
+                      <p className="empty-state">
+                        No parent accounts yet. Create the first one above.
+                      </p>
+                    ) : (
+                      <div className="record-list">
+                        {parents.map((parent) => (
+                          <div
+                            key={parent.accountId}
+                            className="dash-card record-card"
+                          >
+                            <div className="record-header">
+                              <div className="record-main">
+                                <span className="record-code">
+                                  {parent.username}
+                                </span>
+                                <span className="record-grade">
+                                  {parent.children.length === 0
+                                    ? "no children"
+                                    : parent.children
+                                        .map((child) => child.username)
+                                        .join(", ")}
+                                </span>
+                              </div>
+                              {resetTarget === parent.accountId ? (
+                                <button
+                                  className="secondary-btn"
+                                  onClick={() => {
+                                    setResetTarget(null);
+                                    setResetPasswordValue("");
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              ) : (
+                                <button
+                                  className="link-btn"
+                                  onClick={() =>
+                                    setResetTarget(parent.accountId)
+                                  }
+                                >
+                                  Reset password
+                                </button>
+                              )}
+                            </div>
+                            {resetTarget === parent.accountId && (
+                              <form
+                                className="chat-input-row"
+                                onSubmit={resetParentPassword}
+                              >
+                                <input
+                                  type="password"
+                                  minLength={8}
+                                  maxLength={256}
+                                  placeholder="New password (8+ characters)"
+                                  value={resetPasswordValue}
+                                  onChange={(e) =>
+                                    setResetPasswordValue(e.target.value)
+                                  }
+                                  autoComplete="new-password"
+                                />
+                                <button
+                                  type="submit"
+                                  className="primary-btn"
+                                  disabled={parentsPending}
+                                >
+                                  {parentsPending ? "…" : "Save"}
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {parentsError && (
+                      <p className="error-text">{parentsError}</p>
+                    )}
                   </div>
                 </>
               )}
