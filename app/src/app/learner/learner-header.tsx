@@ -140,9 +140,11 @@ export function LearnerHeader({
       <a href="/performance" className="ixl-link">
         Performance
       </a>
-      <a href="/dashboard" className="ixl-link">
-        Dashboard
-      </a>
+      {role === "admin" && (
+        <a href="/dashboard" className="ixl-link">
+          Dashboard
+        </a>
+      )}
       {role && <span className="role-chip">{role}</span>}
       <button className="ixl-link" onClick={onSignOut}>
         Sign out
