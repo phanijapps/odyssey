@@ -41,6 +41,7 @@ Shipped specs remain as historical feature contracts with their QA records.
 | [parent-progress-cards](parent-progress-cards/spec.md) | Shipped | — | Per-child progress cards; performance route returns structured children |
 | [parent-practice-recency](parent-practice-recency/spec.md) | Shipped | RFC-0005 | Day-granularity last-practice recency on parent surfaces |
 | [parent-suggested-practice](parent-suggested-practice/spec.md) | Shipped | RFC-0005 | Parent suggests a plan skill; child banner accepts into practice |
+| [performance-page-styling](performance-page-styling/spec.md) | Shipped | — | Learner /performance migrated off ghost classes; shared narrow-page container |
 
 ## Adding a new spec
 

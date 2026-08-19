@@ -51,6 +51,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Learner Performance page restyled** — `/performance` had the same
+  dead-class disease the parent portal had (it rendered full-bleed with no
+  container or card); it now renders in the shared design language inside a
+  centered card, and the page container is shared with the parent portal
+  under one neutral class.
 - **Practice recency on parent cards** — each child's card and progress
   line now shows "last practiced today / yesterday / N days ago" (or
   "hasn't practiced yet"), computed in Eastern-Time day terms with no

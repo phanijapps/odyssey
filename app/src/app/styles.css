@@ -2205,15 +2205,15 @@ button {
   text-decoration: underline;
 }
 
-/* ---- Parent portal (shared-language migration) ---- */
-.parent-page {
+/* ---- Narrow page container (parent portal, learner performance) ---- */
+.narrow-page {
   max-width: 880px;
   margin: 0 auto;
   padding: 28px clamp(16px, 4vw, 48px) 64px;
   display: grid;
   gap: 20px;
 }
-.parent-page .stack {
+.narrow-page .stack {
   margin-top: 12px;
 }
 .action-row {

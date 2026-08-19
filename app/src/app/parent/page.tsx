@@ -384,7 +384,7 @@ export default function ParentPage() {
           Sign out
         </button>
       </header>
-      <div className="parent-page">
+      <div className="narrow-page">
         <section>
           <p className="eyebrow">FAMILY LEARNING</p>
           <h1>Your children</h1>

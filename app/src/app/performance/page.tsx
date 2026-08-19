@@ -39,32 +39,47 @@ export default function PerformancePage() {
   return (
     <main className="shell">
       <header className="topbar">
-        <a className="brand" href="/">
-          odyssey
+        <a className="wordmark" href="/">
+          <span className="small-mark">O</span>
+          Odyssey
         </a>
         <span className="eyebrow">LEARNER PERFORMANCE</span>
       </header>
-      <section className="panel" aria-busy={!document && !error}>
-        {error ? (
-          <div role="alert">
-            <p>{error}</p>
-            <button type="button" onClick={() => void loadPerformance()}>
-              Retry
-            </button>
-          </div>
-        ) : document ? (
-          <OdysseyA2uiSurface
-            document={document}
-            onPracticeTarget={(topicId) => {
-              window.location.assign(
-                `/?practice=${encodeURIComponent(topicId)}`,
-              );
-            }}
-          />
-        ) : (
-          <p role="status">Loading performance…</p>
-        )}
-      </section>
+      <div className="narrow-page">
+        <section
+          className="dash-card"
+          aria-busy={!document && !error}
+          aria-label="Performance"
+        >
+          {error ? (
+            <div role="alert">
+              <p className="error-text">{error}</p>
+              <div className="action-row">
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={() => void loadPerformance()}
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : document ? (
+            <OdysseyA2uiSurface
+              document={document}
+              onPracticeTarget={(topicId) => {
+                window.location.assign(
+                  `/?practice=${encodeURIComponent(topicId)}`,
+                );
+              }}
+            />
+          ) : (
+            <p role="status" className="result-meta">
+              Loading performance…
+            </p>
+          )}
+        </section>
+      </div>
     </main>
   );
 }
