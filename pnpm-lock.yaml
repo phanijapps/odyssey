@@ -12,7 +12,7 @@ importers:
         specifier: 3.7.4
         version: 3.7.4
 
-  app:
+  apps/web:
     dependencies:
       '@base-ui/react':
         specifier: ^1.7.0
@@ -22,7 +22,7 @@ importers:
         version: 0.84.1(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(ws@8.21.3)(zod@3.25.76)
       '@odyssey/practice-engine':
         specifier: workspace:*
-        version: link:../packages/practice-engine
+        version: link:../../packages/practice-engine
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3

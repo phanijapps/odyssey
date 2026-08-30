@@ -5,14 +5,20 @@ export default defineConfig({
   resolve: {
     alias: {
       "server-only": fileURLToPath(
-        new URL("./src/test/server-only.ts", import.meta.url),
+        new URL("./test/server-only.ts", import.meta.url),
       ),
     },
   },
   test: {
     // Browser journeys use Playwright's runner, never Vitest's module loader.
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-    setupFiles: ["./src/test/sqlite-isolation.setup.ts"],
+    include: [
+      "app/**/*.test.ts",
+      "app/**/*.test.tsx",
+      "components/**/*.test.tsx",
+      "server/**/*.test.ts",
+      "lib/**/*.test.ts",
+    ],
+    setupFiles: ["./test/sqlite-isolation.setup.ts"],
     env: {
       // Enables generic fixture accounts only for the Vitest process.
       ODYSSEY_TEST_FIXTURE_ACCOUNTS: "1",

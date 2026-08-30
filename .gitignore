@@ -25,7 +25,7 @@ AGENTS.local.md
 .env.local
 node_modules/
 .next/
-/app/test-results/
+/apps/web/test-results/
 *.tsbuildinfo
 *.db
 
@@ -72,6 +72,6 @@ docs/knowledge/*.lock.stale-*
 # Local tooling artifacts (embedding model cache, local MCP config)
 .fastembed_cache/
 .mcp.json
-app/data/*
-!app/data/README.md
-!app/data/.gitkeep
+apps/web/data/*
+!apps/web/data/README.md
+!apps/web/data/.gitkeep

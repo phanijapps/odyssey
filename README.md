@@ -65,14 +65,15 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 
 ```text
 .
-├── app/                      # the one deployable Next.js application
-│   ├── src/app/              #   pages, browser UI, App Router handlers
-│   ├── src/components/       #   reusable browser components
-│   ├── src/server/           #   server-only modules (identity, learning,
-│   │                         #   curriculum, agent, persistence, validation)
-│   ├── data/                 #   git-ignored runtime SQLite state (+ backups/)
-│   ├── e2e/                  #   Playwright end-to-end suite
-│   └── .env.example          #   configuration template
+├── apps/
+│   └── web/                  # the one deployable Next.js application
+│       ├── app/              #   routes: pages, browser UI, API handlers
+│       ├── components/       #   shared browser components
+│       ├── server/           #   server-only modules (identity, learning,
+│       │                     #   curriculum, agent, persistence, validation)
+│       ├── data/             #   git-ignored runtime SQLite state (+ backups/)
+│       ├── e2e/              #   Playwright end-to-end suite
+│       └── .env.example      #   configuration template
 ├── packages/
 │   └── practice-engine/      # pure question domain: reviewed bank, learner
 │                             # interactions, adaptive pool (generation
@@ -91,14 +92,14 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 
 ## Data and persistence
 
-All runtime state lives in **`app/data/`** (git-ignored):
+All runtime state lives in **`apps/web/data/`** (git-ignored):
 
 - `odyssey-learning.db` — accounts, sessions, practice progress,
   attempts, assessments, parent↔child links. **This is the file that
   matters** — back it up to preserve a learner's history.
 - `odyssey-curriculum.db` — the reviewed topic catalog, seeded
   idempotently at first open from the versioned JSON in
-  `app/src/server/curriculum/data/`.
+  `apps/web/server/curriculum/data/`.
 
 Both databases open in WAL mode with foreign keys enforced and ordered,
 append-only migrations. Override their locations with `ODYSSEY_DB_PATH`
@@ -109,7 +110,7 @@ child's progress as JSON from the parent portal.
 
 ## Configuration
 
-All configuration is environment-based; see [`app/.env.example`](app/.env.example)
+All configuration is environment-based; see [`apps/web/.env.example`](apps/web/.env.example)
 for the full annotated template. The essentials:
 
 | Variable                                                                                                                                   | Purpose                                                                                   |

@@ -77,9 +77,7 @@
 
 ## Contributor guidance hierarchy
 
-Read the root [`AGENTS.md`](../../AGENTS.md) first, then every applicable
-nested `AGENTS.md` on the path to the file being changed; the most local guide
-adds constraints for that area. `CLAUDE.md` files point to the corresponding
-`AGENTS.md` and do not define competing policy. In particular, `app/AGENTS.md`
-defines deployable-app boundaries, while the guides beneath `app/src/` refine
-route, server, curriculum, learning, memory, and UI responsibilities.
+Read the root [`AGENTS.md`](../../AGENTS.md) first, then
+[`apps/web/AGENTS.md`](../../apps/web/AGENTS.md) for the deployable app's
+boundaries (routes, server modules, test isolation, e2e harness). The former
+per-subtree guides were consolidated into that single file.
