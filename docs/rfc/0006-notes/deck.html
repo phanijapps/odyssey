@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Odyssey — Simplification &amp; Production Readiness Plan (RFC-0006)</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --ink: #1c2430; --muted: #5b6675;
+    --line: #e3e7ec; --brand: #3b5bdb; --brand-2: #7048e8; --accent: #eef1ff;
+    --ok: #2f9e44; --ok-bg: #ebfbee; --warn: #e8590c; --warn-bg: #fff4e6;
+    --bad: #c92a2a; --bad-bg: #ffe3e3; --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); overflow: hidden; }
+  .deck { position: relative; height: 100vh; }
+  .slide { position: absolute; inset: 0; display: none; padding: 56px 72px 88px; overflow: auto; }
+  .slide.active { display: block; }
+  .slide h1 { font-size: 44px; line-height: 1.15; margin-bottom: 10px; letter-spacing: -0.5px; }
+  .slide h2 { font-size: 32px; margin-bottom: 18px; letter-spacing: -0.3px; }
+  .slide .kicker { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); margin-bottom: 10px; }
+  .slide p.lead { font-size: 19px; color: var(--muted); max-width: 860px; margin-bottom: 24px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+  .card h3 { font-size: 15px; margin-bottom: 8px; }
+  .card p, .card li { font-size: 14px; color: var(--muted); }
+  .card ul { padding-left: 18px; }
+  .card li { margin: 4px 0; }
+  .card code, p code, li code { background: var(--accent); border-radius: 6px; padding: 1px 6px; font-size: 12.5px; }
+  .big { font-size: 34px; font-weight: 700; }
+  .metric { text-align: left; }
+  .metric .n { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
+  .metric .l { font-size: 12.5px; color: var(--muted); }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 2px 10px; letter-spacing: .04em; }
+  .tag.cut { background: var(--bad-bg); color: var(--bad); }
+  .tag.keep { background: var(--ok-bg); color: var(--ok); }
+  .tag.new { background: var(--accent); color: var(--brand); }
+  .tag.risk { background: var(--warn-bg); color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding: 8px 12px; background: #fbfcfe; border-bottom: 1px solid var(--line); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .phases { display: grid; gap: 10px; }
+  .phase { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+  .phase .num { font-weight: 800; color: var(--brand); font-size: 14px; padding-top: 2px; }
+  .phase b { font-size: 14.5px; }
+  .phase span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 24px; background: rgba(246,247,249,.92); border-top: 1px solid var(--line); backdrop-filter: blur(6px); z-index: 10; }
+  .nav .title { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav .grow { flex: 1; }
+  .nav button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 14px; color: var(--ink); }
+  .nav button:hover { border-color: var(--brand); color: var(--brand); }
+  .counter { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); z-index: 11; transition: width .18s ease; }
+  .title-slide { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+  .title-slide .logo { width: 72px; height: 72px; border-radius: 20px; background: linear-gradient(135deg, #3b5bdb, #7048e8); color: #fff; display: grid; place-items: center; font-size: 34px; font-weight: 800; margin-bottom: 28px; }
+  .title-slide h1 { font-size: 52px; }
+  .title-slide .sub { font-size: 20px; color: var(--muted); margin: 8px 0 28px; }
+  .title-slide .meta { font-size: 13.5px; color: var(--muted); }
+  .iframe-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; height: calc(100vh - 210px); display: flex; flex-direction: column; }
+  .iframe-card .head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .iframe-card .head .url { color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; }
+  .iframe-card iframe { flex: 1; border: 0; width: 100%; background: #fff; transform-origin: 0 0; }
+  .check { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; font-size: 14px; }
+  .check div { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .check .s { font-weight: 700; margin-right: 8px; }
+  .ok-t { color: var(--ok); } .add-t { color: var(--brand); }
+  .arrow-flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; margin: 6px 0; }
+  .arrow-flow .box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font-weight: 600; }
+  .arrow-flow .box small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+  .arrow-flow .ar { color: var(--brand); font-weight: 800; }
+  .footnote { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+  @media print {
+    body { overflow: visible; }
+    .slide { display: block !important; position: relative; page-break-after: always; height: auto; min-height: 100vh; }
+    .nav, .bar { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide title-slide active">
+    <div class="logo">Ω</div>
+    <h1>Odyssey: from platform to product</h1>
+    <div class="sub">The full plan to simplify this codebase into a production-ready, three-persona local app on SQLite — and the mockups of where we land.</div>
+    <div class="meta">RFC-0006 · branch <code>simplify/persona-app</code> · commit <code>bcd4e52</code> · 2026-08-30 · rev 2 (adversarially reviewed)</div>
+  </section>
+
+  <!-- 2 · THE GOAL -->
+  <section class="slide">
+    <div class="kicker">The goal</div>
+    <h2>One simple app. Three personas. One database.</h2>
+    <p class="lead">Everything in this deck serves a single outcome: a local-first child math-practice application a family can actually use — sign in, practice, see progress — with nothing the brief doesn't need.</p>
+    <div class="cols3">
+      <div class="card"><h3>🎒 Student</h3><p>Pick a skill → one question at a time, with diagrams, hints and worked solutions. Test mode when ready. One task per screen.</p></div>
+      <div class="card"><h3>👨‍👩‍👧 Parent</h3><p>Aggregate progress per child, streaks, what to practice next — and child account management. Aggregates only, never raw answers.</p></div>
+      <div class="card"><h3>🛠️ Admin</h3><p>Accounts, the versioned curriculum catalog, question-bank coverage, system health &amp; backup. An operator, not a curriculum pipeline engineer.</p></div>
+    </div>
+    <div class="footnote">Guided by <code>docs/product/briefs/child-math-learning.md</code> (the product goal) and RFC-0003 (persona boundaries). The parent portal moves from “deferred” to in-scope — the owner wants it, and it already works.</div>
+  </section>
+
+  <!-- 3 · WHERE WE ARE -->
+  <section class="slide">
+    <div class="kicker">Where we are</div>
+    <h2>Healthy code, oversized product</h2>
+    <p class="lead">All 283 tests pass, typecheck is green. But the repository carries ~16,000 lines of non-test code — roughly 5,500+ of them are beyond-MVP machinery.</p>
+    <div class="cols">
+      <div class="card">
+        <h3>Today's numbers</h3>
+        <div class="cols3" style="gap:12px">
+          <div class="metric"><div class="n">~16k</div><div class="l">lines non-test TS/TSX</div></div>
+          <div class="metric"><div class="n">29</div><div class="l">API route groups</div></div>
+          <div class="metric"><div class="n">3</div><div class="l">SQLite databases</div></div>
+          <div class="metric"><div class="n">~20</div><div class="l">environment variables</div></div>
+          <div class="metric"><div class="n">19</div><div class="l">feature specs bolted on</div></div>
+          <div class="metric"><div class="n">5</div><div class="l">dead or 410-stub routes</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Beyond the brief today</h3>
+        <ul>
+          <li>Engram memory adapter + knowledge graph + 3D graph view <span class="tag cut">cut</span></li>
+          <li>Vector semantic search (sqlite-vec + Ollama embeddings) <span class="tag cut">cut</span></li>
+          <li>Bronze→Silver→Gold LLM ingestion pipeline <span class="tag cut">cut</span></li>
+          <li>A2UI document indirection (~1,700 LOC, 2 deps) <span class="tag cut">replace</span></li>
+          <li>Two overlapping question-selection systems <span class="tag cut">merge</span></li>
+          <li>1,046-line student “god component” <span class="tag cut">rebuild</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE BLOCKER -->
+  <section class="slide">
+    <div class="kicker">The problem you can't see</div>
+    <h2>A fresh clone can't practice math</h2>
+    <p class="lead">Found during verification, confirmed by adversarial review: the topic catalog your children browse comes from <b>Gold records in a local SQLite file</b> — and the <b>only writer of those records is the ingestion pipeline</b>. The DBs aren't in git.</p>
+    <div class="arrow-flow">
+      <div class="box">fresh clone<small>code only, no DBs</small></div><span class="ar">→</span>
+      <div class="box">empty catalog<small>gold_curriculum_records = 0</small></div><span class="ar">→</span>
+      <div class="box">no skills to pick<small>browse tree empty</small></div><span class="ar">→</span>
+      <div class="box">no practice, no test<small>the MVP is broken</small></div>
+    </div>
+    <div class="cols" style="margin-top:18px">
+      <div class="card"><h3>The fix (Phase 3) <span class="tag new">new work</span></h3><ul><li>Enrich the versioned JSON catalog with the fields the browse tree needs (<code>subject, domain, standardCode, standardText…</code>)</li><li>One-time export of the current 728-record local dataset into that reviewed JSON</li><li>Idempotent startup seeder: JSON → <code>gold_curriculum_records</code></li><li>Seeder ships <b>before</b> ingestion is deleted — the read path never changes</li></ul></div>
+      <div class="card"><h3>Why it stayed hidden</h3><p>The ingestion pipeline “worked” locally because a human had already run it against <code>app/odyssey-curriculum.db</code> (728 records, 16 MB). The platform masked its own bootstrap gap. This is the strongest argument that the simple path — a reviewed file in git — is also the safer one.</p></div>
+    </div>
+  </section>
+
+  <!-- 5 · TARGET ARCHITECTURE -->
+  <section class="slide">
+    <div class="kicker">Target architecture</div>
+    <h2>One app, one database, one optional service</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>Runtime shape (after)</h3>
+        <div class="arrow-flow"><div class="box">Browser<small>3 persona surfaces</small></div><span class="ar">→</span><div class="box">Next.js<small>pages + same-origin routes</small></div><span class="ar">→</span><div class="box">server modules<small>identity · learning · catalog</small></div><span class="ar">→</span><div class="box">SQLite<small>odyssey.db · WAL</small></div></div>
+        <div class="arrow-flow"><div class="box" style="border-style:dashed">Ollama (optional)<small>question generation, validated</small></div><span class="ar">···</span><div class="box">falls back<small>reviewed question bank</small></div></div>
+        <p style="margin-top:12px">No vector index. No graph projections. No ingestion ceremony. No A2UI indirection — zod-validated payloads render through a ~150-line interaction component.</p>
+      </div>
+      <div class="card">
+        <h3>Module dispositions</h3>
+        <table>
+          <tr><th>Subsystem</th><th>Verdict</th></tr>
+          <tr><td>identity (3 roles, links, sessions)</td><td><span class="tag keep">keep as-is</span></td></tr>
+          <tr><td>adaptive pool + question bank</td><td><span class="tag keep">keep</span> (one path)</td></tr>
+          <tr><td>assessment, suggestions, parent views</td><td><span class="tag keep">keep</span></td></tr>
+          <tr><td>memory / KG / vector / ingestion</td><td><span class="tag cut">cut ~4,000 LOC</span></td></tr>
+          <tr><td>A2UI → plain renderer</td><td><span class="tag cut">replace</span></td></tr>
+          <tr><td>JSON catalog + seeder</td><td><span class="tag new">new</span></td></tr>
+          <tr><td>prod admin bootstrap, backup, export</td><td><span class="tag new">new (Phase 8)</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · THE PLAN -->
+  <section class="slide">
+    <div class="kicker">The plan — RFC-0006</div>
+    <h2>Eight ordered phases, every one lands green</h2>
+    <p class="lead">Strangler-style: cut by cut, each phase gated on <code>pnpm typecheck &amp;&amp; pnpm test &amp;&amp; pnpm lint</code>, with its test-deletion inventory listed in the RFC. Never a big-bang rewrite.</p>
+    <div class="phases">
+      <div class="phase"><div class="num">Phase 1</div><div><b>Dead-code cut</b><span>zero behavior change — 5 dead routes, allowance machinery, vestigial panel props · ~600 LOC</span></div></div>
+      <div class="phase"><div class="num">Phase 2</div><div><b>Memory cut</b><span>engram adapter, knowledge graph, graph page, answer-route projections · ~2,000 LOC + 3d-force-graph</span></div></div>
+      <div class="phase"><div class="num">Phase 3</div><div><b>Seeder, then ingestion + semantic cut</b><span>enriched JSON catalog + idempotent seed, then remove the pipeline, sqlite-vec, gold deletes · ~1,900 LOC</span></div></div>
+      <div class="phase"><div class="num">Phase 4</div><div><b>A2UI replacement</b><span>plain zod-validated interaction renderer · ~1,700 LOC + 2 deps · <i>needs your sign-off</i></span></div></div>
+      <div class="phase"><div class="num">Phase 5</div><div><b>Question-path consolidation</b><span>one selection engine: adaptive pool, bank-first, optional validated generation</span></div></div>
+      <div class="phase"><div class="num">Phase 6</div><div><b>Persona surface rebuild</b><span>student app split from the god component; admin console per mockup; parent stays aggregate-safe</span></div></div>
+      <div class="phase"><div class="num">Phase 7</div><div><b>Consolidation</b><span>two DBs → one <code>odyssey.db</code> with data cutover; docs &amp; spec reconciliation</span></div></div>
+      <div class="phase"><div class="num">Phase 8</div><div><b>Production readiness (SQLite)</b><span>admin bootstrap, VACUUM INTO backup, export/reset, health probe, config hardening, smoke gate</span></div></div>
+    </div>
+  </section>
+
+  <!-- 7 · PHASE 1 -->
+  <section class="slide">
+    <div class="kicker">Phase 1 · in detail — the immediate next work</div>
+    <h2>Dead-code cut: pure deletion, zero behavior change</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>Deleted outright</h3>
+        <table>
+          <tr><th>File / symbol</th><th>Why it's safe</th></tr>
+          <tr><td><code>/api/topics</code> + test</td><td>zero UI callers (grep-verified)</td></tr>
+          <tr><td><code>/api/achievements</code> + test</td><td>zero UI callers; module stays (feeds performance)</td></tr>
+          <tr><td><code>/api/generated-question</code> + tests</td><td>zero UI callers; pool generates internally</td></tr>
+          <tr><td><code>/api/parent/chat</code>, <code>/api/parent/summary</code></td><td>410-Gone stubs, tests updated</td></tr>
+          <tr><td>PracticePanel test-mode props</td><td>render path can never reach them</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Allowance machinery unwind</h3>
+        <ul>
+          <li>Remove grant call in <code>/api/answer</code> — it writes state nothing consumes</li>
+          <li>Remove <code>grant/consume/issueGeneratedPracticeAssignment</code> from <code>identity.ts</code></li>
+          <li><code>auth_sessions</code> columns wither in place — no migration</li>
+          <li>Fold allowance assertions into <code>answer/route.test.ts</code> (must show no side effects)</li>
+        </ul>
+        <h3 style="margin-top:12px">Gates &amp; definition of done</h3>
+        <ul>
+          <li><code>typecheck · test · lint</code> all green</li>
+          <li>Manual smoke: sign in → practice one question → answer → next</li>
+          <li>~600 LOC gone, no route the UI calls changes</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footnote">Estimate: one focused session. Lands as its own commit on <code>simplify/persona-app</code>; <code>workspace.toml</code> already carries it as <code>rfc0006-phase1-dead-code-cut</code>.</div>
+  </section>
+
+  <!-- 8 · PHASES 2-3 -->
+  <section class="slide">
+    <div class="kicker">Phases 2–3 · the big cuts</div>
+    <h2>Memory out. Seeder in. Pipeline gone.</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>Phase 2 — memory subsystem <span class="tag cut">~2,000 LOC</span></h3>
+        <ul>
+          <li>Deletes <code>server/memory/*</code>, <code>/api/memory</code>, <code>/api/knowledge*</code>, <code>dashboard/graph</code>, <code>3d-force-graph</code> dep, third DB</li>
+          <li>Strips best-effort projection writes from <code>/api/answer</code></li>
+          <li>Strips the Knowledge panel from the admin console (kept file)</li>
+          <li>Requires Phase 1: the dead generated-question route imports engram-memory</li>
+          <li>Learning result never depended on projections — by design, provably</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Phase 3 — seeder first, then the pipeline <span class="tag cut">~1,900 LOC</span></h3>
+        <ul>
+          <li><b>Step A (new):</b> enriched reviewed JSON catalog (domain, standardCode, standardText…) + idempotent startup seed into <code>gold_curriculum_records</code> + seeder tests + one-time export of the 728 local records</li>
+          <li><b>Step B:</b> delete ingestion (promotion, source-importer, curriculum-pi-agent, indexer, routes, <code>ingestion/page.tsx</code>), semantic search (<code>sqlite-vec</code>, embeddings), the ✨ toggle</li>
+          <li><b>Step C (review finding):</b> kept code imports cut code — remove gold <code>DELETE</code> handler + vector-coupled deletes in <code>gold-query.ts</code>, strip the search route's semantic branch</li>
+          <li>e2e switches its raw-SQL gold seeding to the seeder</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · PHASES 4-6 -->
+  <section class="slide">
+    <div class="kicker">Phases 4–6 · the product you'll feel</div>
+    <h2>Simple rendering, one engine, three clean surfaces</h2>
+    <div class="cols3">
+      <div class="card">
+        <h3>Phase 4 — A2UI → plain renderer</h3>
+        <ul>
+          <li>Today: MessageProcessor + Catalog + zod re-parse ≈ 1,700 LOC + 2 deps to render text / multiple-choice / true-false</li>
+          <li>After: one <code>QuestionInteraction</code> component over zod-validated payloads (~150 LOC)</li>
+          <li>Existing zod schemas become the contract tests</li>
+          <li><span class="tag risk">decision</span> amends the brief — your sign-off</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Phase 5 — one question engine</h3>
+        <ul>
+          <li>adaptive-pool becomes the only selection path</li>
+          <li>Bank-first (hand-authored, reviewed, in-code)</li>
+          <li>Optional Ollama generation, validated, internal fallback</li>
+          <li><code>pi-ai</code> stays as the completion boundary</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Phase 6 — persona surfaces</h3>
+        <ul>
+          <li>Student: the 1,046-line god component split into focused screens (mockup = target)</li>
+          <li>Admin: 1,118-line console rebuilt as accounts / catalog / bank / health</li>
+          <li>Parent: kept aggregate-safe, restyled only</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · SQLITE PRODUCTION -->
+  <section class="slide">
+    <div class="kicker">Phases 7–8 · production ready on SQLite</div>
+    <h2>SQLite is the right backend — and it's already half-hardened</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>Already true today <span class="tag keep">verified</span></h3>
+        <div class="check">
+          <div><span class="s ok-t">✓</span>Native <code>node:sqlite</code> — zero native DB deps</div>
+          <div><span class="s ok-t">✓</span>WAL journal mode + 5s busy timeout</div>
+          <div><span class="s ok-t">✓</span>Foreign keys ON, every connection</div>
+          <div><span class="s ok-t">✓</span>Ordered migrations via <code>user_version</code>, downgrade-refusing (v11)</div>
+          <div><span class="s ok-t">✓</span>scrypt + per-user salt + timing-safe auth</div>
+          <div><span class="s ok-t">✓</span>Login throttle, session rotation, 30min/8h expiry</div>
+          <div><span class="s ok-t">✓</span>Same-origin mutation proofs on every write</div>
+          <div><span class="s ok-t">✓</span>Atomic question assignment (CAS pool writes)</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Added by Phase 8 <span class="tag new">new work</span></h3>
+        <div class="check">
+          <div><span class="s add-t">＋</span><b>Production admin bootstrap</b> — today none exists (dev fixtures only!); env-gated first-admin seed with zero-admins guard</div>
+          <div><span class="s add-t">＋</span><b>Backup</b> — <code>VACUUM INTO</code> from the admin console (safe under WAL) + cold-copy doc; one file after Phase 7 merge</div>
+          <div><span class="s add-t">＋</span><b>Export &amp; reset</b> — per-child JSON progress export and reset (closes the retention-policy gap)</div>
+          <div><span class="s add-t">＋</span><b>Health probe</b> — schema version, catalog count, generator availability; doubles as the release smoke</div>
+          <div><span class="s add-t">＋</span><b>Config hardening</b> — <code>ODYSSEY_APP_ORIGIN</code> required in prod, absolute DB paths, drop native-extension loading with sqlite-vec</div>
+        </div>
+      </div>
+    </div>
+    <div class="footnote">Deployment posture: single-host local-first (family laptop or one small server). SQLite handles this trivially in WAL mode; no server DB or auth service is warranted — that would violate the brief's local-first principle.</div>
+  </section>
+
+  <!-- 11 · MOCKUP STUDENT -->
+  <section class="slide">
+    <div class="kicker">Future state · mockup</div>
+    <h2>Student — one task per screen</h2>
+    <div class="iframe-card">
+      <div class="head"><b>🎒 student.html</b><span class="url">docs/rfc/0006-notes/mockups/student.html</span><span style="margin-left:auto;color:var(--muted)">scrollable inside the frame</span></div>
+      <iframe src="mockups/student.html" title="Student mockup"></iframe>
+    </div>
+  </section>
+
+  <!-- 12 · MOCKUP PARENT -->
+  <section class="slide">
+    <div class="kicker">Future state · mockup</div>
+    <h2>Parent — aggregates, suggestions, account care</h2>
+    <div class="iframe-card">
+      <div class="head"><b>👨‍👩‍👧 parent.html</b><span class="url">docs/rfc/0006-notes/mockups/parent.html</span><span style="margin-left:auto;color:var(--muted)">every number here maps to an existing route</span></div>
+      <iframe src="mockups/parent.html" title="Parent mockup"></iframe>
+    </div>
+  </section>
+
+  <!-- 13 · MOCKUP ADMIN -->
+  <section class="slide">
+    <div class="kicker">Future state · mockup</div>
+    <h2>Admin — accounts, catalog, coverage, health</h2>
+    <div class="iframe-card">
+      <div class="head"><b>🛠️ admin.html</b><span class="url">docs/rfc/0006-notes/mockups/admin.html</span><span style="margin-left:auto;color:var(--muted)">backup &amp; health land with Phase 8</span></div>
+      <iframe src="mockups/admin.html" title="Admin mockup"></iframe>
+    </div>
+  </section>
+
+  <!-- 14 · RISKS -->
+  <section class="slide">
+    <div class="kicker">Honest accounting</div>
+    <h2>Risks, mitigations, and the one open decision</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>Managed risks</h3>
+        <table>
+          <tr><th>Risk</th><th>Mitigation</th></tr>
+          <tr><td>A2UI swap touches the practice render path</td><td>existing zod schemas become contract tests; swap is isolated to Phase 4</td></tr>
+          <tr><td>Seeder becomes the catalog's source of truth</td><td>idempotent, reviewed JSON in git, seeder tests, e2e moved onto it</td></tr>
+          <tr><td>DB merge orphans local accounts/progress</td><td>Phase 7 copies <code>gold_curriculum_records</code> into the merged file; legacy tables stay</td></tr>
+          <tr><td>Phase ordering traps (kept code importing cut code)</td><td>found in review: fixed ordering + panel strips inside each phase</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3><span class="tag risk">decision needed</span> A2UI: replace or keep?</h3>
+        <ul>
+          <li><b>Replace (recommended):</b> −1,700 LOC, −2 deps, same validated-payload guardrail, simpler forever</li>
+          <li><b>Keep (brief-literal):</b> preserves the letter of the brief's “small, validated A2UI catalog”; skip Phase 4, accept the indirection</li>
+        </ul>
+        <h3 style="margin-top:12px">What this plan never touches</h3>
+        <ul>
+          <li>Your local data — <code>app/odyssey-learning.db</code> accounts &amp; progress carry forward untouched</li>
+          <li>The learning engine's correctness — 283 tests stay the safety net at every cut</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · NEXT STEPS -->
+  <section class="slide">
+    <div class="kicker">Next steps</div>
+    <h2>Ready to execute</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>This session / next session</h3>
+        <ul>
+          <li>① You ratify RFC-0006 (and the A2UI call)</li>
+          <li>② Phase 1 lands: dead-code cut, gates green, ~600 LOC gone</li>
+          <li>③ Phase 2 lands: memory cut, third DB retired</li>
+          <li>④ Phase 3 step A: seeder + enriched JSON — fresh clones work</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Then, in order</h3>
+        <ul>
+          <li>⑤ Phase 3 step B–C: ingestion &amp; semantic search removed</li>
+          <li>⑥ Phases 4–5: renderer swap, one engine</li>
+          <li>⑦ Phase 6: the three surfaces, built to the mockups</li>
+          <li>⑧ Phases 7–8: one DB, backup/export/health — production ready</li>
+        </ul>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:20px">Every phase is already queued in <code>workspace.toml</code> with dependency chains — any future session can pick this up cold and continue.</p>
+    <div class="footnote">Deck: <code>docs/rfc/0006-notes/deck.html</code> · Plan: <code>docs/rfc/0006-simplify-to-persona-app.md</code> · Mockups: <code>docs/rfc/0006-notes/mockups/</code> · Navigate: ← → or click</div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <span class="title">Odyssey — RFC-0006 · Simplification &amp; Production Readiness</span>
+  <span class="grow"></span>
+  <button id="prev">← Prev</button>
+  <span class="counter" id="counter">1 / 15</span>
+  <button id="next">Next →</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  let i = 0;
+  const counter = document.getElementById('counter');
+  const bar = document.getElementById('bar');
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    slides[i].scrollTop = 0;
+  }
+  document.getElementById('next').onclick = () => show(i + 1);
+  document.getElementById('prev').onclick = () => show(i - 1);
+  addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+  });
+  show(0);
+</script>
+</body>
+</html>

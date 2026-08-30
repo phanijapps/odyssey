@@ -160,6 +160,30 @@ deletes or updates — "lands green" is checkable.
    `workspace.toml`), spec reconciliation (withdraw
    `curriculum-deep-agent`, `test-catalog`), delete the root-level
    stale `odyssey-*.db` leftovers (untracked).
+8. **Production readiness (SQLite)** — ship the local-first app as a
+   production-grade single-host deployment on the existing SQLite
+   foundation (native `node:sqlite`, WAL + `busy_timeout` + FK already
+   enforced in `persistence/sqlite.ts`):
+   - **Production admin bootstrap** — env-gated first-admin seed
+     mirroring the existing parent bootstrap (`ODYSSEY_ADMIN_BOOTSTRAP_*`
+     + zero-admins guard); today *no production admin provisioning
+     exists* (dev fixtures only).
+   - **Backup** — on-demand `VACUUM INTO` backup from the admin console
+     (safe under WAL) + documented cold-copy procedure; single
+     `ODYSSEY_DB_PATH` after Phase 7 makes the file set one artifact.
+   - **Data portability** — learner progress export (JSON) and reset
+     per child, closing the "no reset/export feature exists" gap in the
+     retention policy.
+   - **Health surface** — `/api/admin/health` (or admin console System
+     tab) reporting schema version, catalog record count, generator
+     availability; used as the post-deploy smoke probe.
+   - **Config hardening** — `ODYSSEY_APP_ORIGIN` required in production
+     (same-origin proofs depend on it), absolute DB paths enforced,
+     remove the `allowExtension` native-extension loading once
+     `sqlite-vec` is gone, and verify the opportunistic session purge
+     under an 8-hour school-session profile.
+   - **Smoke gate** — `pnpm build` → boot → sign-in → one practice
+     question → backup, scripted as the release check.
 
 ### Route inventory after simplification
 
