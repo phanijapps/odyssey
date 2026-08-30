@@ -1,11 +1,7 @@
 import { getBrowseTree } from "../../../../server/curriculum/browse";
-import { withGoldDatabase } from "../../../../server/curriculum/gold-database";
-import { embedCurriculumText } from "../../../../server/curriculum/ollama-embeddings";
-import { CurriculumVectorRepository } from "../../../../server/curriculum/vector-repository";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
-const MAX_SEMANTIC_CANDIDATES = MAX_LIMIT;
 
 type FlatStandard = {
   subject: string;
@@ -70,11 +66,10 @@ function textScore(std: FlatStandard, query: string): number {
 }
 
 /** Returns ranked standards matching a query, optionally filtered by grade. */
-export async function GET(request: Request): Promise<Response> {
+export function GET(request: Request): Response {
   const url = new URL(request.url);
   const query = url.searchParams.get("q") ?? "";
   const grade = url.searchParams.get("grade") ?? "";
-  const semantic = url.searchParams.get("semantic") === "1";
   const limit = parseLimit(url.searchParams.get("limit"));
 
   let standards = getFlatStandards();
@@ -94,50 +89,6 @@ export async function GET(request: Request): Promise<Response> {
     });
   }
 
-  if (semantic) {
-    try {
-      const queryEmbedding = await embedCurriculumText(query);
-      const currentStandards = new Map(
-        standards.map((standard) => [standard.id, standard]),
-      );
-      const matches = withGoldDatabase((database) =>
-        new CurriculumVectorRepository(database).findNearest({
-          vector: queryEmbedding,
-          limit: MAX_SEMANTIC_CANDIDATES,
-        }),
-      );
-      const results = matches
-        .flatMap((match) => {
-          const standard = currentStandards.get(match.recordId);
-          return standard
-            ? [
-                {
-                  standard,
-                  score: Math.round((1 / (1 + match.distance)) * 100) / 100,
-                },
-              ]
-            : [];
-        })
-        .slice(0, limit);
-      return Response.json({
-        results: results.map(({ standard, score }) => ({
-          id: standard.id,
-          standardCode: standard.standardCode,
-          standardText: standard.standardText,
-          domain: standard.domain,
-          subject: standard.subject,
-          grade: standard.grade,
-          score,
-        })),
-        total: results.length,
-        semantic: true,
-      });
-    } catch {
-      // Fall through to text search when the local embedding projection is unavailable.
-    }
-  }
-
-  // Text-based search
   const scored = standards
     .map((std) => ({ std, score: textScore(std, query) }))
     .filter((s) => s.score > 0)

@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { NextRequest } from "next/server";
 import { authenticateChild } from "../../../../server/identity/identity";
-import { DELETE, GET } from "./route";
+import { GET } from "./route";
 
 async function sessionHeaders(
   username: "test-admin" | "test-learner",
@@ -46,51 +46,4 @@ test("restricts Gold projections to the admin steward role", async () => {
       topics: expect.any(Array),
     }),
   );
-});
-
-test("requires canonical origin proof before a steward deletes Gold", async () => {
-  expect(
-    (
-      await DELETE(
-        request("/api/curriculum/gold", {
-          method: "DELETE",
-          body: JSON.stringify({ recordId: "missing" }),
-        }),
-      )
-    ).status,
-  ).toBe(403);
-  expect(
-    (
-      await DELETE(
-        request("/api/curriculum/gold", {
-          method: "DELETE",
-          headers: await sessionHeaders("test-learner", "http://localhost"),
-          body: JSON.stringify({ recordId: "missing" }),
-        }),
-      )
-    ).status,
-  ).toBe(403);
-  expect(
-    (
-      await DELETE(
-        request("/api/curriculum/gold", {
-          method: "DELETE",
-          headers: await sessionHeaders(
-            "test-admin",
-            "https://example.invalid",
-          ),
-          body: JSON.stringify({ recordId: "missing" }),
-        }),
-      )
-    ).status,
-  ).toBe(403);
-
-  const response = await DELETE(
-    request("/api/curriculum/gold", {
-      method: "DELETE",
-      headers: await sessionHeaders("test-admin", "http://localhost"),
-      body: JSON.stringify({ recordId: "missing" }),
-    }),
-  );
-  expect(response.status).toBe(404);
 });

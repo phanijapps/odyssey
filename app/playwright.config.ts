@@ -40,11 +40,6 @@ export default defineConfig({
       // deviation, tracked in workspace backlog): the reviewed-catalog seeder
       // stays off here so assertions remain exact.
       ODYSSEY_SEED_CATALOG: "0",
-      ODYSSEY_ENGRAM_ARTIFACT: "disabled",
-      // Disarm the native Engram loaders entirely (any blank ENGRAM_ value
-      // makes getConfiguredEngramArtifact return null), so test answers can
-      // never write signals into a developer-configured real store.
-      ENGRAM_APPROVED_ROOT: "",
       ODYSSEY_ENABLE_LOCAL_PARENT_BOOTSTRAP: "1",
       ODYSSEY_PARENT_BOOTSTRAP_USERNAME: "e2e-parent",
       ODYSSEY_PARENT_BOOTSTRAP_PASSWORD: "e2e-parent-password",

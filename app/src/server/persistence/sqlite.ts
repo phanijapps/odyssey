@@ -41,9 +41,7 @@ export function configureSqliteConnection(database: DatabaseSync): void {
 export function openDatabase(kind: DatabaseKind): DatabaseSync {
   const path = resolveDatabasePath(kind);
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-  const database = new DatabaseSync(path, {
-    allowExtension: kind !== "learning",
-  });
+  const database = new DatabaseSync(path);
   configureSqliteConnection(database);
   migrateDatabase(database);
   return database;

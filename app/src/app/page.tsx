@@ -62,7 +62,6 @@ export default function HomePage() {
   // Search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FlatStandard[]>([]);
-  const [semanticLoading, setSemanticLoading] = useState(false);
 
   // Practice state
   const [answer, setAnswer] = useState("");
@@ -254,25 +253,6 @@ export default function HomePage() {
         .map((x) => x.s),
     );
   }, [searchQuery, selGrade, selSubject, allStandards]);
-
-  async function semanticSearch() {
-    if (!searchQuery.trim()) return;
-    setSemanticLoading(true);
-    try {
-      const res = await fetch(
-        `/api/curriculum/search?q=${encodeURIComponent(searchQuery)}&grade=${encodeURIComponent(selGrade)}&semantic=1`,
-        { cache: "no-store" },
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults((data.results ?? []) as FlatStandard[]);
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setSemanticLoading(false);
-    }
-  }
 
   /* ---- Skill selection → practice ---- */
 
@@ -891,7 +871,6 @@ export default function HomePage() {
         selSubject={selSubject}
         searchQuery={searchQuery}
         searchResults={searchResults}
-        semanticLoading={semanticLoading}
         mode={mode}
         browseOpen={browseOpen}
         role={role === "parent" ? null : role}
@@ -914,7 +893,6 @@ export default function HomePage() {
           setSearchQuery("");
         }}
         onSearchQueryChange={setSearchQuery}
-        onSemanticSearch={() => void semanticSearch()}
         onSearchResultSelect={(skill) => {
           void selectSkill(skill);
           setSearchQuery("");

@@ -1,14 +1,10 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireAdminMutationProof,
-  requireAdminRead,
-} from "../../../../server/identity/identity";
+import { requireAdminRead } from "../../../../server/identity/identity";
 import {
   listGoldRecords,
   getGoldStats,
   getGoldTopics,
-  deleteGoldRecord,
 } from "../../../../server/curriculum/gold-query";
 
 /** Returns Gold records with optional filters, plus aggregate stats and topics. */
@@ -42,23 +38,4 @@ export function GET(request: NextRequest): NextResponse {
     stats: getGoldStats(),
     topics: getGoldTopics(),
   });
-}
-
-/** Deletes a single Gold record by record id. */
-export async function DELETE(request: NextRequest): Promise<NextResponse> {
-  try {
-    requireAdminMutationProof(request);
-  } catch {
-    return NextResponse.json(
-      { error: "Admin access required" },
-      { status: 403 },
-    );
-  }
-  const body = (await request.json()) as { recordId?: unknown };
-  if (typeof body.recordId !== "string" || !body.recordId.trim())
-    return NextResponse.json({ error: "Record id required" }, { status: 400 });
-  const deleted = deleteGoldRecord(body.recordId);
-  if (!deleted)
-    return NextResponse.json({ error: "Record not found" }, { status: 404 });
-  return NextResponse.json({ ok: true });
 }

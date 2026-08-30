@@ -2,7 +2,6 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { withGoldDatabase } from "./gold-database";
-import { CurriculumVectorRepository } from "./vector-repository";
 
 export type GoldRecordSummary = {
   readonly id: string;
@@ -181,66 +180,6 @@ export function getGoldTopics(): {
       .map(([topic, count]) => ({ topic, count }))
       .sort((a, b) => b.count - a.count);
   });
-}
-
-/** Deletes a single Gold record by id. */
-export function deleteGoldRecord(recordId: string): boolean {
-  return withGoldDatabase(
-    (db) => deleteGoldRecords(db, "record_id = ?", [recordId]) > 0,
-  );
-}
-
-/** Deletes all Gold records from a specific source file. */
-export function deleteGoldBySource(sourceFingerprint: string): number {
-  return withGoldDatabase((db) =>
-    deleteGoldRecords(db, "source_fingerprint = ?", [sourceFingerprint]),
-  );
-}
-
-/** Removes Gold rows and makes their vector projections unreachable together. */
-function deleteGoldRecords(
-  db: DatabaseSync,
-  condition: string,
-  parameters: readonly string[],
-): number {
-  const recordIds = db
-    .prepare(`SELECT record_id FROM gold_curriculum_records WHERE ${condition}`)
-    .all(...parameters) as Array<{ record_id: string }>;
-  if (!recordIds.length) return 0;
-
-  let vectors: CurriculumVectorRepository | null = null;
-  try {
-    vectors = new CurriculumVectorRepository(db);
-  } catch {
-    // A host without sqlite-vec cannot serve semantic retrieval. Removing the
-    // metadata still prevents any old vector row from resolving to Gold.
-  }
-
-  const hasEmbeddingRecords = Boolean(
-    db
-      .prepare(
-        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'curriculum_embedding_records'",
-      )
-      .get(),
-  );
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const result = db
-      .prepare(`DELETE FROM gold_curriculum_records WHERE ${condition}`)
-      .run(...parameters);
-    for (const { record_id: recordId } of recordIds) {
-      if (vectors) vectors.remove(recordId);
-      else if (hasEmbeddingRecords)
-        db.prepare(
-          "DELETE FROM curriculum_embedding_records WHERE record_id = ?",
-        ).run(recordId);
-    }
-    db.exec("COMMIT");
-    return result.changes as number;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
 }
 
 /** A reviewed Gold record frozen into a server-owned assessment selection. */

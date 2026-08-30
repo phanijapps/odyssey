@@ -542,12 +542,6 @@ export default function DashboardPage() {
                                 </>
                               )}
                             </dl>
-                            <button
-                              className="delete-btn"
-                              onClick={() => void deleteRecord(r.id)}
-                            >
-                              Delete record
-                            </button>
                           </div>
                         )}
                       </div>

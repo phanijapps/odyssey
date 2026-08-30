@@ -7,7 +7,7 @@ type LearnerHeaderProps = {
   selSubject: string;
   searchQuery: string;
   searchResults: FlatStandard[];
-  semanticLoading: boolean;
+
   mode: Mode;
   browseOpen: boolean;
   role: "student" | "admin" | null;
@@ -15,7 +15,7 @@ type LearnerHeaderProps = {
   onSubjectChange: (subject: string) => void;
   onGradeChange: (grade: string) => void;
   onSearchQueryChange: (query: string) => void;
-  onSemanticSearch: () => void;
+
   onSearchResultSelect: (skill: FlatStandard) => void;
   onModeChange: (mode: Mode) => void;
   onBrowseToggle: () => void;
@@ -30,7 +30,7 @@ export function LearnerHeader({
   selSubject,
   searchQuery,
   searchResults,
-  semanticLoading,
+
   mode,
   browseOpen,
   role,
@@ -38,7 +38,7 @@ export function LearnerHeader({
   onSubjectChange,
   onGradeChange,
   onSearchQueryChange,
-  onSemanticSearch,
+
   onSearchResultSelect,
   onModeChange,
   onBrowseToggle,
@@ -84,14 +84,6 @@ export function LearnerHeader({
           disabled={testLocked}
           onChange={(event) => onSearchQueryChange(event.target.value)}
         />
-        <button
-          className="semantic-btn"
-          onClick={onSemanticSearch}
-          disabled={testLocked || semanticLoading || !searchQuery.trim()}
-          title="AI semantic search"
-        >
-          {semanticLoading ? "…" : "✨"}
-        </button>
         {searchQuery.trim() && (
           <div className="search-dropdown">
             {searchResults.length > 0 ? (
@@ -108,7 +100,7 @@ export function LearnerHeader({
               ))
             ) : (
               <p className="search-meta">
-                No matches. Try ✨ for semantic search, or pick a skill below.
+                No matches. Try different words, or pick a skill below.
               </p>
             )}
           </div>
