@@ -1,10 +1,8 @@
-import "server-only";
 import { questionBank, type QuestionBankEntry } from "./question-bank";
-import { isOllamaConfigured, requestOllamaLearningQuestion } from "./agent";
 import {
   textResponseInteraction,
   type LearnerQuestionInteraction,
-} from "../learning/question-interactions";
+} from "./question-interactions";
 
 export type Difficulty = 1 | 2 | 3;
 
@@ -22,6 +20,27 @@ export type PoolQuestion = {
 };
 
 export type PoolMode = "practice" | "test";
+
+/** A validated generated question exactly as the generation boundary returns it. */
+export type GeneratedQuestion = {
+  readonly question: string;
+  readonly answer: string;
+  readonly acceptableAnswers: readonly string[];
+  readonly hint: string;
+  readonly solution: readonly string[];
+  readonly diagramSvg: string;
+};
+
+/**
+ * The optional generation boundary, injected by the application. A rejected
+ * promise falls back to the reviewed bank; the engine never imports a model
+ * client itself.
+ */
+export type QuestionGenerator = (input: {
+  topicId: string;
+  level: number;
+  standards?: readonly { standardCode: string; standardText: string }[];
+}) => Promise<GeneratedQuestion>;
 
 export type QuestionPool = {
   readonly topicId: string;
@@ -232,28 +251,30 @@ async function makeQuestion(
     | readonly { standardCode: string; standardText: string }[]
     | undefined,
   existingTexts: Set<string>,
+  generator?: QuestionGenerator,
 ): Promise<PoolQuestion | null> {
   const standardText = standards?.[0]?.standardText;
-  if (isOllamaConfigured()) {
+  if (generator) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const ai = await requestOllamaLearningQuestion({
+        const ai = await generator({
           topicId,
           level: difficulty * 3,
           standards,
         });
-        if (existingTexts.has(ai.question)) continue;
-        return {
-          id: `ai-${topicId}-${difficulty}-${Date.now()}-${attempt}`,
-          question: ai.question,
-          interaction: textResponseInteraction(ai.question),
-          answer: ai.answer,
-          acceptableAnswers: ai.acceptableAnswers,
-          hint: ai.hint,
-          solution: ai.solution,
-          diagramSvg: ai.diagramSvg,
-          difficulty,
-        };
+        if (!existingTexts.has(ai.question)) {
+          return {
+            id: `ai-${topicId}-${difficulty}-${Date.now()}-${attempt}`,
+            question: ai.question,
+            interaction: textResponseInteraction(ai.question),
+            answer: ai.answer,
+            acceptableAnswers: ai.acceptableAnswers,
+            hint: ai.hint,
+            solution: ai.solution,
+            diagramSvg: ai.diagramSvg,
+            difficulty,
+          };
+        }
       } catch {
         // Transient failure (timeout / malformed JSON) — retry once.
       }
@@ -271,8 +292,9 @@ export function prefetchNextQuestion(
     | readonly { standardCode: string; standardText: string }[]
     | undefined,
   onReady: (q: PoolQuestion) => void,
+  generator?: QuestionGenerator,
 ): void {
-  void makeQuestion(topicId, difficulty, standards, new Set())
+  void makeQuestion(topicId, difficulty, standards, new Set(), generator)
     .then((q) => {
       if (q) onReady(q);
     })
@@ -286,8 +308,9 @@ export function prefetchNextQuestion(
 export async function generateQuestionPool(
   topicId: string,
   standards?: readonly { standardCode: string; standardText: string }[],
+  generator?: QuestionGenerator,
 ): Promise<PoolQuestion[]> {
-  const first = await makeQuestion(topicId, 2, standards, new Set());
+  const first = await makeQuestion(topicId, 2, standards, new Set(), generator);
   return first ? [first] : [];
 }
 
@@ -308,6 +331,7 @@ export async function createQuestionPool(
   topicId: string,
   standards?: readonly { standardCode: string; standardText: string }[],
   mode: PoolMode = "practice",
+  generator?: QuestionGenerator,
 ): Promise<QuestionPool> {
   const testPlan = mode === "test" ? buildTestPlan() : undefined;
   const firstDifficulty: Difficulty = mode === "test" ? testPlan![0] : 2;
@@ -316,6 +340,7 @@ export async function createQuestionPool(
     firstDifficulty,
     standards,
     new Set(),
+    generator,
   );
   return {
     topicId,
@@ -335,11 +360,12 @@ export async function generateLazyQuestion(
   difficulty: Difficulty,
   standards?: readonly { standardCode: string; standardText: string }[],
   existingQuestions?: readonly PoolQuestion[],
+  generator?: QuestionGenerator,
 ): Promise<PoolQuestion | null> {
   const existingTexts = new Set(
     (existingQuestions ?? []).map((q) => q.question),
   );
-  return makeQuestion(topicId, difficulty, standards, existingTexts);
+  return makeQuestion(topicId, difficulty, standards, existingTexts, generator);
 }
 
 /** Selects the next unseen question from the pool. */

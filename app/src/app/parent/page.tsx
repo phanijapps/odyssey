@@ -434,6 +434,13 @@ export default function ParentPage() {
                         <span className="record-code">{child.username}</span>
                       </div>
                       <div className="action-row">
+                        <a
+                          className="secondary-btn"
+                          href={`/api/parent/children/${child.accountId}/export`}
+                          download
+                        >
+                          Export progress
+                        </a>
                         <button
                           type="button"
                           className="secondary-btn"

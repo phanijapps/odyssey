@@ -9,7 +9,7 @@ import {
   findStandardByTopicId,
 } from "./learner/practice-target";
 import { SkillBrowser } from "./learner/skill-browser";
-import type { LearnerQuestionInteraction } from "../server/learning/question-interactions";
+import type { LearnerQuestionInteraction } from "@odyssey/practice-engine";
 import {
   Assessment,
   AssessmentQuestion,

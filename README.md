@@ -65,15 +65,19 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 
 ```text
 .
-├── app/                  # the one deployable Next.js application
-│   ├── src/app/          #   pages, browser UI, App Router handlers
-│   ├── src/components/   #   reusable browser components
-│   ├── src/server/       #   server-only modules (identity, learning,
-│   │                     #   curriculum, agent, persistence, validation)
-│   ├── data/             #   git-ignored runtime SQLite state (see its README)
-│   ├── e2e/              #   Playwright end-to-end suite
-│   └── .env.example      #   configuration template
-├── docs/                 # living documentation
+├── app/                      # the one deployable Next.js application
+│   ├── src/app/              #   pages, browser UI, App Router handlers
+│   ├── src/components/       #   reusable browser components
+│   ├── src/server/           #   server-only modules (identity, learning,
+│   │                         #   curriculum, agent, persistence, validation)
+│   ├── data/                 #   git-ignored runtime SQLite state (+ backups/)
+│   ├── e2e/                  #   Playwright end-to-end suite
+│   └── .env.example          #   configuration template
+├── packages/
+│   └── practice-engine/      # pure question domain: reviewed bank, learner
+│                             # interactions, adaptive pool (generation
+│                             # injected), grading — no app imports
+├── docs/                     # living documentation
 │   ├── architecture/     #   the map of what runs today (start here)
 │   ├── adr/              #   frozen architecture decision records
 │   ├── rfc/              #   governance proposals (open → closed)
@@ -98,7 +102,10 @@ All runtime state lives in **`app/data/`** (git-ignored):
 
 Both databases open in WAL mode with foreign keys enforced and ordered,
 append-only migrations. Override their locations with `ODYSSEY_DB_PATH`
-and `ODYSSEY_CURRICULUM_DB_PATH` (absolute paths).
+and `ODYSSEY_CURRICULUM_DB_PATH` (absolute paths). The admin console's
+Health panel writes consistent snapshots of the learning database into
+`app/data/backups/` with one click; parents can export any linked
+child's progress as JSON from the parent portal.
 
 ## Configuration
 

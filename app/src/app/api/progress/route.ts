@@ -4,7 +4,7 @@ import {
   poolProgress,
   prefetchNextQuestion,
   selectNextQuestion,
-} from "../../../server/agent/adaptive-pool";
+} from "@odyssey/practice-engine";
 import { getStandardsForSelection } from "../../../server/curriculum/browse";
 import {
   appendSessionPoolQuestion,
@@ -15,7 +15,8 @@ import {
   type SessionPool,
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
-import { textResponseInteraction } from "../../../server/learning/question-interactions";
+import { textResponseInteraction } from "@odyssey/practice-engine";
+import { ollamaQuestionGenerator } from "../../../server/agent/question-generator";
 
 type Standards = readonly { standardCode: string; standardText: string }[];
 
@@ -42,7 +43,12 @@ async function claimPracticeQuestion(
       current.topicId !== topicId ||
       (current.mode ?? "practice") !== "practice"
     ) {
-      const created = await createQuestionPool(topicId, standards, "practice");
+      const created = await createQuestionPool(
+        topicId,
+        standards,
+        "practice",
+        ollamaQuestionGenerator ?? undefined,
+      );
       const pool: SessionPool = {
         topicId: created.topicId,
         questions: created.questions,
@@ -90,6 +96,7 @@ async function claimPracticeQuestion(
           current.currentDifficulty as 1 | 2 | 3,
           standards,
           current.questions as never,
+          ollamaQuestionGenerator ?? undefined,
         );
         if (
           generated &&
@@ -191,6 +198,7 @@ export async function GET(request: Request): Promise<Response> {
       claimed.pool.currentDifficulty as 1 | 2 | 3,
       standards,
       (next) => appendSessionPoolQuestion(request, next),
+      ollamaQuestionGenerator ?? undefined,
     );
 
   return Response.json(

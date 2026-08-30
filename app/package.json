@@ -13,6 +13,7 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@earendil-works/pi-ai": "0.84.1",
+    "@odyssey/practice-engine": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

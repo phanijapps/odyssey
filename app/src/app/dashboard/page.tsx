@@ -27,7 +27,7 @@ type Stats = {
 
 type TopicEntry = { topic: string; count: number };
 
-type NavItem = "overview" | "browse" | "parents";
+type NavItem = "overview" | "browse" | "parents" | "health";
 
 type ParentAccount = {
   accountId: string;
@@ -73,6 +73,15 @@ export default function DashboardPage() {
   const [filterTopic, setFilterTopic] = useState("");
   const [searchText, setSearchText] = useState("");
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
+
+  // Health state
+  const [health, setHealth] = useState<{
+    schemaVersion: number;
+    catalogRecords: number;
+    generatorConfigured: boolean;
+  } | null>(null);
+  const [backupResult, setBackupResult] = useState("");
+  const [backupPending, setBackupPending] = useState(false);
 
   // Parent management state
   const [parents, setParents] = useState<ParentAccount[]>([]);
@@ -126,6 +135,36 @@ export default function DashboardPage() {
     void loadGold();
     void loadParents();
   }, [loadGold, loadParents]);
+
+  const loadHealth = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/health", { cache: "no-store" });
+      if (res.ok) setHealth(await res.json());
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  async function runBackup() {
+    setBackupPending(true);
+    setBackupResult("");
+    try {
+      const res = await fetch("/api/admin/backup", {
+        method: "POST",
+        headers: { origin: window.location.origin },
+      });
+      const body = (await res.json()) as { file?: string; error?: string };
+      setBackupResult(
+        res.ok && body.file
+          ? `Saved ${body.file}`
+          : (body.error ?? "Backup failed"),
+      );
+    } catch {
+      setBackupResult("Backup failed");
+    } finally {
+      setBackupPending(false);
+    }
+  }
 
   /* --- Parent management actions --- */
 
@@ -259,6 +298,16 @@ export default function DashboardPage() {
                   <span className="nav-badge">{parents.length}</span>
                 )}
               </button>
+              <button
+                className={nav === "health" ? "nav-item active" : "nav-item"}
+                onClick={() => {
+                  setNav("health");
+                  void loadHealth();
+                }}
+              >
+                <span className="nav-icon">♥</span>
+                Health
+              </button>
             </nav>
             <div className="sidebar-footer">
               <a href="/" className="nav-item">
@@ -286,6 +335,7 @@ export default function DashboardPage() {
                 {nav === "overview" && "Overview"}
                 {nav === "browse" && "Browse Gold Records"}
                 {nav === "parents" && "Manage Parents"}
+                {nav === "health" && "System Health"}
               </h1>
             </header>
             <div className="app-content">
@@ -536,6 +586,56 @@ export default function DashboardPage() {
                         <p>No Gold records found.</p>
                         <p>Adjust the filters above.</p>
                       </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* ========== HEALTH ========== */}
+              {nav === "health" && (
+                <>
+                  <div className="card-grid">
+                    <div className="dash-card stat-card">
+                      <span className="stat-number">
+                        {health ? `v${health.schemaVersion}` : "…"}
+                      </span>
+                      <span className="stat-label">Database schema</span>
+                    </div>
+                    <div className="dash-card stat-card">
+                      <span className="stat-number">
+                        {health ? health.catalogRecords : "…"}
+                      </span>
+                      <span className="stat-label">Catalog records</span>
+                    </div>
+                    <div className="dash-card stat-card">
+                      <span className="stat-number">
+                        {health
+                          ? health.generatorConfigured
+                            ? "On"
+                            : "Off"
+                          : "…"}
+                      </span>
+                      <span className="stat-label">Question generator</span>
+                    </div>
+                  </div>
+                  <div className="dash-card section-card">
+                    <h2 className="section-title">Backup</h2>
+                    <p className="ingest-hint">
+                      Writes a consistent snapshot of the learning database
+                      (accounts and every learner's history) into
+                      <code> app/data/backups/</code>. The curriculum store is
+                      reproducible from the reviewed catalog seed and needs no
+                      backup.
+                    </p>
+                    <button
+                      className="primary-btn"
+                      disabled={backupPending}
+                      onClick={() => void runBackup()}
+                    >
+                      {backupPending ? "Backing up…" : "Back up now"}
+                    </button>
+                    {backupResult && (
+                      <p className="result-meta">{backupResult}</p>
                     )}
                   </div>
                 </>

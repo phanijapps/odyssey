@@ -1,6 +1,6 @@
 "use client";
 
-import type { LearnerQuestionInteraction } from "../server/learning/question-interactions";
+import type { LearnerQuestionInteraction } from "@odyssey/practice-engine";
 
 type InteractionAnswerProps = {
   interaction: LearnerQuestionInteraction;

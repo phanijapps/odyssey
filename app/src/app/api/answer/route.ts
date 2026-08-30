@@ -3,7 +3,8 @@ import {
   requireLearnerMutationProof,
 } from "../../../server/identity/identity";
 import { submitPracticeAssignment } from "../../../server/learning/learning";
-import { prefetchNextQuestion } from "../../../server/agent/adaptive-pool";
+import { prefetchNextQuestion } from "@odyssey/practice-engine";
+import { ollamaQuestionGenerator } from "../../../server/agent/question-generator";
 import { getStandardsForSelection } from "../../../server/curriculum/browse";
 
 type AnswerSubmission = {
@@ -69,6 +70,7 @@ export async function POST(request: Request): Promise<Response> {
         ? standards.filter((standard) => standard.standardCode === standardCode)
         : standards,
       (next) => appendSessionPoolQuestion(request, next),
+      ollamaQuestionGenerator ?? undefined,
     );
 
     const { nextPracticeDifficulty: _nextPracticeDifficulty, ...response } =

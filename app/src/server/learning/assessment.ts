@@ -4,12 +4,12 @@ import {
   resolveGoldRecordsForAssessment,
   type ResolvedGoldRecord,
 } from "../curriculum/gold-query";
-import { checkAnswer } from "./learning";
+import { checkAnswer } from "@odyssey/practice-engine";
 import {
   learnerQuestionInteractionSchema,
   textResponseInteraction,
   type LearnerQuestionInteraction,
-} from "./question-interactions";
+} from "@odyssey/practice-engine";
 import { validateLearningPayload } from "../validation/payloads";
 import { learningDb, withLearningTransaction } from "./sqlite-repository";
 

@@ -1,5 +1,5 @@
-import { generateLazyQuestion } from "../../../server/agent/adaptive-pool";
-import { textResponseInteraction } from "../../../server/learning/question-interactions";
+import { generateLazyQuestion } from "@odyssey/practice-engine";
+import { textResponseInteraction } from "@odyssey/practice-engine";
 import {
   claimAssessmentQuestionPreparation,
   finalizeAssessmentQuestion,

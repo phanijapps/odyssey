@@ -1,9 +1,9 @@
 import "server-only";
 import { sanitizeGeneratedDiagramSvg } from "../validation/payloads";
-import { completeWithLocalOllama } from "../pi-completion";
-import { getOllamaOpenAIUrl } from "../ollama-openai-url";
+import { completeWithLocalOllama } from "./pi-completion";
+import { getOllamaOpenAIUrl } from "./ollama-openai-url";
 
-export { getOllamaOpenAIUrl } from "../ollama-openai-url";
+export { getOllamaOpenAIUrl } from "./ollama-openai-url";
 
 /** Runs the local Ollama integration to generate a fresh question with its answer. */
 export async function requestOllamaLearningQuestion(input: {

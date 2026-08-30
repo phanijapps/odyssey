@@ -6,7 +6,7 @@ import {
 } from "node:crypto";
 import { cancelSuggestionsForChild } from "../learning/parent-suggestions";
 import { learningDb } from "../learning/sqlite-repository";
-import type { LearnerQuestionInteraction } from "../learning/question-interactions";
+import type { LearnerQuestionInteraction } from "@odyssey/practice-engine";
 
 /** Distinct server-side authorization roles. */
 export type AccountRole = "admin" | "parent" | "student";
@@ -122,6 +122,67 @@ export function learnerScopeKeyForUsername(username: string): string {
   return seeded?.childId ?? `child:${username}`;
 }
 
+/** Seeds one explicitly configured first-admin bootstrap (RFC-0006 phase 8).
+ *  Production requires its own opt-in flag; suppressed once any admin exists. */
+function configuredAdminBootstrapAccount(): SeedAccount | null {
+  const production = process.env.NODE_ENV === "production";
+  const enabled = production
+    ? process.env.ODYSSEY_ENABLE_PRODUCTION_ADMIN_BOOTSTRAP === "1"
+    : process.env.NODE_ENV === "development" &&
+      process.env.ODYSSEY_ENABLE_LOCAL_ADMIN_BOOTSTRAP === "1";
+  if (!enabled) return null;
+  const username = process.env.ODYSSEY_ADMIN_BOOTSTRAP_USERNAME?.trim();
+  const password = process.env.ODYSSEY_ADMIN_BOOTSTRAP_PASSWORD;
+  if (!username || !password)
+    throw new Error("Admin bootstrap credentials are incomplete");
+  if (
+    !/^[a-zA-Z0-9_.-]{3,64}$/.test(username) ||
+    password.length < 8 ||
+    password.length > 256
+  )
+    throw new Error("Admin bootstrap credentials are invalid");
+  return { username, password, role: "admin", childId: "admin" };
+}
+
+/** Seeds one configured first admin under a database write lock. */
+async function seedConfiguredAdminBootstrap(): Promise<void> {
+  const account = configuredAdminBootstrapAccount();
+  if (!account) return;
+  const salt = randomBytes(16);
+  const passwordHash = await scryptSync(account.password, salt);
+  learningDb.exec("BEGIN IMMEDIATE");
+  try {
+    const adminExists = learningDb
+      .prepare(
+        "SELECT 1 AS admin_exists FROM accounts WHERE role = 'admin' LIMIT 1",
+      )
+      .get() as { admin_exists: number } | undefined;
+    if (adminExists) {
+      learningDb.exec("COMMIT");
+      return;
+    }
+    const existing = learningDb
+      .prepare("SELECT role FROM accounts WHERE username = ?")
+      .get(account.username) as { role: string } | undefined;
+    if (existing)
+      throw new Error("Admin bootstrap username is already provisioned");
+    learningDb
+      .prepare(
+        "INSERT INTO accounts (account_id, username, password_hash, salt, role) VALUES (?, ?, ?, ?, 'admin')",
+      )
+      .run(
+        randomBytes(16).toString("hex"),
+        account.username,
+        passwordHash,
+        salt,
+      );
+    learningDb.exec("COMMIT");
+  } catch (error) {
+    learningDb.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 /**
  * Reads one explicitly configured first-parent bootstrap. Production requires
  * its own opt-in flag; the seed is later suppressed once any parent exists.
@@ -227,8 +288,9 @@ async function seedConfiguredParentBootstrap(): Promise<void> {
 
 /** Seeds explicitly enabled fixture and first-parent bootstrap accounts. */
 async function seedAccounts(): Promise<void> {
-  // Bootstrap first: explicitly configured credentials must win over the
-  // zero-parents guard that the devparent fixture would otherwise trip.
+  // Bootstrap first, admin before parent: the admin creates parents, so a
+  // fresh production deployment gets its operator before its first parent.
+  await seedConfiguredAdminBootstrap();
   await seedConfiguredParentBootstrap();
   await seedFixtureAccounts();
 }

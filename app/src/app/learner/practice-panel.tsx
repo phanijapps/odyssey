@@ -1,7 +1,7 @@
 import { FormEvent } from "react";
 import { MathText } from "@/components/math-text";
 import { InteractionAnswer } from "@/components/interaction-answer";
-import type { LearnerQuestionInteraction } from "../../server/learning/question-interactions";
+import type { LearnerQuestionInteraction } from "@odyssey/practice-engine";
 import { AnswerResult, FlatStandard, PracticeFeedback } from "./types";
 
 type PracticePanelProps = {

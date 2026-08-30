@@ -1,5 +1,3 @@
-import "server-only";
-
 import { z } from "zod";
 
 const questionPrompt = z.string().min(1).max(400);

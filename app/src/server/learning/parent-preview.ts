@@ -1,6 +1,6 @@
 import "server-only";
 
-import { reviewedSampleForStandard } from "../agent/adaptive-pool";
+import { reviewedSampleForStandard } from "@odyssey/practice-engine";
 import { getMistakeToMasteryPlan } from "./mistake-to-mastery";
 
 type LinkedChild = {

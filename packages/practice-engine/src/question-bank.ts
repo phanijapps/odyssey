@@ -1,10 +1,8 @@
-import "server-only";
-
 import {
   multipleChoiceInteraction,
   trueFalseInteraction,
   type LearnerQuestionInteraction,
-} from "../learning/question-interactions";
+} from "./question-interactions";
 
 /** A reviewed practice question with its answer, optional hint, and diagram. */
 export type QuestionBankEntry = {

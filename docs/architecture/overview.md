@@ -18,6 +18,9 @@
 │   │   └── server/       # server-only policy and runtime modules
 │   ├── data/             # git-ignored runtime SQLite state (see its README)
 │   └── e2e/              # Playwright end-to-end suite
+├── packages/
+│   └── practice-engine/  # pure question domain (bank, interactions,
+│                         # adaptive pool with injected generation, grading)
 ├── README.md             # the project front door (quickstart, layout, config)
 ├── tools/hooks/          # repository hooks
 ├── docs/

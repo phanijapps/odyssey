@@ -1,4 +1,4 @@
-import type { LearnerQuestionInteraction } from "../../server/learning/question-interactions";
+import type { LearnerQuestionInteraction } from "@odyssey/practice-engine";
 
 export type FlatStandard = {
   id: string;
