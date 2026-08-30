@@ -22,10 +22,18 @@
 # Run `workspace-status` to see all open backlog items.
 
 [backlog]
-# A fully metadata-safe dirty/untracked check needs a reviewed manifest or a
-# non-Git source-state protocol; do not execute worktree-inspecting Git commands
-# against an untrusted checkout without that design decision.
+# RFC-0006 simplification: the phased cut-down to a three-persona app.
+# Phases land in order 1→7; each gates on typecheck+test+lint.
 open = [
+  {slug = "rfc0006-phase1-dead-code-cut", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 1: delete dead routes, 410 stubs, allowance machinery, vestigial panel props"},
+  {slug = "rfc0006-phase2-memory-cut", needs = "backlog:rfc0006-phase1-dead-code-cut", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 2: cut engram memory + knowledge graph + graph page + answer-route projections"},
+  {slug = "rfc0006-phase3-seeder-and-ingestion-cut", needs = "backlog:rfc0006-phase2-memory-cut", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 3: JSON catalog seeder, then cut ingestion + semantic search + gold deletes"},
+  {slug = "rfc0006-phase4-a2ui-replacement", needs = "backlog:rfc0006-phase3-seeder-and-ingestion-cut", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 4: replace A2UI with plain zod-validated interaction renderer"},
+  {slug = "rfc0006-phase5-question-path-consolidation", needs = "backlog:rfc0006-phase4-a2ui-replacement", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 5: consolidate question selection into the adaptive pool"},
+  {slug = "rfc0006-phase6-persona-surface-rebuild", needs = "backlog:rfc0006-phase5-question-path-consolidation", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 6: rebuild student/parent/admin screens per mockups"},
+  # A fully metadata-safe dirty/untracked check needs a reviewed manifest or a
+  # non-Git source-state protocol; do not execute worktree-inspecting Git commands
+  # against an untrusted checkout without that design decision.
   {slug = "engram-worktree-metadata-safe-preflight", source = "spec/child-math-practice AC13", summary = "Design a Git-metadata-safe local Engram source-state preflight"},
   # The v1 mistake-to-mastery spec shipped; this tracks deeper remediation
   # shaping (plan depth, ordering policy) as future design work.
