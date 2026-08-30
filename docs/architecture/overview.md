@@ -55,16 +55,18 @@ See [`application.md`](application.md#runtime-and-data-flow) for the full flow.
 ## Data ownership
 
 - `src/server/persistence/sqlite.ts` is the sole owner of SQLite connection
-  policy and ordered migrations. It opens the learning and curriculum stores;
-  promotion state shares the curriculum store.
+  policy and ordered migrations. It opens the learning and curriculum stores
+  under `app/data/` (git-ignored; see that directory's README).
 - `src/server/learning/` owns formative practice state, attempts, and
   assessment records. Assessment results are retained separately from practice
   progression; history returns a redacted timeline.
-- `src/server/curriculum/` owns the reviewed catalog, Bronze → Silver → Gold
-  workflow, Gold queries, and local vector index.
-- `src/server/memory/` owns optional native profile-memory and knowledge-graph
-  projections. They receive only derived learning signals and do not replace
-  SQLite as the authoritative learning store.
+- `src/server/curriculum/` owns the reviewed catalog: the versioned JSON seed
+  (`data/ohio-catalog.json`), its idempotent hash-guarded seeder, Gold reads,
+  and browse/search. There is no runtime ingestion workflow; catalog changes
+  are reviewed code changes.
+- `src/server/agent/` owns question selection (the adaptive pool over the
+  reviewed bank) and the bounded Ollama completion/validation boundary used
+  only as an optional internal fallback.
 
 ## Retention and erasure
 
@@ -79,39 +81,29 @@ See [`application.md`](application.md#runtime-and-data-flow) for the full flow.
   opportunistically on authentication/session activity after 30 minutes idle or
   eight hours absolute age. This is request-driven cleanup, not a scheduled
   daemon.
-- **Curriculum workflow artifacts — temporary.** Bronze, Silver, and pending
-  Gold handoff data expire after 24 hours and are purged on the next workflow
-  operation; the artifacts are also deleted immediately after successful Gold
-  finalization. Approved Gold records are not in this temporary class.
-- **Derived projections — disposable.** Native profile-memory, knowledge-graph,
-  and local vector data are non-authoritative projections. They may be lost or
-  rebuilt from SQLite learning records and reviewed Gold data where their
-  current adapters support rebuilding; no automatic deletion or user reset is
-  introduced by this policy.
+- **Curriculum catalog — reproducible.** The reviewed catalog ships as
+  versioned JSON in the repository; the seeder upserts it into the curriculum
+  store at open. Deleting the curriculum database loses nothing that a fresh
+  open cannot restore.
 
 ## Retrieval and generation
 
-Browse and ordinary search read the reviewed curriculum tree. Semantic search
-embeds a query locally, asks the local SQLite vector projection for bounded
-nearest records, and falls back to text ranking when that projection is
-unavailable. The graph is a separate optional projection; it is not a retrieval
-or reranking stage.
+Browse and text search read the seeded curriculum tree.
 
-Practice and assessment obtain a server-owned question from the reviewed bank
-when available. When local generation is enabled, the server supplies scoped
-standard data to the Pi AI completion boundary, validates the structured result
-and SVG, and otherwise falls back to a matching reviewed question or reports
-unavailability. Generated content never promotes curriculum records.
+Practice and assessment obtain a server-owned question from the reviewed bank.
+When local generation is enabled, the adaptive pool supplies scoped standard
+data to the Pi AI completion boundary, validates the structured result and
+SVG, and otherwise falls back to a matching reviewed question or reports
+unavailability. Generated content never touches curriculum records.
 
 ## Access and routes
 
 Route handlers enforce the actual current session and same-origin mutation
 checks. Learner practice and assessment reads are learner-scoped; their
 mutations require the shared learner mutation proof. Curriculum administration
-requires the admin role. Browse, topic, search, and memory-availability reads
-are currently open. Parent-named routes are scoped to whichever signed-in
-session calls them; the implementation does not currently define a separate
-parent role. The complete public route inventory is in
+requires the admin role. Browse and search reads are currently open.
+Parent-named routes require the parent role and are scoped to that parent's
+active child links. The complete public route inventory is in
 [`application.md`](application.md#public-route-contracts).
 
 ## Where to start

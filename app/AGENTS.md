@@ -23,13 +23,6 @@ pnpm --dir app build
 - Vitest creates an isolated temporary learning and curriculum database for each
   test file. Every test owns the fixture rows it needs; never rely on a local
   developer database or another test file's state.
-- `3d-force-graph` renders the admin-only dashboard knowledge-graph 3D view
-  (client-side WebGL; d3-force-3d layout). It is presentation-only: all node
-  kinds, link predicates, and caps come from the `/api/knowledge/graph`
-  snapshot, and the view performs no writes.
-- A2UI delivery is pinned to `@a2ui/react@0.9.1` and
-  `@a2ui/web_core@0.9.2`; `zod@3.25.76` is a direct peer dependency. Use only
-  the v0.9 entrypoints and the Odyssey allowlist—never a model-issued catalog.
 - `@playwright/test` is the browser smoke/visual-QA dev dependency. Keep browser
   scenarios focused on authenticated user journeys and run `pnpm --dir app test:e2e`
   against its isolated local database; it does not ship in the application runtime.

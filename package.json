@@ -6,8 +6,9 @@
     "node": ">=24.19.0"
   },
   "scripts": {
-    "build": "pnpm --filter child-math-app build",
     "dev": "pnpm --filter child-math-app dev",
+    "build": "pnpm --filter child-math-app build",
+    "start": "pnpm --filter child-math-app start",
     "format:check": "prettier --check .",
     "lint": "pnpm format:check",
     "test": "pnpm -r --if-present test",
