@@ -1,7 +1,7 @@
 import { requireLearnerRead } from "../../../server/identity/identity";
-import { getLearnerPerformanceDocument } from "../../../server/learning/performance";
+import { getLearnerPerformanceReport } from "../../../server/learning/performance";
 
-/** Returns one authenticated learner's read-only, validated A2UI Performance surface. */
+/** Returns one authenticated learner's read-only Performance report. */
 export function GET(request: Request): Response {
   let childId: string;
   try {
@@ -21,7 +21,7 @@ export function GET(request: Request): Response {
 
   try {
     return Response.json(
-      { document: getLearnerPerformanceDocument(childId) },
+      { report: getLearnerPerformanceReport(childId) },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {

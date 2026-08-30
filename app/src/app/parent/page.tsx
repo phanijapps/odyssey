@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { formatPracticePhrases } from "../../a2ui/parent-performance-document";
+import { formatPracticePhrases } from "./performance-phrases";
 
 type Child = { accountId: string; username: string };
 type PerformanceFacts = {

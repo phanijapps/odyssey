@@ -1,6 +1,5 @@
 import { expect, test } from "vitest";
 import { authenticateChild } from "../../../server/identity/identity";
-import { parseOdysseyA2uiDocument } from "../../../a2ui/document";
 import { GET } from "./route";
 
 test("Performance requires a learner session and is no-store", async () => {
@@ -21,7 +20,7 @@ test("Performance requires a learner session and is no-store", async () => {
   expect(adminResponse.headers.get("cache-control")).toBe("no-store");
 });
 
-test("Performance returns a locally validated document for its learner only", async () => {
+test("Performance returns a plain report for its learner only", async () => {
   const learner = await authenticateChild({
     username: "test-learner",
     password: "test-learner-password",
@@ -33,6 +32,20 @@ test("Performance returns a locally validated document for its learner only", as
   );
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("no-store");
-  const body = (await response.json()) as { document: unknown };
-  expect(parseOdysseyA2uiDocument(body.document).messages).toHaveLength(2);
+  const body = (await response.json()) as {
+    report: Record<string, unknown>;
+  };
+  expect(body.report).not.toHaveProperty("document");
+  for (const key of [
+    "summary",
+    "practiceEvidence",
+    "practiceDetail",
+    "testsDetail",
+    "guidanceCards",
+    "guidanceFallback",
+    "achievementsDetail",
+    "funFactDetail",
+    "separationNote",
+  ])
+    expect(body.report).toHaveProperty(key);
 });

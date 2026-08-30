@@ -2,19 +2,14 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AssessmentPanel } from "./learner/assessment-panel";
-import type {
-  OdysseyPracticeA2uiAction,
-  OdysseyPracticeA2uiDocument,
-} from "../a2ui/practice-document";
-import type { OdysseyTestA2uiAction } from "../a2ui/test-document";
 import { LearnerHeader } from "./learner/learner-header";
 import { PracticePanel } from "./learner/practice-panel";
-import { parseTextResponseInteraction } from "./learner/question-interaction";
 import {
   composeTopicId,
   findStandardByTopicId,
 } from "./learner/practice-target";
 import { SkillBrowser } from "./learner/skill-browser";
+import type { LearnerQuestionInteraction } from "../server/learning/question-interactions";
 import {
   Assessment,
   AssessmentQuestion,
@@ -65,7 +60,6 @@ export default function HomePage() {
 
   // Practice state
   const [answer, setAnswer] = useState("");
-  const [answerMaxLength, setAnswerMaxLength] = useState(100);
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
@@ -74,8 +68,8 @@ export default function HomePage() {
   const [question, setQuestion] = useState("");
   /** Opaque server-issued binding for the displayed Practice question. */
   const [assignmentToken, setAssignmentToken] = useState<string | null>(null);
-  const [practiceA2ui, setPracticeA2ui] =
-    useState<OdysseyPracticeA2uiDocument | null>(null);
+  const [interaction, setInteraction] =
+    useState<LearnerQuestionInteraction | null>(null);
   const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
   const [level, setLevel] = useState(1);
   const [correctStreak, setCorrectStreak] = useState(0);
@@ -277,7 +271,7 @@ export default function HomePage() {
     setIsLoadingQuestion(true);
     setQuestion("Loading…");
     setAssignmentToken(null);
-    setPracticeA2ui(null);
+    setInteraction(null);
     setDiagramSvg(null);
     try {
       window.localStorage.setItem(SKILL_KEY, JSON.stringify(skill));
@@ -309,16 +303,12 @@ export default function HomePage() {
       setPoolDifficulty(d.poolProgress?.difficulty ?? 2);
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
-        setAnswerMaxLength(
-          parseTextResponseInteraction(d.nextQuestion.interaction)?.response
-            .maxLength ?? 100,
-        );
         setAssignmentToken(
           typeof d.nextQuestion.assignmentToken === "string"
             ? d.nextQuestion.assignmentToken
             : null,
         );
-        setPracticeA2ui(d.nextQuestion.a2ui ?? null);
+        setInteraction(d.nextQuestion.interaction ?? null);
         setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
       } else {
         setQuestion("");
@@ -373,7 +363,7 @@ export default function HomePage() {
       setCorrectStreak(d.correctStreak);
       setResult(d);
       setAssignmentToken(null);
-      setPracticeA2ui(null);
+      setInteraction(null);
       setFeedback({
         kind: d.correct ? "success" : "error",
         message: d.correct
@@ -401,14 +391,6 @@ export default function HomePage() {
     void savePracticeAnswer(answer, topicId, assignmentToken);
   }
 
-  function submitA2uiPracticeAnswer(action: OdysseyPracticeA2uiAction) {
-    return savePracticeAnswer(
-      action.context.answer,
-      action.context.topicId,
-      action.context.assignmentToken,
-    );
-  }
-
   /** Next: advance to the question the server already prepared. */
   async function nextQuestion() {
     if (!activeSkill) return;
@@ -422,7 +404,7 @@ export default function HomePage() {
     setIsLoadingQuestion(true);
     setQuestion("Loading…");
     setAssignmentToken(null);
-    setPracticeA2ui(null);
+    setInteraction(null);
     setDiagramSvg(null);
     try {
       const params = new URLSearchParams({
@@ -444,16 +426,12 @@ export default function HomePage() {
       if (progressVersion.current !== version) return;
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
-        setAnswerMaxLength(
-          parseTextResponseInteraction(d.nextQuestion.interaction)?.response
-            .maxLength ?? 100,
-        );
         setAssignmentToken(
           typeof d.nextQuestion.assignmentToken === "string"
             ? d.nextQuestion.assignmentToken
             : null,
         );
-        setPracticeA2ui(d.nextQuestion.a2ui ?? null);
+        setInteraction(d.nextQuestion.interaction ?? null);
         setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
       } else {
         setQuestion("");
@@ -682,14 +660,6 @@ export default function HomePage() {
       answer,
       assessment.id,
       assessmentQuestion.assignmentToken,
-    );
-  }
-
-  function submitA2uiTestAnswer(action: OdysseyTestA2uiAction) {
-    return saveTestAnswer(
-      action.context.answer,
-      action.context.assessmentId,
-      action.context.assignmentToken,
     );
   }
 
@@ -930,7 +900,6 @@ export default function HomePage() {
             testLoading={testLoading}
             testSelectedIds={testSelectedIds}
             onAnswerChange={setAnswer}
-            onA2uiSubmit={submitA2uiTestAnswer}
             onExit={() => void exitTest()}
             onLoadActiveTest={(assessmentId) =>
               void loadActiveTest(assessmentId)
@@ -950,8 +919,7 @@ export default function HomePage() {
           <PracticePanel
             activeSkill={activeSkill}
             answer={answer}
-            answerMaxLength={answerMaxLength}
-            a2uiDocument={practiceA2ui}
+            interaction={interaction}
             correctStreak={correctStreak}
             diagramSvg={diagramSvg}
             feedback={feedback}
@@ -964,7 +932,6 @@ export default function HomePage() {
             questionFailed={questionFailed}
             result={result}
             onAnswerChange={setAnswer}
-            onA2uiSubmit={submitA2uiPracticeAnswer}
             onNextQuestion={() => void nextQuestion()}
             onRetry={() => void selectSkill(activeSkill)}
             onSubmitAnswer={submitAnswer}

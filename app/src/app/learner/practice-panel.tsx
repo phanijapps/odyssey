@@ -1,17 +1,13 @@
 import { FormEvent } from "react";
-import { OdysseyPracticeA2uiSurface } from "../practice-a2ui-surface";
-import type {
-  OdysseyPracticeA2uiAction,
-  OdysseyPracticeA2uiDocument,
-} from "../../a2ui/practice-document";
 import { MathText } from "@/components/math-text";
+import { InteractionAnswer } from "@/components/interaction-answer";
+import type { LearnerQuestionInteraction } from "../../server/learning/question-interactions";
 import { AnswerResult, FlatStandard, PracticeFeedback } from "./types";
 
 type PracticePanelProps = {
   activeSkill: FlatStandard;
   answer: string;
-  answerMaxLength: number;
-  a2uiDocument: OdysseyPracticeA2uiDocument | null;
+  interaction: LearnerQuestionInteraction | null;
   correctStreak: number;
   diagramSvg: string | null;
   feedback: PracticeFeedback | null;
@@ -24,7 +20,6 @@ type PracticePanelProps = {
   questionFailed: boolean;
   result: AnswerResult | null;
   onAnswerChange: (answer: string) => void;
-  onA2uiSubmit: (action: OdysseyPracticeA2uiAction) => Promise<void>;
   onNextQuestion: () => void;
   onRetry: () => void;
   onSubmitAnswer: (event: FormEvent<HTMLFormElement>) => void;
@@ -34,8 +29,7 @@ type PracticePanelProps = {
 export function PracticePanel({
   activeSkill,
   answer,
-  answerMaxLength,
-  a2uiDocument,
+  interaction,
   correctStreak,
   diagramSvg,
   feedback,
@@ -48,7 +42,6 @@ export function PracticePanel({
   questionFailed,
   result,
   onAnswerChange,
-  onA2uiSubmit,
   onNextQuestion,
   onRetry,
   onSubmitAnswer,
@@ -97,7 +90,7 @@ export function PracticePanel({
             </div>
           ) : (
             <>
-              {!a2uiDocument && (
+              {!interaction && (
                 <h2 className="question-text">
                   <MathText>{question}</MathText>
                 </h2>
@@ -129,17 +122,29 @@ export function PracticePanel({
                     Next question →
                   </button>
                 </>
-              ) : a2uiDocument ? (
-                <OdysseyPracticeA2uiSurface
-                  document={a2uiDocument}
-                  onSubmit={onA2uiSubmit}
-                />
+              ) : interaction ? (
+                <form onSubmit={onSubmitAnswer} className="answer-row">
+                  <InteractionAnswer
+                    interaction={interaction}
+                    value={answer}
+                    onChange={onAnswerChange}
+                    disabled={isSubmittingAnswer}
+                    autoFocus
+                  />
+                  <button
+                    className="primary-button"
+                    type="submit"
+                    disabled={isSubmittingAnswer || !answer.trim()}
+                  >
+                    Check
+                  </button>
+                </form>
               ) : (
                 <form onSubmit={onSubmitAnswer} className="answer-row">
                   <input
                     className="answer-input"
                     value={answer}
-                    maxLength={answerMaxLength}
+                    maxLength={100}
                     onChange={(event) => onAnswerChange(event.target.value)}
                     placeholder="Type your answer"
                     disabled={isSubmittingAnswer}

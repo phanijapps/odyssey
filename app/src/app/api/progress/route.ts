@@ -6,7 +6,6 @@ import {
   selectNextQuestion,
 } from "../../../server/agent/adaptive-pool";
 import { getStandardsForSelection } from "../../../server/curriculum/browse";
-import { createPracticeA2uiDocument } from "../../../a2ui/practice-document";
 import {
   appendSessionPoolQuestion,
   compareAndSetSessionPool,
@@ -205,16 +204,6 @@ export async function GET(request: Request): Promise<Response> {
         diagramSvg: claimed.question.diagramSvg,
         // Contract addition: POST /api/answer requires this opaque token.
         assignmentToken: claimed.assignmentToken,
-        // A fixed server-compiled surface; legacy callers may ignore it.
-        a2ui: standard
-          ? createPracticeA2uiDocument({
-              topicId,
-              assignmentToken: claimed.assignmentToken,
-              interaction:
-                claimed.question.interaction ??
-                textResponseInteraction(claimed.question.question),
-            })
-          : undefined,
       },
       poolProgress: poolProgress(claimed.pool as never),
     },

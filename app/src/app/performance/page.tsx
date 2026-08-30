@@ -1,84 +1,99 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { OdysseyA2uiSurface } from "../a2ui-surface";
-import {
-  parseOdysseyA2uiDocument,
-  type OdysseyA2uiDocument,
-} from "../../a2ui/document";
+import { useEffect, useState } from "react";
+import type { PerformanceReport } from "../../server/learning/performance";
 
-/** Learner-only Performance view; all evidence and UI components are server-issued. */
+/** Renders the server-issued learner performance report. */
 export default function PerformancePage() {
-  const [document, setDocument] = useState<OdysseyA2uiDocument | null>(null);
-  const [error, setError] = useState("");
-
-  const loadPerformance = useCallback(async () => {
-    setError("");
-    setDocument(null);
-    try {
-      const response = await fetch("/api/performance", { cache: "no-store" });
-      if (response.status === 401 || response.status === 403) {
-        window.location.assign("/");
-        return;
-      }
-      if (!response.ok) {
-        setError("Performance is unavailable. Please retry.");
-        return;
-      }
-      const body = (await response.json()) as { document?: unknown };
-      setDocument(parseOdysseyA2uiDocument(body.document));
-    } catch {
-      setError("Performance is unavailable. Please retry.");
-    }
-  }, []);
+  const [report, setReport] = useState<PerformanceReport | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    void loadPerformance();
-  }, [loadPerformance]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/performance", {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("unavailable");
+        const body = (await response.json()) as { report?: PerformanceReport };
+        if (!body.report) throw new Error("invalid report");
+        if (!cancelled) setReport(body.report);
+      } catch {
+        if (!cancelled) setFailed(true);
+      } finally {
+        if (!cancelled) setChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (failed)
+    return (
+      <main className="performance-page">
+        <p role="alert">Performance is unavailable. Please retry.</p>
+      </main>
+    );
+  if (!checked || !report)
+    return (
+      <main className="performance-page">
+        <p>Loading performance…</p>
+      </main>
+    );
 
   return (
-    <main className="shell">
-      <header className="topbar">
-        <a className="wordmark" href="/">
-          <span className="small-mark">O</span>
-          Odyssey
-        </a>
-        <span className="eyebrow">LEARNER PERFORMANCE</span>
-      </header>
-      <div className="narrow-page">
-        <section
-          className="dash-card"
-          aria-busy={!document && !error}
-          aria-label="Performance"
+    <main className="performance-page">
+      <div className="a2ui-column">
+        <h1>Performance</h1>
+        <p className={`a2ui-status a2ui-status-${report.summary.tone}`}>
+          {report.summary.text}
+        </p>
+
+        <h2>Practice</h2>
+        <p
+          className={`a2ui-status a2ui-status-${report.practiceEvidence.tone}`}
         >
-          {error ? (
-            <div role="alert">
-              <p className="error-text">{error}</p>
-              <div className="action-row">
+          {report.practiceEvidence.text}
+        </p>
+        <p>{report.practiceDetail}</p>
+
+        <h2>Tests</h2>
+        <p>{report.testsDetail}</p>
+
+        <h2>Next Practice</h2>
+        {report.guidanceCards.length > 0 ? (
+          report.guidanceCards.map((card) => (
+            <div key={card.id} className="guidance-card">
+              <h3 className="guidance-code">{card.standardCode}</h3>
+              <p className="guidance-status">{card.statusText}</p>
+              {card.topicId && (
                 <button
-                  type="button"
-                  className="primary-btn"
-                  onClick={() => void loadPerformance()}
+                  className="secondary-btn"
+                  onClick={() =>
+                    window.location.assign(
+                      `/?practice=${encodeURIComponent(card.topicId as string)}`,
+                    )
+                  }
                 >
-                  Retry
+                  Practice this skill
                 </button>
-              </div>
+              )}
             </div>
-          ) : document ? (
-            <OdysseyA2uiSurface
-              document={document}
-              onPracticeTarget={(topicId) => {
-                window.location.assign(
-                  `/?practice=${encodeURIComponent(topicId)}`,
-                );
-              }}
-            />
-          ) : (
-            <p role="status" className="result-meta">
-              Loading performance…
-            </p>
-          )}
-        </section>
+          ))
+        ) : (
+          <p>{report.guidanceFallback}</p>
+        )}
+
+        <h2>Practice achievements</h2>
+        <p>{report.achievementsDetail}</p>
+
+        <h2>Math fun fact</h2>
+        <p>{report.funFactDetail}</p>
+
+        <p className="eyebrow">{report.separationNote}</p>
       </div>
     </main>
   );

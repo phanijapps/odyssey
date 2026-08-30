@@ -1,11 +1,10 @@
 import { expect, test } from "vitest";
-import {
-  odysseyPerformanceA2uiActionSchema,
-  parseOdysseyA2uiDocument,
-} from "../../a2ui/document";
 import { withGoldDatabase } from "../curriculum/gold-database";
 import { learningDb } from "./sqlite-repository";
-import { getLearnerPerformanceDocument } from "./performance";
+import {
+  getLearnerPerformanceReport,
+  type PerformanceReport,
+} from "./performance";
 
 function seedReviewedStandard(input: {
   subject: string;
@@ -35,23 +34,29 @@ function seedReviewedStandard(input: {
   });
 }
 
-function textById(
-  document: ReturnType<typeof getLearnerPerformanceDocument>,
-  id: string,
-): string {
-  const message = document.messages[1].updateComponents;
-  const component = message.components.find((candidate) => candidate.id === id);
-  if (
-    !component ||
-    (component.component !== "OdysseyText" &&
-      component.component !== "OdysseyStatus")
-  )
-    throw new Error(`Missing text component ${id}`);
-  return component.text;
+function textById(report: PerformanceReport, id: string): string {
+  switch (id) {
+    case "summary":
+      return report.summary.text;
+    case "practice-evidence":
+      return report.practiceEvidence.text;
+    case "practice-detail":
+      return report.practiceDetail;
+    case "tests-detail":
+      return report.testsDetail;
+    case "achievements-detail":
+      return report.achievementsDetail;
+    case "fun-fact-detail":
+      return report.funFactDetail;
+    case "separation-note":
+      return report.separationNote;
+    default:
+      throw new Error(`Unknown report field ${id}`);
+  }
 }
 
 test("Performance has neutral factual empty states", () => {
-  const document = getLearnerPerformanceDocument("performance-empty");
+  const document = getLearnerPerformanceReport("performance-empty");
   expect(textById(document, "practice-detail")).toBe(
     "No Practice activity is recorded yet.",
   );
@@ -79,7 +84,7 @@ test("marks three reviewed Practice attempts as sufficient recent evidence", () 
 
   expect(
     textById(
-      getLearnerPerformanceDocument("performance-sufficient"),
+      getLearnerPerformanceReport("performance-sufficient"),
       "practice-evidence",
     ),
   ).toBe("Recent reviewed Practice evidence is available for 1 skill.");
@@ -147,7 +152,7 @@ test("Performance caps and redacts separate Practice and terminal Test evidence"
     )
     .run("performance-test", childId);
 
-  const document = getLearnerPerformanceDocument(childId);
+  const document = getLearnerPerformanceReport(childId);
   const practice = textById(document, "practice-detail");
   const tests = textById(document, "tests-detail");
   expect(textById(document, "practice-evidence")).toBe(
@@ -175,7 +180,7 @@ test("Performance omits a Practice topic that is not in the reviewed catalog", (
     )
     .run();
 
-  const document = getLearnerPerformanceDocument("performance-unreviewed");
+  const document = getLearnerPerformanceReport("performance-unreviewed");
   expect(textById(document, "practice-detail")).toBe(
     "No Practice activity is recorded yet.",
   );
@@ -196,7 +201,7 @@ test("Performance bounds malformed persisted display text", () => {
       "G".repeat(1_000),
     );
 
-  const document = getLearnerPerformanceDocument(childId);
+  const document = getLearnerPerformanceReport(childId);
   expect(textById(document, "tests-detail").length).toBeLessThanOrEqual(320);
 });
 
@@ -239,27 +244,8 @@ function seedCompletedTestWithMissedStandard(input: {
     .run(`${input.childId}-session`);
 }
 
-function guidanceCards(
-  document: ReturnType<typeof getLearnerPerformanceDocument>,
-): {
-  id: string;
-  standardCode: string;
-  statusText: string;
-  action?: unknown;
-}[] {
-  return document.messages[1].updateComponents.components.flatMap(
-    (component) =>
-      component.component === "OdysseyGuidanceCard"
-        ? [
-            {
-              id: component.id,
-              standardCode: component.standardCode,
-              statusText: component.statusText,
-              action: component.action,
-            },
-          ]
-        : [],
-  );
+function guidanceCards(report: PerformanceReport) {
+  return report.guidanceCards;
 }
 
 test("Performance renders a guidance card with a validated practice action for a reviewed target", () => {
@@ -273,7 +259,7 @@ test("Performance renders a guidance card with a validated practice action for a
   seedCompletedTestWithMissedStandard({ childId: "performance-guidance" });
 
   const cards = guidanceCards(
-    getLearnerPerformanceDocument("performance-guidance"),
+    getLearnerPerformanceReport("performance-guidance"),
   );
   expect(cards).toEqual([
     {
@@ -281,12 +267,7 @@ test("Performance renders a guidance card with a validated practice action for a
       standardCode: "8.EE.7",
       statusText:
         "Missed on your latest completed Test. Practice is recommended.",
-      action: {
-        event: {
-          name: "performance.practice",
-          context: { topicId: "Mathematics::Grade 8::Expressions::8.EE.7" },
-        },
-      },
+      topicId: "Mathematics::Grade 8::Expressions::8.EE.7",
     },
   ]);
 });
@@ -297,12 +278,10 @@ test("Performance disables the action honestly when the target left the reviewed
     standardCode: "8.EE.9",
   });
 
-  const cards = guidanceCards(
-    getLearnerPerformanceDocument("performance-stale"),
-  );
+  const cards = guidanceCards(getLearnerPerformanceReport("performance-stale"));
   expect(cards).toHaveLength(1);
   expect(cards[0].standardCode).toBe("8.EE.9");
-  expect(cards[0].action).toBeUndefined();
+  expect(cards[0].topicId).toBeUndefined();
   expect(cards[0].statusText).toContain("no longer in the reviewed curriculum");
 });
 
@@ -325,7 +304,7 @@ test("guidance card status states checkpoint evidence without mastery claims", (
   insert.run("2026-03-04T00:00:00.000Z");
 
   const cards = guidanceCards(
-    getLearnerPerformanceDocument("performance-checkpoint"),
+    getLearnerPerformanceReport("performance-checkpoint"),
   );
   expect(cards[0].statusText).toContain("Checkpoint met");
   for (const word of [
@@ -381,13 +360,9 @@ test("long real-world topic identities stay actionable within the transport ceil
     )
     .run();
 
-  const cards = guidanceCards(
-    getLearnerPerformanceDocument("performance-long"),
-  );
+  const cards = guidanceCards(getLearnerPerformanceReport("performance-long"));
   expect(cards).toHaveLength(1);
-  expect(cards[0].action).toEqual({
-    event: { name: "performance.practice", context: { topicId: longTopicId } },
-  });
+  expect(cards[0].topicId).toBe(longTopicId);
 
   // Beyond the transport ceiling the card degrades honestly instead of
   // failing the whole document build.
@@ -426,144 +401,8 @@ test("long real-world topic identities stay actionable within the transport ceil
     )
     .run();
   const oversizeCards = guidanceCards(
-    getLearnerPerformanceDocument("performance-long"),
+    getLearnerPerformanceReport("performance-long"),
   );
   expect(oversizeCards).toHaveLength(2);
-  expect(oversizeCards[1].action).toBeUndefined();
-});
-
-test("A2UI documents reject unknown components and fields", () => {
-  expect(() =>
-    parseOdysseyA2uiDocument({
-      messages: [
-        {
-          version: "v0.9",
-          createSurface: {
-            surfaceId: "odyssey-performance",
-            catalogId: "odyssey.learning.v1",
-          },
-        },
-        {
-          version: "v0.9",
-          updateComponents: {
-            surfaceId: "odyssey-performance",
-            components: [
-              { component: "UntrustedWidget", id: "root", payload: "no" },
-            ],
-          },
-        },
-      ],
-    }),
-  ).toThrow();
-});
-
-test("A2UI documents reject recursive component graphs", () => {
-  expect(() =>
-    parseOdysseyA2uiDocument({
-      messages: [
-        {
-          version: "v0.9",
-          createSurface: {
-            surfaceId: "odyssey-performance",
-            catalogId: "odyssey.learning.v1",
-          },
-        },
-        {
-          version: "v0.9",
-          updateComponents: {
-            surfaceId: "odyssey-performance",
-            components: [
-              { component: "OdysseyColumn", id: "root", children: ["root"] },
-            ],
-          },
-        },
-      ],
-    }),
-  ).toThrow(/cycle/);
-});
-
-test("guidance card schema rejects unknown fields, bad ids, and foreign actions", () => {
-  const base = {
-    version: "v0.9",
-    createSurface: {
-      surfaceId: "odyssey-performance",
-      catalogId: "odyssey.learning.v1",
-    },
-  };
-  const documentWithCard = (card: Record<string, unknown>) =>
-    parseOdysseyA2uiDocument({
-      messages: [
-        base,
-        {
-          version: "v0.9",
-          updateComponents: {
-            surfaceId: "odyssey-performance",
-            components: [
-              {
-                component: "OdysseyColumn",
-                id: "root",
-                children: ["guidance-1"],
-              },
-              {
-                component: "OdysseyGuidanceCard",
-                id: "guidance-1",
-                standardCode: "8.EE.7",
-                statusText: "Missed on your latest completed Test.",
-                ...card,
-              },
-            ],
-          },
-        },
-      ],
-    });
-
-  expect(() =>
-    documentWithCard({
-      action: {
-        event: {
-          name: "performance.practice",
-          context: { topicId: "Mathematics::Grade 8::Expressions::8.EE.7" },
-        },
-      },
-    }),
-  ).not.toThrow();
-  expect(() =>
-    documentWithCard({
-      action: {
-        event: {
-          name: "practice.submit",
-          context: { topicId: "Mathematics::Grade 8::Expressions::8.EE.7" },
-        },
-      },
-    }),
-  ).toThrow();
-  expect(() =>
-    documentWithCard({
-      action: {
-        event: {
-          name: "performance.practice",
-          context: { topicId: "http://example.invalid" },
-        },
-      },
-    }),
-  ).toThrow();
-  expect(() => documentWithCard({ extra: "field" })).toThrow();
-});
-
-test("performance action schema accepts only the fixed guidance practice event", () => {
-  const accepted = {
-    name: "performance.practice",
-    surfaceId: "odyssey-performance",
-    sourceComponentId: "guidance-3",
-    context: { topicId: "Mathematics::Grade 8::Expressions::8.EE.7" },
-  };
-  expect(odysseyPerformanceA2uiActionSchema.parse(accepted)).toEqual(accepted);
-  for (const rejected of [
-    { ...accepted, name: "practice.submit" },
-    { ...accepted, surfaceId: "odyssey-practice" },
-    { ...accepted, sourceComponentId: "answer" },
-    { ...accepted, context: { topicId: "not-a-topic" } },
-    { ...accepted, context: { topicId: "a::b::c::d", extra: 1 } },
-  ])
-    expect(() => odysseyPerformanceA2uiActionSchema.parse(rejected)).toThrow();
+  expect(oversizeCards[1].topicId).toBeUndefined();
 });

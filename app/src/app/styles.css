@@ -2108,6 +2108,31 @@ button {
   background: #fffaeb;
   color: #7a5c10;
 }
+.interaction-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.interaction-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(60, 60, 92, 0.22);
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.interaction-option:has(input:checked) {
+  border-color: var(--brand-500, #3b5bdb);
+  background: rgba(59, 91, 219, 0.08);
+}
+
 .guidance-card {
   border: 1px solid #d8e2d8;
   border-radius: 12px;

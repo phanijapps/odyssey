@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { authenticateChild } from "../../../../server/identity/identity";
 import { learningDb } from "../../../../server/learning/sqlite-repository";
 import { GET } from "./route";
+import { formatPracticePhrases } from "../../../parent/performance-phrases";
 
 function provisionAccount(
   accountId: string,
@@ -68,25 +69,14 @@ test("parent Performance derives active child scope and redacts details", async 
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("no-store");
   const body = await response.json();
-  expect(body).toMatchObject({
-    document: {
-      messages: [
-        { createSurface: { surfaceId: "odyssey-parent-performance" } },
-        {
-          updateComponents: {
-            components: expect.arrayContaining([
-              expect.objectContaining({
-                component: "OdysseyText",
-                text: expect.stringContaining(
-                  "linked-child: 1 correct Practice answer · 1-day Practice streak · last practiced today",
-                ),
-              }),
-            ]),
-          },
-        },
-      ],
-    },
-  });
+  // The plain children projection is the only surface: active links only
+  // (revoked-child absent), exact ParentSafePerformance field set,
+  // username-ascending, with the portal's phrase wording available.
+  expect(body).not.toHaveProperty("document");
+  expect(body.children[0]).toMatchObject({ username: "linked-child" });
+  expect(formatPracticePhrases(body.children[0].performance).recency).toBe(
+    "last practiced today",
+  );
   // The structured children projection: active links only (revoked-child
   // absent), exact ParentSafePerformance field set, username-ascending.
   expect(body.children).toEqual([

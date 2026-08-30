@@ -1,4 +1,4 @@
-import type { OdysseyTestA2uiDocument } from "../../a2ui/test-document";
+import type { LearnerQuestionInteraction } from "../../server/learning/question-interactions";
 
 export type FlatStandard = {
   id: string;
@@ -41,8 +41,7 @@ export type AssessmentQuestion = {
   total: number;
   question: string;
   assignmentToken: string;
-  interaction?: unknown;
-  a2ui?: OdysseyTestA2uiDocument;
+  interaction?: LearnerQuestionInteraction;
   diagramSvg?: string;
 };
 

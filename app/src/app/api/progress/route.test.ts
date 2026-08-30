@@ -222,19 +222,20 @@ test("accepts the exact topic identity for a reviewed selected standard", async 
   await expect(response.json()).resolves.toMatchObject({
     nextQuestion: {
       assignmentToken: expect.any(String),
-      a2ui: {
-        messages: [
-          { createSurface: { surfaceId: "odyssey-practice" } },
-          { updateDataModel: { path: "/answer", value: "" } },
-          {
-            updateComponents: {
-              components: expect.arrayContaining([
-                expect.objectContaining({ component: "OdysseyTextResponse" }),
-              ]),
-            },
-          },
-        ],
+      interaction: {
+        type: "text-response",
+        response: { maxLength: 100 },
       },
     },
   });
+  await expect(
+    (
+      await GET(
+        new Request(
+          `http://localhost/api/progress?subject=Mathematics&grade=Grade%208&domain=Selection%20fixture&standard=8.F.1&topicId=${encodeURIComponent(topicId)}`,
+          { headers: { cookie: `session=${session.sessionToken}` } },
+        ),
+      )
+    ).json(),
+  ).resolves.not.toHaveProperty("nextQuestion.a2ui");
 });

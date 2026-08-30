@@ -93,15 +93,9 @@ test("presents a bounded interaction without assessment answer material", async 
         prompt: "Solve 2x = 8.",
         response: { maxLength: 100 },
       },
-      a2ui: {
-        messages: [
-          { createSurface: { surfaceId: "odyssey-test" } },
-          { updateDataModel: { path: "/answer", value: "" } },
-          expect.any(Object),
-        ],
-      },
     },
   });
+  expect(response.question).not.toHaveProperty("a2ui");
   expect(JSON.stringify(response.question)).not.toMatch(
     /correctAnswer|score|solution/i,
   );
