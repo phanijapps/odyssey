@@ -1,6 +1,6 @@
 # RFC-0006 simplification — execution spec
 
-**Status**: Implementing
+**Status:** Shipped
 **Mode:** full (risk triggers: structural change, dependent tasks, security-adjacent deletions)
 **Contract of record:** [`docs/rfc/0006-simplify-to-persona-app.md`](../../rfc/0006-simplify-to-persona-app.md) (rev 2, adversarially reviewed; owner approved in session 2026-08-30)
 

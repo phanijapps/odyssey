@@ -39,6 +39,10 @@ open = [
   # them onto the reviewed-catalog seeder and drop ODYSSEY_SEED_CATALOG=0
   # from playwright.config.ts.
   {slug = "rfc0006-e2e-seeder-migration", source = "spec/rfc0006-simplification T6", summary = "Migrate e2e Gold seeding to the catalog seeder; remove the seed-off e2e posture"},
+  # Pre-existing (round-2 review, not caused by RFC-0006 work): the public
+  # route table in application.md covers only the learner surface; parent,
+  # admin, performance, and suggested-practice routes were never listed.
+  {slug = "route-table-complete-inventory", source = "review/rfc0006-simplification round 2", summary = "Add parent/admin/performance/suggested-practice routes to the application.md route table"},
   # A fully metadata-safe dirty/untracked check needs a reviewed manifest or a
   # non-Git source-state protocol; do not execute worktree-inspecting Git commands
   # against an untrusted checkout without that design decision.
