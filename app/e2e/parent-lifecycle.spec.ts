@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { signIn } from "./sign-in";
 import { join } from "node:path";
 
-const databasePath = join(process.cwd(), ".playwright-parent.db");
+const databasePath = join(process.cwd(), "data", "e2e", ".playwright-parent.db");
 
 test("parent creates, resets, and revokes a child account", async ({
   page,

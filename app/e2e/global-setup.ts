@@ -14,8 +14,8 @@ import { join } from "node:path";
  */
 export default function globalSetup(): void {
   for (const base of [
-    join(process.cwd(), ".playwright-parent.db"),
-    join(process.cwd(), ".playwright-curriculum.db"),
+    join(process.cwd(), "data", "e2e", ".playwright-parent.db"),
+    join(process.cwd(), "data", "e2e", ".playwright-curriculum.db"),
   ])
     for (const suffix of ["", "-shm", "-wal"])
       rmSync(`${base}${suffix}`, { force: true });

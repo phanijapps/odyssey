@@ -3,8 +3,8 @@ import { mkdirSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-const DEFAULT_LEARNING_DATABASE_PATH = "odyssey-learning.db";
-const DEFAULT_CURRICULUM_DATABASE_PATH = "odyssey-curriculum.db";
+const DEFAULT_LEARNING_DATABASE_PATH = "data/odyssey-learning.db";
+const DEFAULT_CURRICULUM_DATABASE_PATH = "data/odyssey-curriculum.db";
 const BUSY_TIMEOUT_MS = 5_000;
 const LATEST_SCHEMA_VERSION = 12;
 

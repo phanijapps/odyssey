@@ -1,8 +1,18 @@
 import { defineConfig } from "@playwright/test";
 import { join } from "node:path";
 
-const databasePath = join(process.cwd(), ".playwright-parent.db");
-const curriculumDatabasePath = join(process.cwd(), ".playwright-curriculum.db");
+const databasePath = join(
+  process.cwd(),
+  "data",
+  "e2e",
+  ".playwright-parent.db",
+);
+const curriculumDatabasePath = join(
+  process.cwd(),
+  "data",
+  "e2e",
+  ".playwright-curriculum.db",
+);
 
 export default defineConfig({
   testDir: "./e2e",

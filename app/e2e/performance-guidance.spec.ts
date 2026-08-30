@@ -3,8 +3,8 @@ import { signIn } from "./sign-in";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-const databasePath = join(process.cwd(), ".playwright-parent.db");
-const curriculumDatabasePath = join(process.cwd(), ".playwright-curriculum.db");
+const databasePath = join(process.cwd(), "data", "e2e", ".playwright-parent.db");
+const curriculumDatabasePath = join(process.cwd(), "data", "e2e", ".playwright-curriculum.db");
 
 /** Seeds the one reviewed Gold standard the guidance target must resolve to. */
 function seedReviewedCurriculum(): void {

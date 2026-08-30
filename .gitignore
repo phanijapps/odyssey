@@ -72,3 +72,6 @@ docs/knowledge/*.lock.stale-*
 # Local tooling artifacts (embedding model cache, local MCP config)
 .fastembed_cache/
 .mcp.json
+app/data/*
+!app/data/README.md
+!app/data/.gitkeep
