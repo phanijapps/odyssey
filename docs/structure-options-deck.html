@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Odyssey — Package structure options</title>
+    <title>Odyssey — Full repository structure (v2, research-verified)</title>
     <style>
       :root {
         --bg: #eef0f4;
@@ -58,7 +58,7 @@
       .slide {
         position: absolute;
         inset: 0;
-        padding: 52px 64px 44px;
+        padding: 48px 60px 40px;
         display: none;
       }
       .slide.active {
@@ -66,47 +66,40 @@
         flex-direction: column;
       }
       .kicker {
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 800;
         letter-spacing: 0.14em;
         text-transform: uppercase;
         color: var(--brand);
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
       h1 {
-        font-size: 46px;
+        font-size: 44px;
         line-height: 1.12;
         letter-spacing: -0.8px;
       }
       h2 {
-        font-size: 32px;
+        font-size: 30px;
         line-height: 1.15;
         letter-spacing: -0.5px;
         margin-bottom: 8px;
       }
       .lead {
-        font-size: 18px;
+        font-size: 17px;
         color: var(--muted);
-        max-width: 960px;
-        margin-bottom: 18px;
+        max-width: 980px;
+        margin-bottom: 14px;
       }
       .content {
         flex: 1;
         min-height: 0;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 12px;
       }
       .cols {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 16px;
-        flex: 1;
-        min-height: 0;
-      }
-      .cols3 {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
         gap: 14px;
         flex: 1;
         min-height: 0;
@@ -115,38 +108,38 @@
         background: var(--surface);
         border: 1px solid var(--line);
         border-radius: var(--radius);
-        padding: 16px 18px;
+        padding: 14px 16px;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 5px;
       }
       .card h3 {
-        font-size: 15.5px;
+        font-size: 15px;
       }
       .card p,
       .card li {
-        font-size: 13.5px;
+        font-size: 13px;
         color: var(--muted);
       }
       .card ul {
-        padding-left: 18px;
+        padding-left: 17px;
         display: grid;
-        gap: 4px;
+        gap: 3px;
       }
       code {
         background: var(--accent);
         border-radius: 6px;
         padding: 1px 6px;
-        font-size: 12.5px;
+        font-size: 12px;
         color: var(--ink);
         font-family: ui-monospace, monospace;
       }
       .tag {
         display: inline-block;
-        font-size: 11px;
+        font-size: 10.5px;
         font-weight: 800;
         border-radius: 999px;
-        padding: 2px 10px;
+        padding: 2px 9px;
         letter-spacing: 0.05em;
       }
       .tag.keep {
@@ -168,7 +161,7 @@
       table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13.5px;
+        font-size: 13px;
         background: var(--surface);
         border: 1px solid var(--line);
         border-radius: 12px;
@@ -176,16 +169,16 @@
       }
       th {
         text-align: left;
-        font-size: 11px;
+        font-size: 10.5px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: var(--muted);
-        padding: 8px 12px;
+        padding: 7px 11px;
         background: #fbfcfe;
         border-bottom: 1px solid var(--line);
       }
       td {
-        padding: 8px 12px;
+        padding: 7px 11px;
         border-bottom: 1px solid var(--line);
         vertical-align: top;
       }
@@ -194,12 +187,12 @@
       }
       .tree {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 13.5px;
-        line-height: 1.62;
+        font-size: 12.6px;
+        line-height: 1.58;
         background: var(--surface);
         border: 1px solid var(--line);
         border-radius: 12px;
-        padding: 14px 18px;
+        padding: 12px 16px;
         white-space: pre;
         overflow: hidden;
       }
@@ -213,6 +206,9 @@
       .tree .new {
         color: var(--ok);
         font-weight: 700;
+      }
+      .tree .gone {
+        color: var(--bad);
       }
       .nav {
         position: fixed;
@@ -269,64 +265,35 @@
         justify-content: center;
       }
       .title-slide .logo {
-        width: 78px;
-        height: 78px;
-        border-radius: 22px;
+        width: 74px;
+        height: 74px;
+        border-radius: 20px;
         background: linear-gradient(135deg, #3b5bdb, #7048e8);
         color: #fff;
         display: grid;
         place-items: center;
-        font-size: 38px;
+        font-size: 36px;
         font-weight: 800;
-        margin-bottom: 26px;
+        margin-bottom: 24px;
       }
       .title-slide .sub {
-        font-size: 20px;
+        font-size: 19px;
         color: var(--muted);
         margin-top: 8px;
-        max-width: 860px;
+        max-width: 880px;
       }
       .title-slide .meta {
-        font-size: 13.5px;
+        font-size: 13px;
         color: var(--muted);
-        margin-top: 30px;
+        margin-top: 26px;
       }
       .ref {
-        font-size: 12.5px;
+        font-size: 12px;
         color: var(--brand);
         font-weight: 600;
       }
-      .score {
-        display: inline-grid;
-        place-items: center;
-        min-width: 26px;
-        height: 20px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 800;
-      }
-      .s5 {
-        background: var(--ok-bg);
-        color: var(--ok);
-      }
-      .s4 {
-        background: #e9f7ec;
-        color: #2b8a3e;
-      }
-      .s3 {
-        background: var(--accent);
-        color: var(--brand);
-      }
-      .s2 {
-        background: var(--warn-bg);
-        color: var(--warn);
-      }
-      .s1 {
-        background: var(--bad-bg);
-        color: var(--bad);
-      }
       .footnote {
-        font-size: 12.5px;
+        font-size: 12px;
         color: var(--muted);
       }
       @media print {
@@ -359,587 +326,537 @@
         <!-- 1 TITLE -->
         <section class="slide title-slide active">
           <div class="logo">Ω</div>
-          <h1>
-            One repo, four shapes.<br />Pick the one you'll love living in.
-          </h1>
+          <h1>The full structure.<br />Verified, not vibes.</h1>
           <p class="sub">
-            A decision deck for Odyssey's package structure — grounded in what's
-            actually in <code>apps/web/</code> today, each option paired with
-            the OSS repos that prove it, scored against your rules:
-            <b>simple, flat, no noise, docs that tell the truth.</b>
+            You asked what the <b>whole repo</b> looks like — where e2e lives,
+            where data lives, and whether "features" deserves to exist. Tonight
+            I checked the real repos directly via the GitHub API. Here are three
+            complete top-to-bottom shapes, each proven by a repo you can open
+            right now.
           </p>
           <p class="meta">
-            No code touched · decision artifact only · 2026-08-30 · branch
-            <code>simplify/persona-app</code>
+            v2 · supersedes the features-first deck · no code touched ·
+            live-verified 2026-08-30
           </p>
         </section>
 
-        <!-- 2 DIAGNOSIS -->
+        <!-- 2 EVIDENCE -->
         <section class="slide">
-          <div class="kicker">Diagnosis — measured, not vibes</div>
-          <h2>What's actually still wrong inside apps/web</h2>
+          <div class="kicker">Evidence — pulled from GitHub tonight</div>
+          <h2>What the professionals actually do</h2>
           <p class="lead">
-            The layout shell is already fine (apps/ + packages/). The pain is
-            <b>inside</b> — and it's specific:
+            Not blog advice — directory listings fetched live from each repo:
           </p>
-          <div class="content">
-            <div class="cols">
-              <div class="card">
-                <h3>The real offenders</h3>
-                <ul>
-                  <li>
-                    <code>app/page.tsx</code> — a <b>948-line god component</b>:
-                    auth screen, grade picker, search, suggestions, practice
-                    wiring, test wiring — six jobs in one file. This is 80% of
-                    the "confusing as hell" feeling.
-                  </li>
-                  <li>
-                    <code>components/ui/button.tsx</code> +
-                    <code>card.tsx</code> —
-                    <b>161 lines of dead shadcn primitives, zero callers</b>.
-                    Pure noise.
-                  </li>
-                  <li>
-                    <code>lib/utils.ts</code> — a 6-line file owning one
-                    <code>cn()</code>. A whole directory for six lines.
-                  </li>
-                  <li>
-                    <code>app/api/**</code> — 24 route handlers up to
-                    <b>5 folders deep</b>, interleaved with the UI tree.
-                  </li>
-                </ul>
-              </div>
-              <div class="card">
-                <h3>What's already right (keep)</h3>
-                <ul>
-                  <li>
-                    <code>server/</code> — six honest domain modules, one guide,
-                    tests colocated <span class="tag keep">keep</span>
-                  </li>
-                  <li>
-                    <code>packages/practice-engine</code> — pure domain,
-                    injected boundary <span class="tag keep">keep</span>
-                  </li>
-                  <li>
-                    <code>data/</code>, <code>e2e/</code>, <code>test/</code> —
-                    one obvious home each <span class="tag keep">keep</span>
-                  </li>
-                  <li>
-                    22 guide files → 1 <code>AGENTS.md</code> — already
-                    de-noised <span class="tag keep">done</span>
-                  </li>
-                </ul>
-                <p style="margin-top: auto">
-                  So the question isn't "restructure everything" — it's
-                  <b
-                    >where do features live, and how deep does anything nest.</b
-                  >
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 3 RULES -->
-        <section class="slide">
-          <div class="kicker">The bar every option must clear</div>
-          <h2>What "good" means here</h2>
-          <div class="content">
-            <div class="cols3">
-              <div class="card">
-                <h3>1 · One glance, one answer</h3>
-                <p>
-                  Any folder name answers exactly one question — "routes", "a
-                  feature", "domain logic" — without reading a doc first. No
-                  folder that means two things (today <code>app/</code> means
-                  pages <i>and</i> HTTP handlers).
-                </p>
-              </div>
-              <div class="card">
-                <h3>2 · Flat beats nested</h3>
-                <p>
-                  Max 3 levels before you reach code. A path you can say out
-                  loud: <code>features/practice/question-card.tsx</code> — not
-                  <code
-                    >src/app/(student)/_components/practice/__fragments/…</code
-                  >.
-                </p>
-              </div>
-              <div class="card">
-                <h3>3 · God files can't hide</h3>
-                <p>
-                  The structure itself makes 900-line components impossible or
-                  embarrassing: every screen has an obvious home for its parts,
-                  so parts migrate out naturally.
-                </p>
-              </div>
-              <div class="card">
-                <h3>4 · Docs tell the truth</h3>
-                <p>
-                  One AGENTS.md whose layout tree matches reality, one README
-                  that never rots. Structure so simple the docs are short.
-                </p>
-              </div>
-              <div class="card">
-                <h3>5 · Cheap to move in</h3>
-                <p>
-                  You (and agents) add a screen or a feature by creating files
-                  in <i>one</i> obvious place — never touching five directories
-                  to ship one feature.
-                </p>
-              </div>
-              <div class="card">
-                <h3>6 · Matches the framework</h3>
-                <p>
-                  Next.js owns <code>app/</code> routing conventions. Winning
-                  options work <i>with</i> App Router, not against it — no
-                  fighting the toolkit.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 4 OPTION A -->
-        <section class="slide">
-          <div class="kicker">
-            Option A · Feature-first <span class="tag new">recommended</span>
-          </div>
-          <h2>Vertical features — every screen owns its folder</h2>
-          <div class="cols">
-            <div class="tree">
-              apps/web/ ├── <b>app/</b>
-              <span class="dim"># thin Next routes only</span> │ ├── page.tsx
-              <span class="dim"># ← imports features/practice</span> │ ├──
-              parent/page.tsx │ ├── dashboard/page.tsx │ ├──
-              performance/page.tsx │ └── api/…
-              <span class="dim"># thin HTTP adapters → server/</span> ├──
-              <b class="new">features/</b>
-              <span class="dim"># THE unit of organization</span> │ ├──
-              <span class="new">practice/</span>
-              <span class="dim"># student screen: question card,</span> │ │ └──
-              …
-              <span class="dim"># feedback, skill picker, grade picker</span> │
-              ├── <span class="new">assessment/</span>
-              <span class="dim"># test mode</span> │ ├──
-              <span class="new">parent-portal/</span>
-              <span class="dim"># cards, suggestions, export</span> │ └──
-              <span class="new">admin/</span>
-              <span class="dim"># console panels</span> ├── <b>components/</b>
-              <span class="dim"
-                ># truly shared: interaction-answer, math-text</span
-              >
-              ├── <b>server/</b>
-              <span class="dim"># shared domain (unchanged)</span> └──
-              <b>test/ e2e/ data/</b>
-            </div>
-            <div class="card">
-              <h3>Why it's good</h3>
-              <ul>
-                <li>
-                  <b>Cohesion:</b> everything about practice — its card, its
-                  picker, its state — sits in one folder. The 948-line page
-                  dissolves into <code>features/practice/</code> naturally.
-                </li>
-                <li>
-                  <b>Cheap to extend:</b> new screen = new folder. Nothing else
-                  moves.
-                </li>
-                <li>
-                  <b>Boundary rule is one sentence:</b> features may import
-                  <code>server/</code> and <code>components/</code>; never each
-                  other's guts.
-                </li>
-                <li>
-                  <b>Still Next-native:</b> <code>app/</code> stays a thin
-                  router — no framework fight.
-                </li>
-              </ul>
-              <h3>Who ships this</h3>
-              <p class="ref">cal.com/cal.com</p>
-              <p>
-                Their app is organized as features
-                (<code>packages/features/books</code>,
-                <code>event-types</code>…) with a thin route layer — the
-                most-studied Next.js monorepo on GitHub. Same idea, scaled to
-                their size.
-              </p>
-              <p class="footnote">
-                Cost to adopt: medium (split the god page into features — which
-                needs doing under any option).
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- 5 OPTION B -->
-        <section class="slide">
-          <div class="kicker">Option B · Domain packages</div>
-          <h2>Everything reusable is a workspace package</h2>
-          <div class="cols">
-            <div class="tree">
-              odyssey/ ├── <b>apps/web/</b>
-              <span class="dim"># thin shell: routes + wiring</span> │ ├── app/
-              components/ test/ e2e/ data/ ├── <b>packages/</b> │ ├──
-              practice-engine/ <span class="dim"># ✅ already exists</span> │
-              ├── <span class="new">identity/</span>
-              <span class="dim"># accounts, sessions, links</span> │ ├──
-              <span class="new">curriculum/</span>
-              <span class="dim"># catalog + seeder + browse</span> │ ├──
-              <span class="new">learning/</span>
-              <span class="dim"># progression, assessment</span> │ └──
-              <span class="new">ui/</span>
-              <span class="dim"># shared components</span> └── docs/
-            </div>
-            <div class="card">
-              <h3>Why it's good</h3>
-              <ul>
-                <li>
-                  <b>Hard boundaries:</b> cross-domain imports must go through
-                  package exports — the compiler enforces architecture.
-                </li>
-                <li>
-                  <b>Each domain</b> gets its own tests, README, version — tidy
-                  at any scale.
-                </li>
-              </ul>
-              <h3>The honest cost, for this repo</h3>
-              <ul>
-                <li>
-                  Every package is ceremony: package.json + tsconfig + vitest +
-                  workspace wiring × 5 more.
-                </li>
-                <li>
-                  Your own repo rule (inherited from the brief):
-                  <i>extract only when two consumers exist</i>. practice-engine
-                  earned it; identity/learning have exactly one.
-                </li>
-                <li>More top-level motion, not less.</li>
-              </ul>
-              <h3>Who ships this</h3>
-              <p class="ref">
-                dubinc/dub · midday-ai/midday · triggerdotdev/trigger.dev
-              </p>
-              <p>
-                Dub (<code>packages/ui, api, core</code>) and Midday (<code
-                  >packages/api, db, ui, engine</code
-                >) are the canonical Turborepo references. Right call
-                <b>for platform teams</b>; heavy for a family-run local app.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- 6 OPTION C -->
-        <section class="slide">
-          <div class="kicker">Option C · Next-canonical colocation</div>
-          <h2>Framework default, discipline via route groups</h2>
-          <div class="cols">
-            <div class="tree">
-              apps/web/ ├── <b>app/</b> │ ├──
-              <span class="new">(student)/</span> │ │ ├── page.tsx │ │ └──
-              <span class="new">_components/</span>
-              <span class="dim"># private to this route</span> │ ├──
-              <span class="new">(parent)/</span> _components/ … │ ├──
-              <span class="new">(admin)/</span> _components/ … │ ├── api/… │ └──
-              layout.tsx ├── components/
-              <span class="dim"># cross-route shared only</span> ├── server/
-              test/ e2e/ data/
-            </div>
-            <div class="card">
-              <h3>Why it's good</h3>
-              <ul>
-                <li>
-                  <b>Zero invented conventions:</b> route groups
-                  <code>(name)</code> and private folders <code>_x</code> are
-                  documented Next.js features — every Next dev (and agent)
-                  already reads this shape.
-                </li>
-                <li>
-                  <b>Colocation law:</b> a screen's parts live beside it;
-                  shared-only goes to <code>components/</code>. The god page
-                  splits the same way.
-                </li>
-                <li>
-                  <b>Cheapest migration</b> of all options — mostly moving files
-                  down one level.
-                </li>
-              </ul>
-              <h3>The trade-off</h3>
-              <p>
-                <code>app/</code> still means "pages and API and route-private
-                parts". Feature logic stays smeared between
-                <code>app/(x)/_components</code> and <code>components/</code> —
-                the thing you dislike doesn't fully die, it just gets politer.
-              </p>
-              <h3>Who ships this</h3>
-              <p class="ref">
-                Next.js official docs · create-t3-app · vercel/examples
-              </p>
-              <p>
-                The default structure of the ecosystem — maximal familiarity,
-                minimal opinion.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- 7 OPTION D -->
-        <section class="slide">
-          <div class="kicker">Option D · Formal methodology</div>
-          <h2>Feature-Sliced Design — the full ceremony</h2>
-          <div class="cols">
-            <div class="tree">
-              apps/web/ ├── app/ <span class="dim"># layer: routes</span> ├──
-              <span class="new">pages/</span>
-              <span class="dim"># layer: screen composers</span> ├──
-              <span class="new">widgets/</span>
-              <span class="dim"># layer: standalone blocks</span> ├──
-              <span class="new">features/</span>
-              <span class="dim"># layer: user actions</span> ├──
-              <span class="new">entities/</span>
-              <span class="dim"># layer: domain objects</span> ├──
-              <span class="new">shared/</span>
-              <span class="dim"># layer: ui kit, utils</span> └── server/
-            </div>
-            <div class="card">
-              <h3>Why people love it</h3>
-              <ul>
-                <li>
-                  Strict import law between layers — architecture is
-                  mechanically enforceable, scales to large teams.
-                </li>
-                <li>
-                  Every file has exactly one legal home; nothing is ambiguous.
-                </li>
-              </ul>
-              <h3>Why not here — said plainly</h3>
-              <ul>
-                <li>
-                  <b>Six layers for a three-screen local app</b> is process
-                  cosplay. You asked for no nested garbage; FSD is
-                  professional-grade nesting.
-                </li>
-                <li>
-                  Every feature touches 4+ folders; agents need a rulebook to
-                  place a file.
-                </li>
-              </ul>
-              <h3>Who ships this</h3>
-              <p class="ref">feature-sliced.design (methodology)</p>
-              <p>
-                Widely used in product teams (esp. EU/RU ecosystem) and Next
-                adapters exist. Included for completeness and honesty —
-                <b>not recommended for Odyssey's size.</b>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- 8 MATRIX -->
-        <section class="slide">
-          <div class="kicker">Side by side</div>
-          <h2>Scored against your rules</h2>
           <div class="content">
             <table>
               <tr>
-                <th>Criterion (your words)</th>
-                <th>A · Feature-first</th>
-                <th>B · Domain packages</th>
-                <th>C · Next-canonical</th>
-                <th>D · FSD</th>
+                <th>Repo</th>
+                <th>Inside their app (verified)</th>
+                <th>What it proves</th>
               </tr>
               <tr>
-                <td><b>Simple, no noise</b></td>
-                <td><span class="score s5">5</span> one new top folder</td>
-                <td><span class="score s2">2</span> 5× package ceremony</td>
-                <td><span class="score s4">4</span> zero new concepts</td>
-                <td><span class="score s1">1</span> six layers</td>
-              </tr>
-              <tr>
-                <td><b>Flat, not nested garbage</b></td>
-                <td><span class="score s5">5</span> features/x/* — depth 2</td>
-                <td><span class="score s3">3</span> flat per pkg, many pkgs</td>
-                <td><span class="score s3">3</span> _components nesting</td>
-                <td><span class="score s1">1</span> layers everywhere</td>
-              </tr>
-              <tr>
-                <td><b>Kills the god page</b></td>
+                <td><b>calcom/cal.com</b></td>
                 <td>
-                  <span class="score s5">5</span> features are its natural grave
+                  <code>apps/web/</code> =
+                  <code
+                    >app · components · lib · <b>modules</b> · playwright ·
+                    public · scripts · server · styles · test</code
+                  >
                 </td>
                 <td>
-                  <span class="score s3">3</span> still need features inside web
+                  The biggest Next.js monorepo calls the layer <b>modules/</b> —
+                  not features. e2e = <code>playwright/</code>. Unit helpers =
+                  <code>test/</code>.
                 </td>
-                <td><span class="score s4">4</span> colocation does it</td>
-                <td><span class="score s4">4</span> pages/widgets split it</td>
               </tr>
               <tr>
-                <td><b>Docs/AGENTS stay short & true</b></td>
+                <td><b>dubinc/dub</b></td>
                 <td>
-                  <span class="score s5">5</span> one-sentence boundary rule
+                  <code>apps/web/</code> =
+                  <code
+                    >app · lib · playwright · prisma · public · scripts · styles
+                    · tests · ui</code
+                  >
                 </td>
-                <td><span class="score s3">3</span> per-package docs × 6</td>
-                <td><span class="score s4">4</span> docs = Next docs</td>
-                <td><span class="score s2">2</span> methodology rulebook</td>
+                <td>
+                  <b>No features/modules layer at all</b> — routes + colocation.
+                  e2e = <code>playwright/</code>, unit = <code>tests/</code>.
+                </td>
               </tr>
               <tr>
-                <td><b>Effort to adopt now</b></td>
+                <td><b>twentyhq/twenty</b></td>
                 <td>
-                  <span class="score s4">4</span> split page (needed anyway)
+                  <code>packages/twenty-e2e-testing/</code> =
+                  <code>lib · reporters · tests</code>
                 </td>
-                <td><span class="score s1">1</span> 5 package extractions</td>
-                <td><span class="score s5">5</span> file moves only</td>
-                <td><span class="score s1">1</span> full re-layering</td>
+                <td>
+                  The heavyweight option:
+                  <b>e2e as its own workspace package</b> with its own
+                  dependencies.
+                </td>
               </tr>
               <tr>
-                <td><b>Scales if Odyssey grows</b></td>
-                <td><span class="score s4">4</span> features→packages later</td>
-                <td><span class="score s5">5</span> built for scale</td>
+                <td><b>actualbudget/actual</b></td>
                 <td>
-                  <span class="score s3">3</span> strains past ~15 screens
+                  repo root contains <code>data/</code> (git-kept with
+                  <code>.gitkeep</code>)
                 </td>
-                <td><span class="score s5">5</span> built for armies</td>
+                <td>
+                  Local-first apps put <b>runtime data at the repo root</b> —
+                  one obvious, visible home.
+                </td>
+              </tr>
+              <tr>
+                <td><b>midday · docmost · formbricks · novu</b></td>
+                <td>
+                  all =
+                  <code>apps/ + packages/ (+ docs, patches, scripts)</code>
+                </td>
+                <td>
+                  The <code>apps/* + packages/*</code> shell we already have is
+                  the ecosystem standard. Nothing to fix there.
+                </td>
+              </tr>
+            </table>
+            <p class="footnote">
+              Sources: github.com/calcom/cal.com/tree/main/apps/web ·
+              github.com/dubinc/dub/tree/main/apps/web ·
+              github.com/twentyhq/twenty/tree/main/packages/twenty-e2e-testing ·
+              github.com/actualbudget/actual — fetched 2026-08-30.
+            </p>
+          </div>
+        </section>
+
+        <!-- 3 NAMING -->
+        <section class="slide">
+          <div class="kicker">The naming verdict</div>
+          <h2>You were right — "features" is bookish</h2>
+          <div class="content">
+            <div class="cols3">
+              <div class="card">
+                <h3>Most professional repos</h3>
+                <p style="font-size: 15px"><b>No layer at all.</b></p>
+                <p>
+                  dub, midday, formbricks, novu, docmost: thin
+                  <code>app/</code> + colocated parts + shared dirs. The route
+                  tree <i>is</i> the feature list.
+                </p>
+              </div>
+              <div class="card">
+                <h3>The biggest one</h3>
+                <p style="font-size: 15px">
+                  <b>calls it <code>modules/</code></b>
+                </p>
+                <p>
+                  cal.com — 100k+ stars of Next.js at scale — organizes app
+                  logic as <code>apps/web/modules/…</code>. Professional,
+                  boring, says what it means.
+                </p>
+              </div>
+              <div class="card">
+                <h3>Nobody serious</h3>
+                <p style="font-size: 15px">
+                  <b>uses <code>features/</code> inside an app</b>
+                </p>
+                <p>
+                  That's tutorial/blog vocabulary (and cal.com's old package
+                  experiment). Dropped from every option below.
+                </p>
+              </div>
+            </div>
+            <div
+              class="card"
+              style="flex-direction: row; align-items: center; gap: 12px"
+            >
+              <span class="tag new">so</span>
+              <p>
+                Every option ahead uses either <b>nothing</b> (pure colocation)
+                or <b><code>modules/</code></b> (cal.com's word). Both are
+                industry-proven. Both are two syllables.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4 OPTION 1 -->
+        <section class="slide">
+          <div class="kicker">
+            Option 1 · The cal.com shape
+            <span class="tag new">recommended</span>
+          </div>
+          <h2>modules/ + playwright/ + root data/</h2>
+          <div class="cols">
+            <div class="tree">
+              odyssey/ ├── <b>apps/</b> │ └── <b>web/</b> │ ├── app/
+              <span class="dim"># thin routes + api/ adapters</span> │ ├──
+              <b class="new">modules/</b>
+              <span class="dim"># ← cal.com's word</span> │ │ ├── practice/
+              <span class="dim"># sign-in, grade pick, skill browse,</span> │ │
+              │ <span class="dim"># question+feedback, banner</span> │ │ ├──
+              assessment/ │ │ ├── parent/ │ │ └── admin/ │ ├── components/
+              <span class="dim"># cross-screen shared (3 files)</span> │ ├──
+              server/ <span class="dim"># domain — unchanged</span> │ ├── lib/
+              test/ │ ├── <b class="new">playwright/</b>
+              <span class="dim"># e2e — cal.com & dub's home</span> │ └──
+              public/ ├── <b>packages/</b> │ └── practice-engine/ ├──
+              <b class="new">data/</b>
+              <span class="dim"># runtime state — repo root,</span> │
+              <span class="dim"># actualbudget-style, git-ignored</span> ├──
+              docs/ tools/ README.md AGENTS.md …
+            </div>
+            <div class="content" style="gap: 10px">
+              <div class="card">
+                <h3>Why it's right for you</h3>
+                <ul>
+                  <li>
+                    <b>Every complaint answered:</b> e2e →
+                    <code>playwright/</code> (visible, named by tool); data →
+                    repo root (one obvious home, like actualbudget); screens →
+                    <code>modules/</code> (professional, kills the god page).
+                  </li>
+                  <li>
+                    <b>Exact match</b> to the most-scaled Next.js repo on earth
+                    — you can diff your tree against cal.com's and see the same
+                    bones.
+                  </li>
+                  <li>AGENTS.md structure section: still two sentences.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Proven by</h3>
+                <p class="ref">
+                  cal.com (modules/, playwright/, server/) · actualbudget (root
+                  data/)
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5 OPTION 2 -->
+        <section class="slide">
+          <div class="kicker">Option 2 · The dub shape</div>
+          <h2>No layer at all — pure colocation</h2>
+          <div class="cols">
+            <div class="tree">
+              odyssey/ ├── <b>apps/</b> │ └── <b>web/</b> │ ├── app/ │ │ ├──
+              (student)/ │ │ │ ├── page.tsx │ │ │ └──
+              <span class="new">components/</span>
+              <span class="dim"># screen-private parts</span> │ │ ├── (parent)/
+              components/ … │ │ ├── (admin)/ components/ … │ │ └── api/…
+              <span class="dim"># thin adapters</span> │ ├── components/
+              <span class="dim"># cross-screen only</span> │ ├── server/
+              <span class="dim"># domain — unchanged</span> │ ├── lib/ │ ├──
+              <b class="new">playwright/</b> │ └── <b class="new">tests/</b>
+              <span class="dim"># unit setup+helpers</span> ├──
+              <b>packages/practice-engine/</b> ├── <b class="new">data/</b>
+              <span class="dim"># runtime state, repo root</span> └── docs/ …
+            </div>
+            <div class="content" style="gap: 10px">
+              <div class="card">
+                <h3>Why it's good</h3>
+                <ul>
+                  <li>
+                    <b>Zero invented vocabulary</b> — no modules, no features;
+                    Next's own route groups do the grouping.
+                  </li>
+                  <li>
+                    Smallest diff from today: split the god page into
+                    <code>(student)/components/</code>, rename e2e →
+                    <code>playwright/</code>, test → <code>tests/</code>, move
+                    data to root.
+                  </li>
+                  <li>Fewest top-level names to remember.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>The trade-off</h3>
+                <p>
+                  Screen logic lives under <code>app/</code> — the folder still
+                  means "routes <i>and</i> their parts". At 4 screens that's
+                  fine; at 15 it starts to smear. dub lives happily this way;
+                  cal.com outgrew it.
+                </p>
+                <h3>Proven by</h3>
+                <p class="ref">
+                  dubinc/dub (this exact shape) · create-t3-app · most Next apps
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6 OPTION 3 -->
+        <section class="slide">
+          <div class="kicker">Option 3 · The twenty shape</div>
+          <h2>E2E as its own workspace package</h2>
+          <div class="cols">
+            <div class="tree">
+              odyssey/ ├── <b>apps/</b> │ └── <b>web/</b> │ ├── app/ (modules/
+              or colocation — │ │ pick 1 or 2 first) │ ├── components/ server/
+              lib/ tests/ ├── <b>packages/</b> │ ├── practice-engine/ │ └──
+              <b class="new">e2e/</b>
+              <span class="dim"># own package.json:</span> │
+              <span class="dim"># playwright dep, runner,</span> │
+              <span class="dim"># specs, fixtures, reporters</span> ├──
+              <b class="new">data/</b>
+              <span class="dim"># runtime state, repo root</span> └── docs/ …
+            </div>
+            <div class="content" style="gap: 10px">
+              <div class="card">
+                <h3>Why teams do it</h3>
+                <ul>
+                  <li>
+                    Test deps isolated from the app's bundle — no accidental
+                    imports of test code into prod.
+                  </li>
+                  <li>
+                    CI can run e2e as a workspace unit; own reporters, own
+                    caching.
+                  </li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>The honest trade-off</h3>
+                <p>
+                  More ceremony for a 6-test suite: a second package.json,
+                  workspace wiring, and the DB-path/env coupling between app and
+                  e2e package gets <i>more</i> indirect, not less. twenty earns
+                  it with hundreds of specs. <b>Odyssey doesn't.</b>
+                </p>
+                <h3>Proven by</h3>
+                <p class="ref">twentyhq/twenty (packages/twenty-e2e-testing)</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7 DATA DECISION -->
+        <section class="slide">
+          <div class="kicker">Sub-decision · where runtime data lives</div>
+          <h2>data/ at the repo root — like actualbudget</h2>
+          <div class="cols">
+            <div class="tree">
+              odyssey/ ├── apps/ packages/ docs/ … └── <b class="new">data/</b>
+              <span class="dim"># git-ignored; .gitkeep + README</span> ├──
+              odyssey-learning.db
+              <span class="dim"># THE file that matters</span> ├──
+              odyssey-curriculum.db
+              <span class="dim"># reproducible from seed</span> ├── backups/
+              <span class="dim"># admin one-tap snapshots</span> └── e2e/
+              <span class="dim"># transient playwright DBs</span>
+            </div>
+            <div class="content" style="gap: 10px">
+              <div class="card">
+                <h3>Why root beats apps/web/data</h3>
+                <ul>
+                  <li>
+                    <b>Visible at first glance</b> — "where's my data?" has one
+                    answer, not a five-folder path.
+                  </li>
+                  <li>
+                    Backup story gets simpler:
+                    <i>everything a family must keep</i> is one directory.
+                  </li>
+                  <li>
+                    actualbudget — the most-loved local-first OSS app — does
+                    exactly this.
+                  </li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>
+                  How it stays robust <span class="tag keep">no cwd games</span>
+                </h3>
+                <p>
+                  The app resolves the repo root by walking up from cwd to
+                  <code>pnpm-workspace.yaml</code> (the monorepo's own marker —
+                  the same trick Turborepo uses). Env overrides
+                  (<code>ODYSSEY_DB_PATH</code>) still win. Two lines, tested.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8 SCORECARD -->
+        <section class="slide">
+          <div class="kicker">Scorecard — your words</div>
+          <h2>"Professional. Simple. No noise."</h2>
+          <div class="content">
+            <table>
+              <tr>
+                <th></th>
+                <th>1 · cal.com shape</th>
+                <th>2 · dub shape</th>
+                <th>3 · twenty shape</th>
+              </tr>
+              <tr>
+                <td><b>Looks professional at a glance</b></td>
+                <td>★★★★★ the cal.com pedigree</td>
+                <td>★★★★ clean, common</td>
+                <td>★★★★ test-ops flavored</td>
+              </tr>
+              <tr>
+                <td><b>No bookish naming</b></td>
+                <td>★★★★★ <code>modules/</code> — their word, not ours</td>
+                <td>★★★★★ no names at all</td>
+                <td>★★★★ inherited from 1 or 2</td>
+              </tr>
+              <tr>
+                <td><b>e2e in a sane, visible place</b></td>
+                <td>★★★★★ <code>playwright/</code> — cal.com & dub both</td>
+                <td>★★★★★ <code>playwright/</code></td>
+                <td>★★★★ own package (heavier)</td>
+              </tr>
+              <tr>
+                <td><b>data in a sane, visible place</b></td>
+                <td>★★★★★ root <code>data/</code> (all options adopt this)</td>
+                <td>★★★★★ root <code>data/</code></td>
+                <td>★★★★★ root <code>data/</code></td>
+              </tr>
+              <tr>
+                <td><b>God page dies</b></td>
+                <td>★★★★★ modules/practice</td>
+                <td>★★★★ (student)/components</td>
+                <td>★★★★ via 1 or 2</td>
+              </tr>
+              <tr>
+                <td><b>Migration cost</b></td>
+                <td>medium (page split + renames)</td>
+                <td>low-medium (page split + renames)</td>
+                <td>higher (new package)</td>
+              </tr>
+              <tr>
+                <td><b>Room to grow</b></td>
+                <td>★★★★★ proven at cal.com scale</td>
+                <td>★★★ dub-scale fine</td>
+                <td>★★★★★ twenty-scale</td>
               </tr>
             </table>
             <div
               class="card"
-              style="flex-direction: row; align-items: center; gap: 14px"
+              style="flex-direction: row; align-items: center; gap: 12px"
             >
-              <span class="tag new" style="font-size: 12px">verdict</span>
+              <span class="tag new">recommendation</span>
               <p>
-                <b>A wins today</b> (25/30 on your rules), and it's the only
-                option whose migration work <i>is</i> work you already owe the
-                codebase (splitting the 948-line page). C is the honest
-                runner-up if you want zero new vocabulary. B is where A
-                graduates <i>if</i> a second app ever appears. D — respectfully
-                — never for this size.
+                <b>Option 1</b>: <code>modules/</code> +
+                <code>playwright/</code> + root <code>data/</code> — every
+                complaint answered, every placement verifiable against cal.com
+                and actualbudget. Option 2 if you want the absolute minimum
+                vocabulary. Option 3 only when the e2e suite earns its own
+                package.
               </p>
             </div>
           </div>
         </section>
 
-        <!-- 9 RECOMMENDATION APPLIED -->
+        <!-- 9 DIFF FROM TODAY -->
         <section class="slide">
-          <div class="kicker">Option A · applied to your actual tree</div>
-          <h2>What you'd have after one migration</h2>
+          <div class="kicker">Option 1 · what actually changes</div>
+          <h2>The migration, itemized before you buy</h2>
           <div class="cols">
-            <div class="tree">
-              apps/web/ ├── app/
-              <span class="dim"># ~40-line pages, all of them</span> │ ├──
-              page.tsx
-              <span class="dim"># ← 948 → ~60 (compose practice)</span> │ ├──
-              parent/ dashboard/ performance/ │ └── api/…
-              <span class="dim"># unchanged thin adapters</span> ├──
-              <b>features/</b> │ ├── practice/
-              <span class="dim"># sign-in · grade pick · skill browse ·</span> │
-              │
-              <span class="dim"># question+feedback · suggestion banner</span> │
-              ├── assessment/
-              <span class="dim"># test setup · runner · results</span> │ ├──
-              parent-portal/
-              <span class="dim"># child cards · suggestions · export</span> │
-              └── admin/
-              <span class="dim"># overview · catalog · parents · health</span>
-              ├── components/
-              <span class="dim"># interaction-answer, math-text only</span> ├──
-              server/
-              <span class="dim"># six domain modules, untouched</span> └── test/
-              e2e/ data/
+            <div class="card">
+              <h3>
+                Renames & moves
+                <span class="tag keep">behavior-preserving</span>
+              </h3>
+              <ul>
+                <li>
+                  <code>apps/web/e2e/</code> → <code>apps/web/playwright/</code>
+                  <span class="tag keep">cal.com+dub</span>
+                </li>
+                <li>
+                  <code>apps/web/test/</code> → <code>apps/web/tests/</code>
+                  <span class="tag keep">dub</span>
+                </li>
+                <li>
+                  <code>apps/web/data/</code> → <code>data/</code> (root) +
+                  workspace-root resolver
+                  <span class="tag keep">actualbudget</span>
+                </li>
+                <li>
+                  <code>app/learner/</code> + the 948-line
+                  <code>page.tsx</code> → <code>modules/practice/</code> +
+                  <code>modules/assessment/</code>
+                </li>
+                <li>
+                  <code>app/parent/</code> parts → <code>modules/parent/</code>;
+                  dashboard panels → <code>modules/admin/</code>
+                </li>
+              </ul>
             </div>
-            <div class="content" style="gap: 10px">
-              <div class="card">
-                <h3>
-                  Freebies riding along <span class="tag cut">delete</span>
-                </h3>
-                <ul>
-                  <li>
-                    <code>components/ui/button.tsx</code> +
-                    <code>card.tsx</code> — 161 dead lines, gone
-                  </li>
-                  <li>
-                    <code>lib/utils.ts</code> — 6 lines folded into
-                    <code>components/</code>, <code>lib/</code> deleted
-                  </li>
-                  <li>
-                    <code>app/learner/</code> helpers — absorbed by
-                    <code>features/practice</code> +
-                    <code>features/assessment</code>
-                  </li>
-                </ul>
-              </div>
-              <div class="card">
-                <h3>The whole AGENTS.md structure section becomes</h3>
-                <p>
-                  "<code>app/</code> routes,
-                  <code>features/&lt;screen&gt;</code> its parts,
-                  <code>components/</code> cross-screen,
-                  <code>server/</code> domain,
-                  <code>packages/practice-engine</code> pure engine. Features
-                  never import features."
-                </p>
-                <p class="footnote">
-                  Two sentences. That's the documentation burden of Option A.
-                </p>
-              </div>
+            <div class="card">
+              <h3>Deletions riding along <span class="tag cut">noise</span></h3>
+              <ul>
+                <li>
+                  <code>components/ui/button.tsx</code> +
+                  <code>card.tsx</code> — 161 dead lines
+                </li>
+                <li><code>lib/</code> — 6 lines, folded away</li>
+              </ul>
+              <h3>Unchanged</h3>
+              <ul>
+                <li>
+                  <code>server/</code> six domain modules ·
+                  <code>packages/practice-engine</code> · all 210 tests · e2e
+                  specs (paths only)
+                </li>
+                <li>
+                  Gates prove nothing broke: typecheck · tests · lint · e2e 6/6,
+                  same as every phase
+                </li>
+              </ul>
+              <p class="footnote" style="margin-top: auto">
+                One migration, one commit series, reversible by git.
+              </p>
             </div>
           </div>
         </section>
 
-        <!-- 10 NEXT -->
+        <!-- 10 ASK -->
         <section class="slide">
-          <div class="kicker">Your call</div>
-          <h2>Decide once, then it's one migration</h2>
+          <div class="kicker">Decision</div>
+          <h2>Say the number</h2>
           <div class="content">
-            <div class="cols">
+            <div class="cols3">
               <div class="card">
-                <h3>If you pick A (my recommendation)</h3>
-                <ul>
-                  <li>
-                    One focused pass: extract features/, split the god page,
-                    delete the dead primitives
-                  </li>
-                  <li>
-                    Behavior-preserving — gates + e2e 6/6 prove nothing broke,
-                    same as every phase so far
-                  </li>
-                  <li>Modeled on cal.com's shape, scaled to Odyssey</li>
-                </ul>
+                <h3>1 — cal.com shape <span class="tag new">my pick</span></h3>
+                <p>
+                  modules/ + playwright/ + root data/. The pedigree structure;
+                  answers every complaint with a verifiable reference.
+                </p>
               </div>
               <div class="card">
-                <h3>Reference shelf</h3>
-                <ul>
-                  <li class="ref">
-                    github.com/calcom/cal.com — feature-first at scale
-                  </li>
-                  <li class="ref">
-                    github.com/dubinc/dub · github.com/midday-ai/midday — domain
-                    packages
-                  </li>
-                  <li class="ref">
-                    nextjs.org docs → Project Structure — route groups, private
-                    folders
-                  </li>
-                  <li class="ref">
-                    github.com/t3-oss/create-t3-app — canonical simple layers
-                  </li>
-                  <li class="ref">
-                    feature-sliced.design — the formal methodology
-                  </li>
-                </ul>
+                <h3>2 — dub shape</h3>
+                <p>
+                  No layer at all. Route groups + colocation. Least vocabulary;
+                  smallest step.
+                </p>
+              </div>
+              <div class="card">
+                <h3>3 — twenty shape</h3>
+                <p>
+                  e2e as a package. Choose only if you want test-ops separation
+                  now.
+                </p>
               </div>
             </div>
             <div
               class="card"
-              style="flex-direction: row; align-items: center; gap: 14px"
+              style="flex-direction: row; align-items: center; gap: 12px"
             >
-              <span class="tag ask">decision needed</span>
+              <span class="tag ask">until then</span>
               <p>
-                Say <b>A</b>, <b>B</b>, <b>C</b>, or <b>D</b> — and the next
-                session executes it cold-start free (this deck + memory carry
-                the full context).
+                Nothing moves. This deck + memory carry the full plan; any
+                future session executes your pick cold-start free.
               </p>
             </div>
+            <p class="footnote">
+              References live-verified 2026-08-30: github.com/calcom/cal.com ·
+              github.com/dubinc/dub · github.com/twentyhq/twenty ·
+              github.com/actualbudget/actual
+            </p>
           </div>
         </section>
       </div>
@@ -947,8 +864,8 @@
 
     <div class="nav">
       <span class="title"
-        >Odyssey — package structure options · A features · B packages · C
-        canonical · D FSD</span
+        >Odyssey — full structure options v2 · 1 cal.com · 2 dub · 3 twenty ·
+        data at root</span
       >
       <span class="grow"></span>
       <button id="prev">← Back</button>
