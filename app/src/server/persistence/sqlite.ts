@@ -8,17 +8,14 @@ const DEFAULT_CURRICULUM_DATABASE_PATH = "odyssey-curriculum.db";
 const BUSY_TIMEOUT_MS = 5_000;
 const LATEST_SCHEMA_VERSION = 12;
 
-export type DatabaseKind = "learning" | "curriculum" | "promotion";
+export type DatabaseKind = "learning" | "curriculum";
 
 /** Resolves an absolute configured path or an absolute local default path. */
 export function resolveDatabasePath(kind: DatabaseKind): string {
   const configured =
     kind === "learning"
       ? process.env.ODYSSEY_DB_PATH
-      : kind === "promotion"
-        ? (process.env.ODYSSEY_CURRICULUM_DB_PATH ??
-          process.env.ODYSSEY_DB_PATH)
-        : process.env.ODYSSEY_CURRICULUM_DB_PATH;
+      : process.env.ODYSSEY_CURRICULUM_DB_PATH;
   if (configured === ":memory:") return configured;
   if (configured) {
     if (!isAbsolute(configured))

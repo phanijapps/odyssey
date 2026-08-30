@@ -27,55 +27,12 @@ type Stats = {
 
 type TopicEntry = { topic: string; count: number };
 
-type Stage =
-  | "bronze"
-  | "bronze-approved"
-  | "silver"
-  | "silver-approved"
-  | "gold";
-
-type Workflow = {
-  readonly id: string;
-  readonly stage: Stage;
-  readonly bronze?: {
-    readonly fileName: string;
-    readonly format: string;
-    readonly byteSize: number;
-    readonly warnings: readonly string[];
-  };
-  readonly silver?: {
-    readonly sourceSummary: string;
-    readonly records: readonly unknown[];
-    readonly warnings: readonly string[];
-  };
-};
-
-type NavItem = "overview" | "browse" | "ingest" | "parents";
+type NavItem = "overview" | "browse" | "parents";
 
 type ParentAccount = {
   accountId: string;
   username: string;
   children: Array<{ username: string }>;
-};
-
-/* ============================================================ Helpers */
-
-const stageLabel: Record<Stage, string> = {
-  bronze: "Bronze — awaiting approval",
-  "bronze-approved": "Bronze approved",
-  silver: "Silver — awaiting approval",
-  "silver-approved": "Silver approved",
-  gold: "Gold — indexed",
-};
-
-const stageAction: Record<
-  Exclude<Stage, "gold">,
-  { label: string; value: string }
-> = {
-  bronze: { label: "Approve Bronze", value: "approve-bronze" },
-  "bronze-approved": { label: "Generate Silver", value: "generate-silver" },
-  silver: { label: "Approve Silver", value: "approve-silver" },
-  "silver-approved": { label: "Generate Gold", value: "generate-gold" },
 };
 
 /* ============================================================ Component */
@@ -116,12 +73,6 @@ export default function DashboardPage() {
   const [filterTopic, setFilterTopic] = useState("");
   const [searchText, setSearchText] = useState("");
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
-
-  // Ingestion state
-  const [file, setFile] = useState<File | null>(null);
-  const [workflow, setWorkflow] = useState<Workflow | null>(null);
-  const [ingestError, setIngestError] = useState<string | null>(null);
-  const [ingestPending, setIngestPending] = useState(false);
 
   // Parent management state
   const [parents, setParents] = useState<ParentAccount[]>([]);
@@ -175,63 +126,6 @@ export default function DashboardPage() {
     void loadGold();
     void loadParents();
   }, [loadGold, loadParents]);
-
-  /* --- Ingestion actions --- */
-
-  async function submitIngest() {
-    if (!file) return;
-    setIngestPending(true);
-    setIngestError(null);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/curriculum/ingestions", {
-        method: "POST",
-        headers: { origin: window.location.origin },
-        body: form,
-      });
-      const body = (await res.json()) as Workflow & { error?: string };
-      if (!res.ok) throw new Error(body.error ?? "Unable to validate source");
-      setWorkflow(body);
-    } catch (cause) {
-      setIngestError(
-        cause instanceof Error ? cause.message : "Unable to validate source",
-      );
-    } finally {
-      setIngestPending(false);
-    }
-  }
-
-  async function advanceIngest() {
-    if (!workflow || workflow.stage === "gold") return;
-    setIngestPending(true);
-    setIngestError(null);
-    try {
-      const res = await fetch(
-        `/api/curriculum/ingestions/${workflow.id}/actions`,
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            origin: window.location.origin,
-          },
-          body: JSON.stringify({
-            action: stageAction[workflow.stage].value,
-          }),
-        },
-      );
-      const body = (await res.json()) as Workflow & { error?: string };
-      if (!res.ok) throw new Error(body.error ?? "Unable to advance workflow");
-      setWorkflow(body);
-      if (body.stage === "gold") await loadGold();
-    } catch (cause) {
-      setIngestError(
-        cause instanceof Error ? cause.message : "Unable to advance workflow",
-      );
-    } finally {
-      setIngestPending(false);
-    }
-  }
 
   async function deleteRecord(id: string) {
     const res = await fetch("/api/curriculum/gold", {
@@ -371,13 +265,6 @@ export default function DashboardPage() {
                 )}
               </button>
               <button
-                className={nav === "ingest" ? "nav-item active" : "nav-item"}
-                onClick={() => setNav("ingest")}
-              >
-                <span className="nav-icon">↑</span>
-                Ingest Source
-              </button>
-              <button
                 className={nav === "parents" ? "nav-item active" : "nav-item"}
                 onClick={() => setNav("parents")}
               >
@@ -413,7 +300,6 @@ export default function DashboardPage() {
               <h1 className="page-title">
                 {nav === "overview" && "Overview"}
                 {nav === "browse" && "Browse Gold Records"}
-                {nav === "ingest" && "Ingest Curriculum Source"}
                 {nav === "parents" && "Manage Parents"}
               </h1>
             </header>
@@ -669,7 +555,7 @@ export default function DashboardPage() {
                     {records.length === 0 && !loadingGold && (
                       <div className="empty-state">
                         <p>No Gold records found.</p>
-                        <p>Adjust filters or ingest a new source.</p>
+                        <p>Adjust the filters above.</p>
                       </div>
                     )}
                   </div>
@@ -677,99 +563,6 @@ export default function DashboardPage() {
               )}
 
               {/* ========== INGEST ========== */}
-              {nav === "ingest" && (
-                <div className="dash-card ingest-panel">
-                  <p className="ingest-hint">
-                    Upload a PDF, CSV, JSON, or text file containing curriculum
-                    standards. The Bronze → Silver → Gold pipeline extracts and
-                    formalizes standards with human approval at each stage.
-                  </p>
-                  {!workflow ? (
-                    <div className="upload-zone">
-                      <label className="upload-label">
-                        <input
-                          type="file"
-                          accept=".pdf,.csv,.json,.txt,text/plain,application/pdf,text/csv,application/json"
-                          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                        />
-                        <span>{file ? file.name : "Choose a file…"}</span>
-                      </label>
-                      <button
-                        className="primary-btn"
-                        disabled={!file || ingestPending}
-                        onClick={() => void submitIngest()}
-                      >
-                        {ingestPending ? "Validating…" : "Upload Source"}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="workflow-panel">
-                      <div className="workflow-stage">
-                        <span className={`stage-badge stage-${workflow.stage}`}>
-                          {stageLabel[workflow.stage]}
-                        </span>
-                      </div>
-                      {workflow.bronze && (
-                        <div className="workflow-info">
-                          <strong>{workflow.bronze.fileName}</strong>
-                          <span>
-                            {" "}
-                            {workflow.bronze.format.toUpperCase()} ·{" "}
-                            {workflow.bronze.byteSize.toLocaleString()} bytes
-                          </span>
-                        </div>
-                      )}
-                      {workflow.silver && (
-                        <div className="workflow-info">
-                          <strong>Silver candidate:</strong>{" "}
-                          {workflow.silver.records.length} records extracted
-                        </div>
-                      )}
-                      {ingestError && (
-                        <p className="error-text">{ingestError}</p>
-                      )}
-                      {workflow.stage !== "gold" && (
-                        <button
-                          className="primary-btn"
-                          disabled={ingestPending}
-                          onClick={() => void advanceIngest()}
-                        >
-                          {ingestPending
-                            ? "Working… (LLM calls may take minutes)"
-                            : stageAction[workflow.stage].label}
-                        </button>
-                      )}
-                      {workflow.stage === "gold" && (
-                        <div className="success-box">
-                          ✓ Gold records indexed successfully.
-                          <button
-                            className="link-btn"
-                            onClick={() => {
-                              setWorkflow(null);
-                              setFile(null);
-                              void loadGold();
-                              setNav("browse");
-                            }}
-                          >
-                            View records →
-                          </button>
-                        </div>
-                      )}
-                      <button
-                        className="secondary-btn"
-                        onClick={() => {
-                          setWorkflow(null);
-                          setFile(null);
-                          setIngestError(null);
-                        }}
-                      >
-                        Start new upload
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* ========== PARENTS ========== */}
               {nav === "parents" && (
                 <>
