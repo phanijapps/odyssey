@@ -1,6 +1,6 @@
 # Repo professionalization — data directory, README, env template
 
-**Status:** Approved
+**Status:** Shipped
 **Mode:** light (no new module boundary; path defaults + docs + gitignore discipline)
 **Contract of record:** owner directive 2026-08-30 ("professional open-source project" organization; data in its own gitignored directory), continuing RFC-0006.
 
@@ -14,22 +14,22 @@ quickstart/scripts/layout/env reference, and the env template moved to
 
 ## Acceptance criteria
 
-- [ ] AC1: All runtime SQLite state lives under `app/data/` — learning and
+- [x] AC1: All runtime SQLite state lives under `app/data/` — learning and
       curriculum DBs by default, e2e DBs under `app/data/e2e/`; the directory's
       contents are gitignored (`git check-ignore` proves it) while
       `app/data/README.md` and `.gitkeep` remain committable; existing live DBs
       are physically moved (accounts survive — proven by sign-in smoke).
-- [ ] AC2: Stale state is gone: root-level `odyssey-*.db` leftovers,
+- [x] AC2: Stale state is gone: root-level `odyssey-*.db` leftovers,
       `app/odyssey-knowledge-graph.db` (dead module), `.fastembed_cache/`
       (dead dependency) deleted.
-- [ ] AC3: Root `README.md` exists with: what/why, quickstart, scripts,
+- [x] AC3: Root `README.md` exists with: what/why, quickstart, scripts,
       repository layout, personas, data/persistence section, configuration
       reference (post-simplification env surface), architecture pointers,
       testing, contributing pointer.
-- [ ] AC4: `.env.example` lives at `app/` with the current env surface
+- [x] AC4: `.env.example` lives at `app/` with the current env surface
       (no Engram keys; documents data-dir defaults); docs/architecture and
       AGENTS layout trees mention `app/data/`.
-- [ ] AC5: Gates green; e2e 6/6 against a fresh production build using the
+- [x] AC5: Gates green; e2e 6/6 against a fresh production build using the
       new data paths.
 
 ## Testing strategy

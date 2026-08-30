@@ -21,7 +21,9 @@ test("resolves the configured Gold database path or the existing fallback", () =
   expect(resolveGoldDatabasePath()).toBe(resolve("configured-curriculum.db"));
 
   delete process.env.ODYSSEY_CURRICULUM_DB_PATH;
-  expect(resolveGoldDatabasePath()).toBe(resolve("odyssey-curriculum.db"));
+  expect(resolveGoldDatabasePath()).toBe(
+    resolve("data", "odyssey-curriculum.db"),
+  );
 });
 
 test("closes the Gold database after successful and failed operations", () => {
