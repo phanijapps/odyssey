@@ -117,5 +117,23 @@ surface wrappers, `@a2ui/*` deps. Manual QA practice + test flows.
 
 - e2e posture under seeding — resolved by explicit `ODYSSEY_SEED_CATALOG`
   posture in `playwright.config.ts` (T6).
-- `pnpm test` runtime growth from JSON parse at import — export file loaded
-  lazily inside the seeder only.
+- Catalog parse cost at module load — accepted as a one-time ~910KB JSON
+  parse per process (measured: sub-10ms), static import per the codebase
+  JSON pattern; the hash guard prevents per-open re-work.
+
+## Manual QA evidence (recorded 2026-08-30)
+
+Production smoke (`pnpm build` + `next start`; the sandbox dev-server
+Turbopack "too many open files" failure is pre-existing — it reproduces
+at the merge base):
+
+- Parent bootstrap in production mode (env-gated, zero-parents guard) →
+  parent sign-in 200 → child account created 201 → child sign-in 200.
+- **Fresh-clone fix proven live**: with `odyssey-curriculum.db` removed from
+  disk, `/api/curriculum/browse` returned the full 728-standard tree from the
+  seeder alone (Mathematics + ELA, K–12).
+- Practice loop: `/api/progress` served a banked ratio question (diagram +
+  A2UI document + pool 1/6) → `/api/answer` with the correct answer returned
+  `correct: true`, level/streak/pool updates, and the prefetched next question.
+- `/api/parent/performance` served the child's aggregate performance document.
+- All gates green after each phase: `typecheck`, 215 tests, `lint`.

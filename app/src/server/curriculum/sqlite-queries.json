@@ -1,18 +1,3 @@
 {
-  "initializeRecords": "CREATE TABLE IF NOT EXISTS curriculum_embedding_records (id INTEGER PRIMARY KEY, record_id TEXT UNIQUE NOT NULL, subject TEXT NOT NULL, framework TEXT NOT NULL, model TEXT NOT NULL, dimension INTEGER NOT NULL, content_fingerprint TEXT NOT NULL)",
-  "initializeVectors": "CREATE VIRTUAL TABLE IF NOT EXISTS curriculum_embedding_vectors USING vec0(embedding float[768])",
-  "initializeGoldRecords": "CREATE TABLE IF NOT EXISTS gold_curriculum_records (record_id TEXT PRIMARY KEY, subject TEXT NOT NULL, framework TEXT NOT NULL, content_json TEXT NOT NULL, source_fingerprint TEXT NOT NULL, prompt_version TEXT NOT NULL, model TEXT NOT NULL, created_at TEXT NOT NULL)",
-  "beginTransaction": "BEGIN IMMEDIATE",
-  "commitTransaction": "COMMIT",
-  "rollbackTransaction": "ROLLBACK",
-  "upsertGoldRecord": "INSERT INTO gold_curriculum_records (record_id, subject, framework, content_json, source_fingerprint, prompt_version, model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(record_id) DO UPDATE SET subject=excluded.subject, framework=excluded.framework, content_json=excluded.content_json, source_fingerprint=excluded.source_fingerprint, prompt_version=excluded.prompt_version, model=excluded.model, created_at=excluded.created_at",
-  "selectGoldRecord": "SELECT record_id, source_fingerprint, prompt_version FROM gold_curriculum_records WHERE record_id = ?",
-  "listGoldRecords": "SELECT record_id, content_json FROM gold_curriculum_records WHERE subject = ? AND framework = ?",
-  "upsertRecord": "INSERT INTO curriculum_embedding_records (record_id, subject, framework, model, dimension, content_fingerprint) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(record_id) DO UPDATE SET subject=excluded.subject, framework=excluded.framework, model=excluded.model, dimension=excluded.dimension, content_fingerprint=excluded.content_fingerprint",
-  "findRecordId": "SELECT id FROM curriculum_embedding_records WHERE record_id = ?",
-  "deleteVector": "DELETE FROM curriculum_embedding_vectors WHERE rowid = ?",
-  "insertVector": "INSERT INTO curriculum_embedding_vectors(rowid, embedding) VALUES (?, ?)",
-  "nearestVectors": "SELECT rowid, distance FROM curriculum_embedding_vectors WHERE embedding MATCH ? AND k = ? ORDER BY distance",
-  "scopedRecord": "SELECT record_id FROM curriculum_embedding_records WHERE id = ? AND (? IS NULL OR subject = ?) AND (? IS NULL OR framework = ?)",
-  "deleteRecord": "DELETE FROM curriculum_embedding_records WHERE record_id = ?"
+  "upsertGoldRecord": "INSERT INTO gold_curriculum_records (record_id, subject, framework, content_json, source_fingerprint, prompt_version, model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(record_id) DO UPDATE SET subject=excluded.subject, framework=excluded.framework, content_json=excluded.content_json, source_fingerprint=excluded.source_fingerprint, prompt_version=excluded.prompt_version, model=excluded.model, created_at=excluded.created_at"
 }

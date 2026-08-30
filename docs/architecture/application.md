@@ -24,10 +24,7 @@ Browser UI
 3. Practice updates progression and a redacted attempt record. Assessment
    stores its own selected-record snapshot, prepared questions, and terminal or
    partial result; it does not update practice mastery.
-4. The answer route may write a derived memory signal and graph projection
-   after the durable practice result. Those best-effort projections cannot
-   change the result.
-5. History projects practice attempts and terminal assessments without raw
+4. History projects practice attempts and terminal assessments without raw
    submitted answers.
 
 ### Retention and cleanup
@@ -40,28 +37,16 @@ deleted.
 Session cleanup is opportunistic: normal authentication/session activity removes
 rows past the 30-minute idle or eight-hour absolute limit. Deleting that row also
 removes its session-owned plaintext question pool and assignment token; there is
-no scheduler or background daemon. Bronze, Silver, and pending Gold workflow
-artifacts carry a 24-hour expiry, are purged by the next workflow operation, and
-are deleted after successful Gold finalization. Approved Gold remains durable.
-
-Profile-memory, knowledge-graph, and vector data are derived, non-authoritative
-projections. Existing indexing/seeding paths can restore projections from
-reviewed Gold and durable learning records where supported; a missing projection
-must not change learning or assessment history.
+no scheduler or background daemon.
 
 ### Curriculum and retrieval
 
-1. An administrative ingestion starts as Bronze. Explicit administrative
-   actions advance it through reviewed Silver and Gold stages.
-2. The curriculum workflow may request structured text completion for its
-   bounded transformation stages. Application validation is responsible for
-   candidate shape and promotion; the completion boundary has no promotion or
-   persistence authority.
-3. Gold persistence writes canonical records to the curriculum SQLite store.
-   It separately attempts a native graph projection and local vector projection.
-4. Browse and text search read the current catalog. Semantic search creates a
-   local embedding, retrieves a bounded vector candidate set, and falls back to
-   text search if embedding or vector retrieval fails.
+1. The curriculum source of record is the reviewed, versioned JSON catalog
+   (`server/curriculum/data/ohio-catalog.json`). An idempotent, hash-guarded
+   seeder upserts it into `gold_curriculum_records` on curriculum-database
+   open; `ODYSSEY_SEED_CATALOG=0` disables seeding for exact-fixture tests.
+2. Browse and text search read the seeded Gold store. There is no runtime
+   ingestion workflow; catalog changes are reviewed code changes.
 
 ### Pi AI completion boundary
 
@@ -78,17 +63,16 @@ authorization authority is present in the application flow.
 
 ## Module map
 
-| Module                                     | Owns                                                               | Must not own                          |
-| ------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------- |
-| `src/app/`                                 | pages, browser state, same-origin route adapters                   | server policy or direct persistence   |
-| `src/components/`                          | application-owned presentation                                     | server calls or authorization         |
-| `src/server/identity/`                     | session resolution, role checks, origin proof, session-owned state | feature persistence policy            |
-| `src/server/learning/`                     | practice progression, assessment lifecycle, redacted history       | curriculum promotion                  |
-| `src/server/curriculum/`                   | catalog, promotion, Gold reads/writes, vectors and retrieval       | learner authorization                 |
-| `src/server/persistence/`                  | SQLite paths, connection policy, ordered migrations                | feature-specific business policy      |
-| `src/server/agent/` and `pi-completion.ts` | question selection/generation and bounded completion               | direct data writes or authorization   |
-| `src/server/memory/`                       | optional derived-signal and graph projections                      | authority over progress or curriculum |
-| `src/server/validation/`                   | boundary schemas and safe generated-payload validation             | orchestration or persistence          |
+| Module                                     | Owns                                                               | Must not own                        |
+| ------------------------------------------ | ------------------------------------------------------------------ | ----------------------------------- |
+| `src/app/`                                 | pages, browser state, same-origin route adapters                   | server policy or direct persistence |
+| `src/components/`                          | application-owned presentation                                     | server calls or authorization       |
+| `src/server/identity/`                     | session resolution, role checks, origin proof, session-owned state | feature persistence policy          |
+| `src/server/learning/`                     | practice progression, assessment lifecycle, redacted history       | curriculum promotion                |
+| `src/server/curriculum/`                   | catalog, promotion, Gold reads/writes, vectors and retrieval       | learner authorization               |
+| `src/server/persistence/`                  | SQLite paths, connection policy, ordered migrations                | feature-specific business policy    |
+| `src/server/agent/` and `pi-completion.ts` | question selection/generation and bounded completion               | direct data writes or authorization |
+| `src/server/validation/`                   | boundary schemas and safe generated-payload validation             | orchestration or persistence        |
 
 ## Public route contracts
 
@@ -98,31 +82,20 @@ proof” is the corresponding administrator check. Response bodies are summarize
 rather than copied verbatim; route tests and handlers are the field-level source
 of truth.
 
-| Method and path                                        | Authorization currently enforced                                | Contract                                                                                                     |
-| ------------------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `GET /api/session`                                     | any valid session                                               | Current session projection; otherwise `401`.                                                                 |
-| `POST /api/session`                                    | none                                                            | Starts a session from the sign-in payload; returns a safe session projection or `401`.                       |
-| `DELETE /api/session`                                  | session cookie, if present                                      | Ends that session and clears the cookie; returns `204`.                                                      |
-| `GET /api/topics`                                      | none                                                            | Reviewed catalog topic list.                                                                                 |
-| `GET /api/curriculum/browse`                           | none                                                            | Subject → grade → domain → standard tree.                                                                    |
-| `GET /api/curriculum/search`                           | none                                                            | Bounded text search; `semantic=1` attempts local vector retrieval, then text fallback.                       |
-| `GET /api/progress`                                    | learner session                                                 | Learner progress plus one server-bound practice assignment; no-store response.                               |
-| `POST /api/answer`                                     | learner mutation proof                                          | Consumes one practice assignment and returns feedback/progress projection; errors are intentionally generic. |
-| `POST /api/generated-question`                         | learner mutation proof and a previously granted topic allowance | Returns one validated generated question or an unavailable response.                                         |
-| `GET /api/test`                                        | learner session                                                 | Reads an identified or active learner assessment and prepares the current question when necessary.           |
-| `POST /api/test`                                       | learner mutation proof                                          | Starts or resumes a learner-scoped mixed-skill assessment.                                                   |
-| `POST /api/test/answer`                                | learner mutation proof                                          | Grades the opaque assignment-bound assessment answer and returns the next safe assessment projection.        |
-| `POST /api/test/exit`                                  | learner mutation proof                                          | Records a partial assessment and returns its terminal projection.                                            |
-| `GET /api/parent/summary`                              | any valid session                                               | Progress summary scoped to the caller's session child.                                                       |
-| `POST /api/parent/chat`                                | any valid session                                               | Bounded structured-progress reply for the caller's session child.                                            |
-| `GET /api/curriculum/gold`                             | admin session                                                   | Gold records, aggregate stats, or topics.                                                                    |
-| `DELETE /api/curriculum/gold`                          | admin mutation proof                                            | Deletes one Gold record by identifier.                                                                       |
-| `POST /api/curriculum/ingestions`                      | admin mutation proof                                            | Creates a temporary Bronze workflow from one validated upload.                                               |
-| `GET /api/curriculum/ingestions/:ingestionId`          | admin session                                                   | Safe review view of one temporary workflow.                                                                  |
-| `POST /api/curriculum/ingestions/:ingestionId/actions` | admin mutation proof                                            | Performs one explicit workflow action.                                                                       |
-| `GET /api/knowledge`                                   | admin session                                                   | Graph diagnostics or a query result.                                                                         |
-| `POST /api/knowledge`                                  | admin mutation proof                                            | Seeds the curriculum graph and returns diagnostics.                                                          |
-| `GET /api/memory`                                      | none                                                            | Availability state for the optional memory integration; no-store response.                                   |
+| Method and path              | Authorization currently enforced | Contract                                                                                                     |
+| ---------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `GET /api/session`           | any valid session                | Current session projection; otherwise `401`.                                                                 |
+| `POST /api/session`          | none                             | Starts a session from the sign-in payload; returns a safe session projection or `401`.                       |
+| `DELETE /api/session`        | session cookie, if present       | Ends that session and clears the cookie; returns `204`.                                                      |
+| `GET /api/curriculum/browse` | none                             | Subject → grade → domain → standard tree.                                                                    |
+| `GET /api/curriculum/search` | none                             | Bounded text search.                                                                                         |
+| `GET /api/progress`          | learner session                  | Learner progress plus one server-bound practice assignment; no-store response.                               |
+| `POST /api/answer`           | learner mutation proof           | Consumes one practice assignment and returns feedback/progress projection; errors are intentionally generic. |
+| `GET /api/test`              | learner session                  | Reads an identified or active learner assessment and prepares the current question when necessary.           |
+| `POST /api/test`             | learner mutation proof           | Starts or resumes a learner-scoped mixed-skill assessment.                                                   |
+| `POST /api/test/answer`      | learner mutation proof           | Grades the opaque assignment-bound assessment answer and returns the next safe assessment projection.        |
+| `POST /api/test/exit`        | learner mutation proof           | Records a partial assessment and returns its terminal projection.                                            |
+| `GET /api/curriculum/gold`   | admin session                    | Gold records, aggregate stats, or topics.                                                                    |
 
 ## Guidance hierarchy
 

@@ -127,21 +127,6 @@ export default function DashboardPage() {
     void loadParents();
   }, [loadGold, loadParents]);
 
-  async function deleteRecord(id: string) {
-    const res = await fetch("/api/curriculum/gold", {
-      method: "DELETE",
-      headers: {
-        "content-type": "application/json",
-        origin: window.location.origin,
-      },
-      body: JSON.stringify({ recordId: id }),
-    });
-    if (res.ok) {
-      await loadGold();
-      setExpandedRecord(null);
-    }
-  }
-
   /* --- Parent management actions --- */
 
   async function createParent(event: React.FormEvent) {
@@ -556,7 +541,6 @@ export default function DashboardPage() {
                 </>
               )}
 
-              {/* ========== INGEST ========== */}
               {/* ========== PARENTS ========== */}
               {nav === "parents" && (
                 <>

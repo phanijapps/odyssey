@@ -406,7 +406,6 @@ export function getIdentityPolicy(): {
   idleTimeoutMs: number;
   absoluteTimeoutMs: number;
   logoutInvalidates: boolean;
-  maxGeneratedContentRequestsPerSession: number;
   cookie: { httpOnly: boolean; sameSite: "strict" };
 } {
   return {
@@ -421,7 +420,6 @@ export function getIdentityPolicy(): {
     idleTimeoutMs: 30 * 60 * 1_000,
     absoluteTimeoutMs: 8 * 60 * 60 * 1_000,
     logoutInvalidates: true,
-    maxGeneratedContentRequestsPerSession: 10,
     cookie: { httpOnly: true, sameSite: "strict" },
   };
 }
@@ -581,12 +579,6 @@ export function requireParentMutationProof(request: Request): {
   ]);
   if (proof.role !== "parent") throw new Error("Parent access required");
   return { parentAccountId: proof.principalId };
-}
-
-/** Consumes the session's one-use, topic-bound provider request allowance. */
-/** @deprecated Use requireAdminRead or requireAdminMutationProof by route method. */
-export function requireAdmin(request: Request): { childId: string } {
-  return requireAdminRead(request);
 }
 
 /** Resolves a session token to the signed-in identity. */

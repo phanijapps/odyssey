@@ -32,6 +32,13 @@ open = [
   {slug = "rfc0006-phase5-question-path-consolidation", needs = "backlog:rfc0006-phase4-a2ui-replacement", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 5: consolidate question selection into the adaptive pool"},
   {slug = "rfc0006-phase6-persona-surface-rebuild", needs = "backlog:rfc0006-phase5-question-path-consolidation", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 6: rebuild student/parent/admin screens per mockups"},
   {slug = "rfc0006-phase8-production-readiness", needs = "backlog:rfc0006-phase6-persona-surface-rebuild", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 8: prod admin bootstrap, VACUUM INTO backup, export/reset, health probe, config hardening, smoke gate"},
+  # Deferred from RFC-0006 phases 2-3 review: dead CSS for removed surfaces
+  # (.semantic-btn styles.css ~1466, .kg-edge ~1691, .graph3d-* ~2129-2204).
+  {slug = "rfc0006-surface-cleanup-css", source = "spec/rfc0006-simplification T5", summary = "Remove dead CSS for removed semantic-search, KG, and 3D-graph surfaces"},
+  # Deferred from phase 3a: e2e specs still seed Gold by raw SQL; migrate
+  # them onto the reviewed-catalog seeder and drop ODYSSEY_SEED_CATALOG=0
+  # from playwright.config.ts.
+  {slug = "rfc0006-e2e-seeder-migration", source = "spec/rfc0006-simplification T6", summary = "Migrate e2e Gold seeding to the catalog seeder; remove the seed-off e2e posture"},
   # A fully metadata-safe dirty/untracked check needs a reviewed manifest or a
   # non-Git source-state protocol; do not execute worktree-inspecting Git commands
   # against an untrusted checkout without that design decision.

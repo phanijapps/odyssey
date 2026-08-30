@@ -27,24 +27,24 @@ commit.
 
 ## Acceptance criteria
 
-- [ ] AC1 (Phase 1): `/api/topics`, `/api/achievements`, `/api/generated-question`,
+- [x] AC1 (Phase 1): `/api/topics`, `/api/achievements`, `/api/generated-question`,
       `/api/parent/chat`, `/api/parent/summary` no longer exist; no code references
       them; the generated-question allowance machinery is gone from `identity.ts`
       and `/api/answer`; PracticePanel carries no test-mode props; gates green.
-- [ ] AC2 (Phase 2): `server/memory/*` **minus `engram-memory.ts`** (held by
+- [x] AC2 (Phase 2): `server/memory/*` **minus `engram-memory.ts`** (held by
       the ingestion chain until Phase 3b, deleted in Phase 3c), `/api/memory`,
       `/api/knowledge*`, `dashboard/graph` are gone; `/api/answer` writes no
       projections; the admin console has no Knowledge panel; `3d-force-graph`
       removed from deps; gates green.
-- [ ] AC3 (Phase 3a): an enriched reviewed JSON catalog exists; an idempotent
+- [x] AC3 (Phase 3a): an enriched reviewed JSON catalog exists; an idempotent
       seeder loads it into `gold_curriculum_records` at curriculum-DB open; a
       fresh `:memory:` curriculum DB serves the full browse tree; seeder tests green.
-- [ ] AC4 (Phase 3b/c): ingestion pipeline, semantic search, `sqlite-vec`, gold
+- [x] AC4 (Phase 3b/c): ingestion pipeline, semantic search, `sqlite-vec`, gold
       DELETE route + vector-coupled deletes, ✨ toggle, `engram-memory.ts`, the
       engram→gold-semantic chain, `server/curriculum/prompts/`, and the orphaned
       `"promotion"` database kind are gone; text search still works; admin console
       has no Ingestion panel; gates green.
-- [ ] AC5: every phase is its own conventional commit; `git status` clean at
+- [x] AC5: every phase is its own conventional commit; `git status` clean at
       each gate.
 
 ## Testing strategy

@@ -96,7 +96,6 @@ test("STUB: AC2 configures the password, session, throttling, and cookie control
     idleTimeoutMs: 30 * 60 * 1_000,
     absoluteTimeoutMs: 8 * 60 * 60 * 1_000,
     logoutInvalidates: true,
-    maxGeneratedContentRequestsPerSession: 10,
     cookie: { httpOnly: true, sameSite: "strict" },
   });
 });
