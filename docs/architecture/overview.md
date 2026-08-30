@@ -12,10 +12,13 @@
 ├── AGENTS.md             # canonical contributor instructions
 ├── CLAUDE.md             # points to AGENTS.md
 ├── app/                  # the one deployable Next.js application
-│   └── src/
-│       ├── app/          # pages, browser UI, and App Router handlers
-│       ├── components/   # reusable browser components
-│       └── server/       # server-only policy and runtime modules
+│   ├── src/
+│   │   ├── app/          # pages, browser UI, and App Router handlers
+│   │   ├── components/   # reusable browser components
+│   │   └── server/       # server-only policy and runtime modules
+│   ├── data/             # git-ignored runtime SQLite state (see its README)
+│   └── e2e/              # Playwright end-to-end suite
+├── README.md             # the project front door (quickstart, layout, config)
 ├── tools/hooks/          # repository hooks
 ├── docs/
 │   ├── architecture/     # living implementation map
