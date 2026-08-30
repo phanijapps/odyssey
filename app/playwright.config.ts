@@ -36,6 +36,10 @@ export default defineConfig({
       // Keep the suite hermetic regardless of the developer's .env.local:
       // deterministic bank fallback, no cloud-model latency, no native store.
       OLLAMA_INTEGRATION: "0",
+      // e2e specs seed their own Gold fixtures by SQL (RFC-0006 phase 3a
+      // deviation, tracked in workspace backlog): the reviewed-catalog seeder
+      // stays off here so assertions remain exact.
+      ODYSSEY_SEED_CATALOG: "0",
       ODYSSEY_ENGRAM_ARTIFACT: "disabled",
       // Disarm the native Engram loaders entirely (any blank ENGRAM_ value
       // makes getConfiguredEngramArtifact return null), so test answers can

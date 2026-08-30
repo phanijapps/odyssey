@@ -14,6 +14,9 @@ process.env.ODYSSEY_CURRICULUM_DB_PATH = join(
   databaseDirectory,
   "curriculum.db",
 );
+// Tests build exact catalog fixtures per file; the reviewed-catalog seeder
+// (RFC-0006 phase 3a) must not inject the production topic list into them.
+process.env.ODYSSEY_SEED_CATALOG = "0";
 
 afterAll(() => {
   // Windows may retain a native SQLite handle until the worker exits. The

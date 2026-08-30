@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 const DEFAULT_LEARNING_DATABASE_PATH = "odyssey-learning.db";
 const DEFAULT_CURRICULUM_DATABASE_PATH = "odyssey-curriculum.db";
 const BUSY_TIMEOUT_MS = 5_000;
-const LATEST_SCHEMA_VERSION = 11;
+const LATEST_SCHEMA_VERSION = 12;
 
 export type DatabaseKind = "learning" | "curriculum" | "promotion";
 
@@ -428,6 +428,23 @@ const MIGRATIONS: readonly Migration[] = [
         BEGIN
           SELECT RAISE(ABORT, 'parent suggestion audit events are immutable');
         END;
+      `);
+    },
+  },
+  {
+    version: 12,
+    apply(database) {
+      // Reviewed JSON catalog seeding (RFC-0006 phase 3a): a one-row guard
+      // table so the idempotent seeder can skip work with a single SELECT.
+      // The reviewed catalog itself ships as versioned JSON beside the
+      // curriculum module; this table only records which revision content
+      // the store already carries.
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS catalog_seed_meta (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          content_hash TEXT NOT NULL,
+          seeded_at TEXT NOT NULL
+        );
       `);
     },
   },

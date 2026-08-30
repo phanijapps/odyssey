@@ -61,7 +61,7 @@ test("upgrades a legacy schema without losing session rows", () => {
   configureSqliteConnection(database);
   migrateDatabase(database);
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 11,
+    user_version: 12,
   });
   expect(
     database.prepare("SELECT status, score FROM test_sessions").get(),
@@ -113,7 +113,7 @@ test("removes orphaned active AI question state without losing sessions", () => 
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 11,
+    user_version: 12,
   });
   expect(
     database
@@ -152,7 +152,7 @@ test("current migration adds parent identity tables when a legacy account store 
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 11,
+    user_version: 12,
   });
   expect(
     database.prepare("SELECT account_id FROM accounts").get(),
@@ -196,7 +196,7 @@ test("v10 rebuilds compatible audit rows with fixed reasons and immutability", (
   migrateDatabase(database);
 
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 11,
+    user_version: 12,
   });
   expect(() =>
     database
@@ -239,10 +239,10 @@ test("concurrent startup connections converge on one current schema", () => {
   const second = openDatabase("learning");
   try {
     expect(first.prepare("PRAGMA user_version").get()).toEqual({
-      user_version: 11,
+      user_version: 12,
     });
     expect(second.prepare("PRAGMA user_version").get()).toEqual({
-      user_version: 11,
+      user_version: 12,
     });
     expect(second.prepare("PRAGMA foreign_keys").get()).toEqual({
       foreign_keys: 1,
@@ -271,12 +271,12 @@ test("migration v11 creates suggestion tables with immutable audit", () => {
   configureSqliteConnection(database);
   migrateDatabase(database);
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 11,
+    user_version: 12,
   });
   // Idempotent re-run: same version, artifacts unchanged.
   migrateDatabase(database);
   expect(database.prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 11,
+    user_version: 12,
   });
 
   database.exec(`
