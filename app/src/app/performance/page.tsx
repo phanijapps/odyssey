@@ -65,24 +65,26 @@ export default function PerformancePage() {
 
         <h2>Next Practice</h2>
         {report.guidanceCards.length > 0 ? (
-          report.guidanceCards.map((card) => (
-            <div key={card.id} className="guidance-card">
-              <h3 className="guidance-code">{card.standardCode}</h3>
-              <p className="guidance-status">{card.statusText}</p>
-              {card.topicId && (
-                <button
-                  className="secondary-btn"
-                  onClick={() =>
-                    window.location.assign(
-                      `/?practice=${encodeURIComponent(card.topicId as string)}`,
-                    )
-                  }
-                >
-                  Practice this skill
-                </button>
-              )}
-            </div>
-          ))
+          report.guidanceCards.map(
+            ({ id, standardCode, statusText, topicId }) => (
+              <div key={id} className="guidance-card">
+                <h3 className="guidance-code">{standardCode}</h3>
+                <p className="guidance-status">{statusText}</p>
+                {topicId && (
+                  <button
+                    className="secondary-btn"
+                    onClick={() =>
+                      window.location.assign(
+                        `/?practice=${encodeURIComponent(topicId)}`,
+                      )
+                    }
+                  >
+                    Practice this skill
+                  </button>
+                )}
+              </div>
+            ),
+          )
         ) : (
           <p>{report.guidanceFallback}</p>
         )}

@@ -43,7 +43,7 @@ function displayText(value: string, limit: number): string {
 }
 
 const PRACTICE_EVIDENCE_ATTEMPT_THRESHOLD = 3;
-/** Matches the A2UI transport ceiling for a composed topic identity. */
+/** Bounds a composed topic identity for safe URL navigation. */
 const GUIDANCE_TOPIC_ID_MAX = 300;
 
 function reviewedTopics(): Map<string, string> {

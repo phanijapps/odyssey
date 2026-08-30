@@ -55,9 +55,4 @@ open = [
   # failed to load, and a reviewed identity exceeding the transport ceiling.
   # Splitting the wording is a design call deferred from review.
   {slug = "guidance-unavailable-copy-split", source = "spec/performance-guidance AC5", summary = "Split guidance wording across left-catalog, empty-catalog, and oversize identities"},
-  # Defense-in-depth guards for a future parent action schema: the parent
-  # surface currently accepts the guidance-card component it never emits, and
-  # the performance action schema does not cross-check sourceComponentId
-  # against rendered card ids. Navigation is browse-tree gated today.
-  {slug = "a2ui-action-schema-guards", source = "spec/a2ui-learning-delivery T5", summary = "Tighten A2UI action schema guards if a parent action surface is added"},
 ]

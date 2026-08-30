@@ -90,11 +90,9 @@ export function PracticePanel({
             </div>
           ) : (
             <>
-              {!interaction && (
-                <h2 className="question-text">
-                  <MathText>{question}</MathText>
-                </h2>
-              )}
+              <h2 className="question-text">
+                <MathText>{question}</MathText>
+              </h2>
               {isLoadingQuestion ? (
                 <p className="loading-text">Loading your question…</p>
               ) : result ? (

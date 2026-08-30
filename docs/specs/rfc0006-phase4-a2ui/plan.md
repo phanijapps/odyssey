@@ -102,3 +102,18 @@ e2e: T5 (real artifact).
   surface" is now historical; its assertions (copy, guidance-card class,
   action wiring) all pass against the plain renderer. Retitling deferred
   with the e2e-seeder-migration backlog entry.
+
+## Review round 2 fixes (recorded 2026-08-30)
+
+- Blocker fixed: the practice question heading was hidden whenever an
+  interaction existed (mechanical `!a2uiDocument` → `!interaction`
+  translation); now renders unconditionally, and a new e2e guard
+  asserts `h2.question-text` is non-empty on the practice screen
+  (6/6 e2e green against the production build after the fix).
+- Also applied: dead `.a2ui-status-caution` selector + stale CSS header
+  comment removed (live class names kept deliberately — recorded
+  deviation from plan T4); `@a2ui` contract lines removed from
+  app/AGENTS.md; orphaned `validateA2UIPayload` deleted with its test
+  cases ported to the learning-payload validator; redundant topicId
+  cast replaced by destructured narrowing; stale "A2UI transport
+  ceiling" comment updated.

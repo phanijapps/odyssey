@@ -175,6 +175,9 @@ test("learner starts existing Practice from a Performance guidance card", async 
     page.getByRole("heading", { name: "8.EE.7", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Use linear equations.")).toBeVisible();
+  // The practice question itself must render alongside its interaction —
+  // guards the plain renderer against regressing to an input-only card.
+  await expect(page.locator("h2.question-text")).not.toBeEmpty();
   await expect(page).toHaveURL(/\/(\?.*)?$/);
 });
 

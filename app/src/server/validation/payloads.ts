@@ -33,44 +33,6 @@ export function sanitizeGeneratedDiagramSvg(raw: string): string {
   }
 }
 
-/** Validates the finite application-owned A2UI component catalog. */
-export function validateA2UIPayload(_input: unknown): void {
-  if (!_input || typeof _input !== "object" || Array.isArray(_input))
-    throw new Error("Invalid A2UI payload");
-  const input = _input as Record<string, unknown>;
-  if (input.component === "GeometryDiagram") {
-    validateLearningPayload(input);
-    return;
-  }
-  if (
-    input.component === "QuestionCard" &&
-    Object.keys(input).every(
-      (key) => key === "component" || key === "question" || key === "level",
-    ) &&
-    typeof input.question === "string" &&
-    input.question.length >= 1 &&
-    input.question.length <= 400 &&
-    Number.isInteger(input.level) &&
-    Number(input.level) >= 1 &&
-    Number(input.level) <= 13
-  )
-    return;
-  if (
-    input.component === "ProgressIndicator" &&
-    Object.keys(input).every(
-      (key) =>
-        key === "component" || key === "level" || key === "correctStreak",
-    ) &&
-    Number.isInteger(input.level) &&
-    Number(input.level) >= 1 &&
-    Number(input.level) <= 13 &&
-    Number.isInteger(input.correctStreak) &&
-    Number(input.correctStreak) >= 0
-  )
-    return;
-  throw new Error("Invalid A2UI payload");
-}
-
 function isSafeSvg(svg: string): boolean {
   if (
     svg.length > 20_000 ||
@@ -185,8 +147,7 @@ function isSafeSvg(svg: string): boolean {
     })
   );
 }
-
-/** Produces safe log, client-error, and audit views of an internal event. */
+/** Serializes diagnostics without leaking provider material. */
 export function serializeSafeDiagnostic(_event: Record<string, unknown>): {
   log: Record<string, unknown>;
   clientError: { message: string };

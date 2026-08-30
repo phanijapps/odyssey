@@ -2,13 +2,12 @@ import { expect, test } from "vitest";
 import {
   sanitizeGeneratedDiagramSvg,
   serializeSafeDiagnostic,
-  validateA2UIPayload,
   validateLearningPayload,
 } from "./payloads";
 
 // STUB: AC7
 
-test("STUB: AC7 accepts the approved SVG and app-owned A2UI payload", () => {
+test("STUB: AC7 accepts the approved SVG learning payload", () => {
   expect(() =>
     validateLearningPayload({
       component: "GeometryDiagram",
@@ -16,18 +15,6 @@ test("STUB: AC7 accepts the approved SVG and app-owned A2UI payload", () => {
         '<svg xmlns="http://www.w3.org/2000/svg" aria-label="triangle" />',
     }),
   ).not.toThrow();
-  expect(() =>
-    validateA2UIPayload({
-      component: "GeometryDiagram",
-      diagramSvg:
-        '<svg xmlns="http://www.w3.org/2000/svg" aria-label="triangle" />',
-    }),
-  ).not.toThrow();
-  for (const payload of [
-    { component: "QuestionCard", question: "What is 2 + 2?", level: 1 },
-    { component: "ProgressIndicator", level: 1, correctStreak: 0 },
-  ])
-    expect(() => validateA2UIPayload(payload)).not.toThrow();
 });
 
 test("accepts the fixed SVG namespace required by standalone diagram images", () => {
@@ -99,7 +86,7 @@ test("STUB: AC9 rejects untyped input before persistence or rendering", () => {
     },
     { component: "ProgressIndicator", level: 0, correctStreak: 0 },
   ])
-    expect(() => validateA2UIPayload(payload)).toThrow("Invalid A2UI payload");
+    expect(() => validateLearningPayload(payload)).toThrow("Invalid payload");
 });
 
 test("scales a valid generated diagram exactly once", () => {
