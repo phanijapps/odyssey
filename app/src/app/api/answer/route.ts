@@ -2,21 +2,9 @@ import {
   appendSessionPoolQuestion,
   requireLearnerMutationProof,
 } from "../../../server/identity/identity";
-import {
-  getTopicDetail,
-  submitPracticeAssignment,
-} from "../../../server/learning/learning";
+import { submitPracticeAssignment } from "../../../server/learning/learning";
 import { prefetchNextQuestion } from "../../../server/agent/adaptive-pool";
-import {
-  projectLearningSignal,
-  recallLearningContext,
-  writeLearningSignal,
-} from "../../../server/memory/engram-memory";
 import { getStandardsForSelection } from "../../../server/curriculum/browse";
-import {
-  recordLearningAttempt,
-  putMasteryBelief,
-} from "../../../server/memory/knowledge-graph";
 
 type AnswerSubmission = {
   topicId: string;
@@ -71,39 +59,6 @@ export async function POST(request: Request): Promise<Response> {
     const [subject = "", grade = "", domain = "", standardCode = ""] =
       body.topicId.split("::");
     const standards = getStandardsForSelection({ subject, grade, domain });
-    const matchedStandard = standards.find(
-      (standard) => standard.standardCode === standardCode,
-    );
-    if (matchedStandard) {
-      recordLearningAttempt({
-        childId,
-        standardId: matchedStandard.standardCode,
-        standardCode: matchedStandard.standardCode,
-        correct: result.correct,
-        difficulty: result.answeredDifficulty,
-        topicId: body.topicId,
-      });
-      const detail = getTopicDetail(childId, body.topicId);
-      if (detail && detail.attempts > 0)
-        putMasteryBelief({
-          childId,
-          standardId: matchedStandard.standardCode,
-          standardCode: matchedStandard.standardCode,
-          correctRate: detail.correct / detail.attempts,
-          attempts: detail.attempts,
-        });
-    }
-
-    const memoryWritten = await writeLearningSignal(
-      childId,
-      projectLearningSignal({
-        topicId: body.topicId,
-        acceptedLevel: result.level,
-        correct: result.correct,
-        progressState: result.level >= 5 ? "proficient" : "practicing",
-      }),
-    );
-    const memoryRecalled = await recallLearningContext(childId);
 
     // The durable transaction has already cleared the old assignment and
     // persisted this difficulty before a best-effort next-question prefetch.
@@ -128,8 +83,6 @@ export async function POST(request: Request): Promise<Response> {
               ? 20
               : 30
           : 0,
-        memoryWritten,
-        memoryRecalled,
         nextQuestion: null,
       },
       { headers: { "Cache-Control": "no-store" } },

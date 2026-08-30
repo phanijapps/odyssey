@@ -50,39 +50,12 @@ type Workflow = {
   };
 };
 
-type NavItem = "overview" | "browse" | "ingest" | "knowledge" | "parents";
+type NavItem = "overview" | "browse" | "ingest" | "parents";
 
 type ParentAccount = {
   accountId: string;
   username: string;
   children: Array<{ username: string }>;
-};
-
-type KgStats = {
-  entities: number;
-  relationships: number;
-  available: boolean;
-  kgEntities?: Array<{ id: string; kind: string; name: string }>;
-  kgRelationships?: Array<{
-    subject: string;
-    predicate: string;
-    object: string;
-  }>;
-  learningEntities?: Array<{ id: string; kind: string; name: string }>;
-  learningRelationships?: Array<{
-    subject: string;
-    predicate: string;
-    object: string;
-  }>;
-};
-type KgResult = {
-  id: string;
-  kind: string;
-  name: string;
-  predicate?: string;
-  targetId?: string;
-  scope: string;
-  score: number;
 };
 
 /* ============================================================ Helpers */
@@ -131,12 +104,6 @@ export default function DashboardPage() {
       }
     })();
   }, []);
-
-  // Knowledge graph state
-  const [kgStats, setKgStats] = useState<KgStats | null>(null);
-  const [kgQuery, setKgQuery] = useState("");
-  const [kgResults, setKgResults] = useState<KgResult[]>([]);
-  const [kgSearching, setKgSearching] = useState(false);
 
   // Gold records state
   const [records, setRecords] = useState<GoldRecord[]>([]);
@@ -192,15 +159,6 @@ export default function DashboardPage() {
     }
   }, [filterSubject, filterGrade, filterDomain, filterTopic, searchText]);
 
-  const loadKg = useCallback(async () => {
-    try {
-      const res = await fetch("/api/knowledge", { cache: "no-store" });
-      if (res.ok) setKgStats(await res.json());
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
   const loadParents = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/parents", { cache: "no-store" });
@@ -215,30 +173,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void loadGold();
-    void loadKg();
     void loadParents();
-  }, [loadGold, loadKg, loadParents]);
-
-  const kgSearch = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setKgResults([]);
-      return;
-    }
-    setKgSearching(true);
-    try {
-      const res = await fetch(`/api/knowledge?q=${encodeURIComponent(query)}`, {
-        cache: "no-store",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setKgResults(data.results ?? []);
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setKgSearching(false);
-    }
-  }, []);
+  }, [loadGold, loadParents]);
 
   /* --- Ingestion actions --- */
 
@@ -442,13 +378,6 @@ export default function DashboardPage() {
                 Ingest Source
               </button>
               <button
-                className={nav === "knowledge" ? "nav-item active" : "nav-item"}
-                onClick={() => setNav("knowledge")}
-              >
-                <span className="nav-icon">◉</span>
-                Knowledge Graph
-              </button>
-              <button
                 className={nav === "parents" ? "nav-item active" : "nav-item"}
                 onClick={() => setNav("parents")}
               >
@@ -458,10 +387,6 @@ export default function DashboardPage() {
                   <span className="nav-badge">{parents.length}</span>
                 )}
               </button>
-              <a href="/dashboard/graph" className="nav-item">
-                <span className="nav-icon">✦</span>
-                3D Graph View
-              </a>
             </nav>
             <div className="sidebar-footer">
               <a href="/" className="nav-item">
@@ -489,7 +414,6 @@ export default function DashboardPage() {
                 {nav === "overview" && "Overview"}
                 {nav === "browse" && "Browse Gold Records"}
                 {nav === "ingest" && "Ingest Curriculum Source"}
-                {nav === "knowledge" && "Knowledge Graph"}
                 {nav === "parents" && "Manage Parents"}
               </h1>
             </header>
@@ -844,146 +768,6 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </div>
-              )}
-
-              {/* ========== KNOWLEDGE GRAPH ========== */}
-              {nav === "knowledge" && (
-                <>
-                  <div className="dash-card section-card">
-                    <a href="/dashboard/graph" className="graph3d-open">
-                      Open interactive 3D graph →
-                    </a>
-                  </div>
-                  <div className="card-grid">
-                    <div className="dash-card stat-card">
-                      <span className="stat-number">
-                        {kgStats?.entities ?? 0}
-                      </span>
-                      <span className="stat-label">Graph Entities</span>
-                    </div>
-                    <div className="dash-card stat-card">
-                      <span className="stat-number">
-                        {kgStats?.relationships ?? 0}
-                      </span>
-                      <span className="stat-label">Relationships</span>
-                    </div>
-                    <div className="dash-card stat-card">
-                      <span className="stat-number">
-                        {kgStats?.available ? "✓" : "✗"}
-                      </span>
-                      <span className="stat-label">Engram Connected</span>
-                    </div>
-                  </div>
-
-                  {kgStats?.learningRelationships &&
-                    kgStats.learningRelationships.length > 0 && (
-                      <div className="dash-card section-card">
-                        <h2 className="section-title">
-                          Recent Learning Patterns
-                        </h2>
-                        <div className="record-list">
-                          {kgStats.learningRelationships
-                            .slice()
-                            .reverse()
-                            .slice(0, 10)
-                            .map((r, i) => (
-                              <div key={i} className="kg-edge">
-                                <span className="kg-node">{r.subject}</span>
-                                <span
-                                  className={
-                                    r.predicate === "masteredStep"
-                                      ? "kg-pred good"
-                                      : "kg-pred bad"
-                                  }
-                                >
-                                  {r.predicate}
-                                </span>
-                                <span className="kg-node">{r.object}</span>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-
-                  {kgStats?.kgRelationships &&
-                    kgStats.kgRelationships.length > 0 && (
-                      <div className="dash-card section-card">
-                        <h2 className="section-title">
-                          Curriculum Prerequisites
-                        </h2>
-                        <div className="record-list">
-                          {kgStats.kgRelationships.slice(0, 15).map((r, i) => (
-                            <div key={i} className="kg-edge">
-                              <span className="kg-node">{r.subject}</span>
-                              <span className="kg-pred">{r.predicate}</span>
-                              <span className="kg-node">{r.object}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  <div className="dash-card section-card">
-                    <div className="section-header">
-                      <h2>Search the Knowledge Graph</h2>
-                      <button
-                        className="link-btn-inline"
-                        onClick={async () => {
-                          await fetch("/api/knowledge", {
-                            method: "POST",
-                            headers: { origin: window.location.origin },
-                          });
-                          await loadKg();
-                        }}
-                      >
-                        Re-seed curriculum →
-                      </button>
-                    </div>
-                    <form
-                      className="chat-input-row"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        void kgSearch(kgQuery);
-                      }}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Search standards, attempts, patterns… (e.g. 6.RP.1, struggledOn, ratio)"
-                        value={kgQuery}
-                        onChange={(e) => setKgQuery(e.target.value)}
-                      />
-                      <button type="submit" className="primary-btn">
-                        {kgSearching ? "…" : "Search"}
-                      </button>
-                    </form>
-
-                    {kgResults.length > 0 && (
-                      <p className="result-meta">{kgResults.length} results</p>
-                    )}
-                    <div className="record-list">
-                      {kgResults.map((r) => (
-                        <div
-                          key={`${r.scope}-${r.id}`}
-                          className="dash-card record-card"
-                        >
-                          <div className="record-header">
-                            <div className="record-main">
-                              <span className="record-code">{r.kind}</span>
-                              <span className="record-grade">{r.scope}</span>
-                            </div>
-                            <span className="record-count">
-                              score {r.score}
-                            </span>
-                          </div>
-                          <p className="record-text">{r.name}</p>
-                        </div>
-                      ))}
-                      {kgQuery && kgResults.length === 0 && !kgSearching && (
-                        <p className="result-meta">No matches.</p>
-                      )}
-                    </div>
-                  </div>
-                </>
               )}
 
               {/* ========== PARENTS ========== */}
