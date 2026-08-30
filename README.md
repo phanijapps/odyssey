@@ -119,6 +119,7 @@ for the full annotated template. The essentials:
 | `ODYSSEY_SEED_CATALOG`                                                                                                                     | Set `0` to skip seeding the reviewed catalog (tests with exact fixtures)                  |
 | `ODYSSEY_ENABLE_DEVELOPMENT_FIXTURE_ACCOUNTS`                                                                                              | Dev-only fixture sign-ins                                                                 |
 | `ODYSSEY_ENABLE_LOCAL_PARENT_BOOTSTRAP` / `ODYSSEY_ENABLE_PRODUCTION_PARENT_BOOTSTRAP` + `ODYSSEY_PARENT_BOOTSTRAP_USERNAME` / `_PASSWORD` | One-time first-parent creation while no parent exists                                     |
+| `ODYSSEY_ENABLE_LOCAL_ADMIN_BOOTSTRAP` / `ODYSSEY_ENABLE_PRODUCTION_ADMIN_BOOTSTRAP` + `ODYSSEY_ADMIN_BOOTSTRAP_USERNAME` / `_PASSWORD`    | One-time first-admin creation while no admin exists                                       |
 | `PI_PROVIDER`, `PI_MODEL`, `OLLAMA_INTEGRATION`                                                                                            | Optional local question generation                                                        |
 
 ## Architecture

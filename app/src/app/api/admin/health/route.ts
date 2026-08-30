@@ -7,8 +7,7 @@ import { isOllamaConfigured } from "../../../../server/agent/agent";
 /** Reports the local service's operational health for the admin console. */
 export function GET(request: Request): Response {
   try {
-    const { childId } = requireAdminRead(request);
-    void childId;
+    requireAdminRead(request);
     const schemaVersion = (
       learningDb.prepare("PRAGMA user_version").get() as {
         user_version: number;

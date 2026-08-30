@@ -16,7 +16,8 @@ const {
   markAssessmentQuestionUnavailable: vi.fn(),
 }));
 
-vi.mock("../../../server/agent/adaptive-pool", () => ({
+vi.mock("@odyssey/practice-engine", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@odyssey/practice-engine")>()),
   generateLazyQuestion,
 }));
 vi.mock("../../../server/learning/assessment", () => ({

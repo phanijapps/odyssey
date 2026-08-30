@@ -25,8 +25,8 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Admin access required" }, { status: 403 });
   }
   const target = backupFilePath(new Date());
-  // VACUUM INTO refuses to overwrite; the timestamp makes collisions
-  // practically impossible, and the check keeps the error honest.
+  // VACUUM INTO itself refuses to overwrite an existing file; the
+  // second-scale timestamp makes collisions practically impossible.
   const escaped = target.replace(/'/g, "''");
   try {
     // VACUUM INTO is atomic on its own and cannot run inside a transaction.

@@ -1,4 +1,4 @@
-import { rmSync } from "node:fs";
+import { rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { expect, test } from "vitest";
 import { authenticateChild } from "../../../../server/identity/identity";
@@ -42,6 +42,34 @@ test("backup requires an admin session with same-origin proof", async () => {
       )
     ).status,
   ).toBe(403);
+});
+
+test("backup refuses to overwrite an existing snapshot file", async () => {
+  rmSync(backupsDirectory, { force: true, recursive: true });
+  mkdirSync(backupsDirectory, { recursive: true });
+  // Occupy every filename the next-second timestamp could produce.
+  const now = new Date();
+  const stamp = now
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\..+$/, "")
+    .replace("T", "-");
+  const sentinel = "sentinel";
+  const occupied = join(backupsDirectory, `learning-${stamp}.db`);
+  writeFileSync(occupied, sentinel);
+
+  const admin = await authenticateChild({
+    username: "test-admin",
+    password: "test-admin-password",
+  });
+  const response = await POST(
+    request(`session=${admin.sessionToken}`, "http://localhost"),
+  );
+  expect(response.status).toBe(500);
+  expect((await import("node:fs")).readFileSync(occupied, "utf8")).toBe(
+    sentinel,
+  );
+  rmSync(backupsDirectory, { force: true, recursive: true });
 });
 
 test("backup writes a snapshot file under data/backups", async () => {
