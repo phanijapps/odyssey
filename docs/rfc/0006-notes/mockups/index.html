@@ -1,60 +1,149 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Odyssey — Future State Mockups (RFC-0006)</title>
-<style>
-  :root {
-    --bg: #f6f7f9; --surface: #ffffff; --ink: #1c2430; --muted: #5b6675;
-    --line: #e3e7ec; --brand: #3b5bdb; --brand-ink: #ffffff;
-    --accent: #eef1ff; --ok: #2f9e44; --warn: #e8590c;
-    --radius: 14px; --shadow: 0 1px 2px rgba(28,36,48,.06), 0 8px 24px rgba(28,36,48,.06);
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px 96px; }
-  h1 { font-size: 28px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 32px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-  a.card { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; text-decoration: none; color: inherit; box-shadow: var(--shadow); transition: transform .12s ease, border-color .12s ease; }
-  a.card:hover { transform: translateY(-2px); border-color: var(--brand); }
-  .card .tag { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
-  .card h2 { margin: 6px 0 6px; font-size: 19px; }
-  .card p { margin: 0; color: var(--muted); font-size: 14px; }
-  .meta { margin-top: 40px; padding: 16px 20px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); font-size: 14px; background: var(--surface); }
-  code { background: var(--accent); border-radius: 6px; padding: 1px 6px; font-size: 13px; }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Odyssey — future state</h1>
-  <p class="sub">Three personas · one simple local application. Static mockups accompanying <code>docs/rfc/0006-simplify-to-persona-app.md</code>.</p>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Odyssey — Future State Mockups (RFC-0006)</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --ink: #1c2430;
+        --muted: #5b6675;
+        --line: #e3e7ec;
+        --brand: #3b5bdb;
+        --brand-ink: #ffffff;
+        --accent: #eef1ff;
+        --ok: #2f9e44;
+        --warn: #e8590c;
+        --radius: 14px;
+        --shadow:
+          0 1px 2px rgba(28, 36, 48, 0.06), 0 8px 24px rgba(28, 36, 48, 0.06);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          16px/1.55 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 24px 96px;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 32px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+      }
+      a.card {
+        display: block;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 20px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: var(--shadow);
+        transition:
+          transform 0.12s ease,
+          border-color 0.12s ease;
+      }
+      a.card:hover {
+        transform: translateY(-2px);
+        border-color: var(--brand);
+      }
+      .card .tag {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--brand);
+      }
+      .card h2 {
+        margin: 6px 0 6px;
+        font-size: 19px;
+      }
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .meta {
+        margin-top: 40px;
+        padding: 16px 20px;
+        border: 1px dashed var(--line);
+        border-radius: var(--radius);
+        color: var(--muted);
+        font-size: 14px;
+        background: var(--surface);
+      }
+      code {
+        background: var(--accent);
+        border-radius: 6px;
+        padding: 1px 6px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Odyssey — future state</h1>
+      <p class="sub">
+        Three personas · one simple local application. Static mockups
+        accompanying <code>docs/rfc/0006-simplify-to-persona-app.md</code>.
+      </p>
 
-  <div class="cards">
-    <a class="card" href="student.html">
-      <span class="tag">Persona 1</span>
-      <h2>Student — practice app</h2>
-      <p>Sign-in, pick a skill, one question at a time with diagrams, hints and solution steps. Focused: a single task per screen.</p>
-    </a>
-    <a class="card" href="parent.html">
-      <span class="tag">Persona 2</span>
-      <h2>Parent — dashboard</h2>
-      <p>Child progress at a glance: streaks, mastery by domain, what to practice next. Manage child accounts.</p>
-    </a>
-    <a class="card" href="admin.html">
-      <span class="tag">Persona 3</span>
-      <h2>Admin — console</h2>
-      <p>Accounts (parents &amp; students), the curriculum catalog seeded from the versioned JSON, question-bank coverage, system health.</p>
-    </a>
-  </div>
+      <div class="cards">
+        <a class="card" href="student.html">
+          <span class="tag">Persona 1</span>
+          <h2>Student — practice app</h2>
+          <p>
+            Sign-in, pick a skill, one question at a time with diagrams, hints
+            and solution steps. Focused: a single task per screen.
+          </p>
+        </a>
+        <a class="card" href="parent.html">
+          <span class="tag">Persona 2</span>
+          <h2>Parent — dashboard</h2>
+          <p>
+            Child progress at a glance: streaks, mastery by domain, what to
+            practice next. Manage child accounts.
+          </p>
+        </a>
+        <a class="card" href="admin.html">
+          <span class="tag">Persona 3</span>
+          <h2>Admin — console</h2>
+          <p>
+            Accounts (parents &amp; students), the curriculum catalog seeded
+            from the versioned JSON, question-bank coverage, system health.
+          </p>
+        </a>
+      </div>
 
-  <div class="meta">
-    <strong>What these are not:</strong> pixel-final designs. They fix layout, information
-    hierarchy, and scope for the three personas so the simplification phases build toward a
-    known target. Design tokens (color, radius, spacing) are shared across all three pages and
-    map to the app&rsquo;s existing restrained token-based theme.
-  </div>
-</div>
-</body>
+      <div class="meta">
+        <strong>What these are not:</strong> pixel-final designs. They fix
+        layout, information hierarchy, and scope for the three personas so the
+        simplification phases build toward a known target. Design tokens (color,
+        radius, spacing) are shared across all three pages and map to the
+        app&rsquo;s existing restrained token-based theme.
+      </div>
+    </div>
+  </body>
 </html>

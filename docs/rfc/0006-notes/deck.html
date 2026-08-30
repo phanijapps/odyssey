@@ -1,409 +1,1202 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Odyssey — A math app Maya will love (and a plan to get there)</title>
-<style>
-  :root {
-    --bg: #eef0f4; --surface: #ffffff; --ink: #1c2430; --muted: #5b6675;
-    --line: #e3e7ec; --brand: #3b5bdb; --brand-2: #7048e8; --accent: #eef1ff;
-    --ok: #2f9e44; --ok-bg: #ebfbee; --warn: #e8590c; --warn-bg: #fff4e6;
-    --bad: #c92a2a; --bad-bg: #ffe3e3; --radius: 16px;
-  }
-  * { box-sizing: border-box; margin: 0; }
-  html, body { height: 100%; }
-  body { font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); overflow: hidden; }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Odyssey — A math app Maya will love (and a plan to get there)</title>
+    <style>
+      :root {
+        --bg: #eef0f4;
+        --surface: #ffffff;
+        --ink: #1c2430;
+        --muted: #5b6675;
+        --line: #e3e7ec;
+        --brand: #3b5bdb;
+        --brand-2: #7048e8;
+        --accent: #eef1ff;
+        --ok: #2f9e44;
+        --ok-bg: #ebfbee;
+        --warn: #e8590c;
+        --warn-bg: #fff4e6;
+        --bad: #c92a2a;
+        --bad-bg: #ffe3e3;
+        --radius: 16px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font:
+          16px/1.5 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        overflow: hidden;
+      }
 
-  /* ---- fixed 16:9 stage, scaled to fit — guarantees alignment everywhere ---- */
-  .viewport { position: fixed; inset: 0 0 52px 0; display: grid; place-items: center; }
-  .stage { width: 1280px; height: 720px; position: relative; transform-origin: center center;
-           background: var(--bg); flex: none; }
-  .slide { position: absolute; inset: 0; padding: 56px 64px 48px; display: none; }
-  .slide.active { display: flex; flex-direction: column; }
+      /* ---- fixed 16:9 stage, scaled to fit — guarantees alignment everywhere ---- */
+      .viewport {
+        position: fixed;
+        inset: 0 0 52px 0;
+        display: grid;
+        place-items: center;
+      }
+      .stage {
+        width: 1280px;
+        height: 720px;
+        position: relative;
+        transform-origin: center center;
+        background: var(--bg);
+        flex: none;
+      }
+      .slide {
+        position: absolute;
+        inset: 0;
+        padding: 56px 64px 48px;
+        display: none;
+      }
+      .slide.active {
+        display: flex;
+        flex-direction: column;
+      }
 
-  .kicker { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--brand); margin-bottom: 8px; }
-  h1 { font-size: 46px; line-height: 1.12; letter-spacing: -0.8px; }
-  h2 { font-size: 34px; line-height: 1.15; letter-spacing: -0.5px; margin-bottom: 8px; }
-  .lead { font-size: 18px; color: var(--muted); max-width: 900px; margin-bottom: 20px; }
-  .content { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+      .kicker {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-size: 46px;
+        line-height: 1.12;
+        letter-spacing: -0.8px;
+      }
+      h2 {
+        font-size: 34px;
+        line-height: 1.15;
+        letter-spacing: -0.5px;
+        margin-bottom: 8px;
+      }
+      .lead {
+        font-size: 18px;
+        color: var(--muted);
+        max-width: 900px;
+        margin-bottom: 20px;
+      }
+      .content {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
 
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; min-height: 0; }
-  .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; flex: 1; min-height: 0; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
-  .card h3 { font-size: 16px; }
-  .card p, .card li { font-size: 14px; color: var(--muted); }
-  .card ul { padding-left: 18px; display: grid; gap: 5px; }
-  .card li { margin: 0; }
-  code { background: var(--accent); border-radius: 6px; padding: 1px 6px; font-size: 12.5px; color: var(--ink); }
+      .cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        flex: 1;
+        min-height: 0;
+      }
+      .cols3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+        flex: 1;
+        min-height: 0;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card h3 {
+        font-size: 16px;
+      }
+      .card p,
+      .card li {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .card ul {
+        padding-left: 18px;
+        display: grid;
+        gap: 5px;
+      }
+      .card li {
+        margin: 0;
+      }
+      code {
+        background: var(--accent);
+        border-radius: 6px;
+        padding: 1px 6px;
+        font-size: 12.5px;
+        color: var(--ink);
+      }
 
-  .tag { display: inline-block; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 2px 10px; letter-spacing: .05em; vertical-align: 2px; }
-  .tag.cut { background: var(--bad-bg); color: var(--bad); }
-  .tag.keep { background: var(--ok-bg); color: var(--ok); }
-  .tag.new { background: var(--accent); color: var(--brand); }
-  .tag.ask { background: var(--warn-bg); color: var(--warn); }
+      .tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 800;
+        border-radius: 999px;
+        padding: 2px 10px;
+        letter-spacing: 0.05em;
+        vertical-align: 2px;
+      }
+      .tag.cut {
+        background: var(--bad-bg);
+        color: var(--bad);
+      }
+      .tag.keep {
+        background: var(--ok-bg);
+        color: var(--ok);
+      }
+      .tag.new {
+        background: var(--accent);
+        color: var(--brand);
+      }
+      .tag.ask {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
 
-  .steps { display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center; }
-  .step { display: grid; grid-template-columns: 54px 1fr; gap: 16px; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; }
-  .step .n { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 17px; }
-  .step b { font-size: 16px; display: block; }
-  .step span { font-size: 13.5px; color: var(--muted); display: block; margin-top: 2px; }
-  .step .you { font-size: 13px; color: var(--brand); font-weight: 700; margin-top: 4px; display: block; }
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
+        justify-content: center;
+      }
+      .step {
+        display: grid;
+        grid-template-columns: 54px 1fr;
+        gap: 16px;
+        align-items: start;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px 18px;
+      }
+      .step .n {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--brand), var(--brand-2));
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 17px;
+      }
+      .step b {
+        font-size: 16px;
+        display: block;
+      }
+      .step span {
+        font-size: 13.5px;
+        color: var(--muted);
+        display: block;
+        margin-top: 2px;
+      }
+      .step .you {
+        font-size: 13px;
+        color: var(--brand);
+        font-weight: 700;
+        margin-top: 4px;
+        display: block;
+      }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 8px 12px; background: #fbfcfe; border-bottom: 1px solid var(--line); }
-  td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  tr:last-child td { border-bottom: none; }
-  td b { font-size: 13.5px; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      th {
+        text-align: left;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        padding: 8px 12px;
+        background: #fbfcfe;
+        border-bottom: 1px solid var(--line);
+      }
+      td {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      td b {
+        font-size: 13.5px;
+      }
 
-  .title-slide { justify-content: center; gap: 0; }
-  .title-slide .logo { width: 84px; height: 84px; border-radius: 24px; background: linear-gradient(135deg, #3b5bdb, #7048e8); color: #fff; display: grid; place-items: center; font-size: 40px; font-weight: 800; margin-bottom: 30px; }
-  .title-slide .sub { font-size: 21px; color: var(--muted); margin-top: 10px; max-width: 860px; }
-  .title-slide .meta { font-size: 13.5px; color: var(--muted); margin-top: 34px; }
+      .title-slide {
+        justify-content: center;
+        gap: 0;
+      }
+      .title-slide .logo {
+        width: 84px;
+        height: 84px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, #3b5bdb, #7048e8);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 40px;
+        font-weight: 800;
+        margin-bottom: 30px;
+      }
+      .title-slide .sub {
+        font-size: 21px;
+        color: var(--muted);
+        margin-top: 10px;
+        max-width: 860px;
+      }
+      .title-slide .meta {
+        font-size: 13.5px;
+        color: var(--muted);
+        margin-top: 34px;
+      }
 
-  .frame { flex: 1; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
-  .frame .head { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 1px solid var(--line); font-size: 13.5px; background: #fbfcfe; }
-  .frame .head .url { color: var(--muted); font-family: ui-monospace, monospace; font-size: 11.5px; }
-  .frame iframe { flex: 1; border: 0; width: 100%; background: #fff; }
+      .frame {
+        flex: 1;
+        min-height: 0;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .frame .head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 16px;
+        border-bottom: 1px solid var(--line);
+        font-size: 13.5px;
+        background: #fbfcfe;
+      }
+      .frame .head .url {
+        color: var(--muted);
+        font-family: ui-monospace, monospace;
+        font-size: 11.5px;
+      }
+      .frame iframe {
+        flex: 1;
+        border: 0;
+        width: 100%;
+        background: #fff;
+      }
 
-  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 20px; background: rgba(238,240,244,.94); border-top: 1px solid var(--line); backdrop-filter: blur(6px); z-index: 10; }
-  .nav .title { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .nav .grow { flex: 1; }
-  .nav button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 14px; }
-  .nav button:hover { border-color: var(--brand); color: var(--brand); }
-  .counter { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .bar { position: fixed; top: 0; left: 0; height: 4px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); z-index: 11; transition: width .18s ease; }
+      .nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 20px;
+        background: rgba(238, 240, 244, 0.94);
+        border-top: 1px solid var(--line);
+        backdrop-filter: blur(6px);
+        z-index: 10;
+      }
+      .nav .title {
+        font-size: 13px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .nav .grow {
+        flex: 1;
+      }
+      .nav button {
+        font: inherit;
+        cursor: pointer;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 8px;
+        padding: 6px 14px;
+      }
+      .nav button:hover {
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+      .counter {
+        font-size: 12.5px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--brand), var(--brand-2));
+        z-index: 11;
+        transition: width 0.18s ease;
+      }
 
-  .heart { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-  .heart .card { text-align: left; }
-  .heart .ico { font-size: 26px; }
-  .proof { background: var(--accent); border: 1px solid #dbe2ff; border-radius: 14px; padding: 14px 18px; font-size: 14.5px; }
-  .proof b { color: var(--brand); }
-  .footnote { font-size: 12.5px; color: var(--muted); }
-  .duo { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; flex: 1; min-height: 0; }
+      .heart {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      .heart .card {
+        text-align: left;
+      }
+      .heart .ico {
+        font-size: 26px;
+      }
+      .proof {
+        background: var(--accent);
+        border: 1px solid #dbe2ff;
+        border-radius: 14px;
+        padding: 14px 18px;
+        font-size: 14.5px;
+      }
+      .proof b {
+        color: var(--brand);
+      }
+      .footnote {
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .duo {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 16px;
+        flex: 1;
+        min-height: 0;
+      }
 
-  @media print {
-    .viewport { position: static; display: block; }
-    .stage { width: 100%; height: auto; transform: none !important; }
-    .slide { display: flex !important; position: relative; page-break-after: always; height: 100vh; }
-    .nav, .bar { display: none; }
-  }
-</style>
-</head>
-<body>
-<div class="bar" id="bar"></div>
+      @media print {
+        .viewport {
+          position: static;
+          display: block;
+        }
+        .stage {
+          width: 100%;
+          height: auto;
+          transform: none !important;
+        }
+        .slide {
+          display: flex !important;
+          position: relative;
+          page-break-after: always;
+          height: 100vh;
+        }
+        .nav,
+        .bar {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bar" id="bar"></div>
 
-<div class="viewport"><div class="stage" id="stage">
+    <div class="viewport">
+      <div class="stage" id="stage">
+        <!-- 1 · TITLE -->
+        <section class="slide title-slide active">
+          <div class="logo">Ω</div>
+          <h1>A math app your daughter<br />will actually want to use</h1>
+          <p class="sub">
+            Everything in this plan serves one outcome:
+            <b>higher math scores</b> — earned through practice that adapts to
+            her, teaches her when she slips, and keeps her motivated. And an app
+            so simple it just works, every time she opens it.
+          </p>
+          <p class="meta">
+            Odyssey · plan of record: <code>docs/rfc/0006</code> · branch
+            <code>simplify/persona-app</code> · August 2026
+          </p>
+        </section>
 
-  <!-- 1 · TITLE -->
-  <section class="slide title-slide active">
-    <div class="logo">Ω</div>
-    <h1>A math app your daughter<br />will actually want to use</h1>
-    <p class="sub">Everything in this plan serves one outcome: <b>higher math scores</b> — earned through practice that adapts to her, teaches her when she slips, and keeps her motivated. And an app so simple it just works, every time she opens it.</p>
-    <p class="meta">Odyssey · plan of record: <code>docs/rfc/0006</code> · branch <code>simplify/persona-app</code> · August 2026</p>
-  </section>
-
-  <!-- 2 · WHAT RESULTS MEANS -->
-  <section class="slide">
-    <div class="kicker">What “results” means here</div>
-    <h2>Four things lift a kid's math scores</h2>
-    <p class="lead">Decades of learning research agree on the recipe. An app helps only if it delivers all four — every change in this plan is measured against this list.</p>
-    <div class="content">
-      <div class="heart">
-        <div class="card"><div class="ico">🎯</div><h3>Right difficulty</h3><p>Practice at her level — not bored on what she's mastered, not crushed by what's ahead. Hard enough to grow, easy enough to continue.</p></div>
-        <div class="card"><div class="ico">💡</div><h3>Mistakes → lessons</h3><p>Every wrong answer shows a hint, then full step-by-step solution. A slip becomes a taught moment, seconds after it happens.</p></div>
-        <div class="card"><div class="ico">🔥</div><h3>Motivation that sticks</h3><p>Streaks, levels, small wins, fun facts. The pull to come back tomorrow — because consistency beats intensity in math.</p></div>
-        <div class="card"><div class="ico">🧭</div><h3>A parent in the loop</h3><p>You see exactly where she's strong and where she's slipping — and can nudge the right practice with one tap.</p></div>
-      </div>
-      <div class="proof">The good news: <b>the learning engine already does all four, and it's tested and solid.</b> 283 automated tests pass. We're not rebuilding the engine — we're clearing everything that got built around it.</div>
-    </div>
-  </section>
-
-  <!-- 3 · MAYA'S EXPERIENCE -->
-  <section class="slide">
-    <div class="kicker">Her experience, end to end</div>
-    <h2>A typical 10-minute practice</h2>
-    <div class="content">
-      <div class="steps">
-        <div class="step"><div class="n">1</div><div><b>She signs in → “Continue: Ratios” is right there</b><span>No hunting. Her grade, her last skill, one tap to resume.</span><span class="you">She notices: zero friction to start</span></div></div>
-        <div class="step"><div class="n">2</div><div><b>One question at a time — with a picture when it helps</b><span>Clean screen, big type, labeled diagrams for geometry-style problems. Nothing else competing for attention.</span><span class="you">She notices: it's calm, not a worksheet wall</span></div></div>
-        <div class="step"><div class="n">3</div><div><b>Stuck? A hint. Wrong? The full solution, step by step</b><span>The app then adjusts — easier after a rough patch, harder when she's rolling.</span><span class="you">She notices: she learns right at the moment of mistake</span></div></div>
-        <div class="step"><div class="n">4</div><div><b>Streak grows, level rises, progress dots fill</b><span>Test mode (9 questions, exam-style) whenever she's ready to rehearse for the real thing.</span><span class="you">She notices: “I'm getting better at this” — visible proof</span></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4 · WHAT'S IN THE WAY -->
-  <section class="slide">
-    <div class="kicker">The honest problem</div>
-    <h2>Great engine, buried in a machine shop</h2>
-    <p class="lead">Over two years this app grew a “curriculum factory” and fancy plumbing nobody asked for. Like a house where you have to walk through a workshop to reach the kitchen.</p>
-    <div class="content">
-      <div class="cols">
-        <div class="card">
-          <h3>What's in the way</h3>
-          <ul>
-            <li><b>A fresh install shows zero topics.</b> The topic list lives only in a database file that isn't part of the app — so on a new laptop, she literally can't practice <span class="tag cut">the bug this plan fixes</span></li>
-            <li><b>Her practice screen is crowded code</b> — a 1,000-line page doing sign-in, search, practice, tests and suggestions all at once</li>
-            <li><b>Duplicated machinery</b> — two question-picking systems, three databases, ~20 settings knobs</li>
-            <li><b>Five dead doors</b> — buttons and pages no screen links to anymore</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>Why this hurts her scores</h3>
-          <ul>
-            <li>Setup friction = fewer practice days (and consistency is everything)</li>
-            <li>Crowded screen = distraction tax on every single question</li>
-            <li>Complexity = every improvement takes longer and risks breaking practice</li>
-          </ul>
-          <div class="proof" style="margin-top:auto">The fix is subtraction: <b>keep the tested engine, remove the factory.</b> About a third of the code goes away — none of it code she uses.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 5 · THE PLAN IN ONE LINE -->
-  <section class="slide">
-    <div class="kicker">The plan</div>
-    <h2>One sentence, five milestones</h2>
-    <p class="lead"><b>Keep the learning engine and the three doors — Student, Parent, Admin — make topics travel with the app, and strip out everything else.</b></p>
-    <div class="content">
-      <div class="steps">
-        <div class="step"><div class="n">🗑️</div><div><b>1 · Take out the trash</b><span>Delete the five dead doors and unused machinery inside. Nothing she uses changes — the app just gets lighter.</span><span class="you">You'll notice: nothing (that's the point) — tests prove nothing broke</span></div></div>
-        <div class="step"><div class="n">🧹</div><div><b>2 · Clear the basement</b><span>Remove the experimental memory/graph experiments (a third of the leftover bulk). Her practice results never depended on them.</span><span class="you">She'll notice: nothing. You'll notice: one less database file to worry about</span></div></div>
-        <div class="step"><div class="n">📦</div><div><b>3 · Topics travel with the app</b><span>The skill catalog ships inside the app as a reviewed file, like a textbook in the box. Any laptop, first run: every topic is there.</span><span class="you">You'll notice: fresh install works instantly — the “can't practice” bug dies here</span></div></div>
-        <div class="step"><div class="n">🧘</div><div><b>4 · A calmer practice screen</b><span>Replace the elaborate display machinery with one simple, fast renderer. Same questions, same diagrams — less between her and the math.</span><span class="you">She'll notice: pages feel snappier and cleaner</span></div></div>
-        <div class="step"><div class="n">✨</div><div><b>5 · The finished app, kept safe</b><span>Rebuild the three screens to the mockups ahead, merge to one data file, and add one-tap backup + progress export.</span><span class="you">You'll notice: her history is safe and portable — forever</span></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 6 · MILESTONE 1 DETAIL -->
-  <section class="slide">
-    <div class="kicker">Starting now · milestone 1</div>
-    <h2>“Take out the trash” — exactly what happens</h2>
-    <div class="content">
-      <div class="cols">
-        <div class="card">
-          <h3>Removed (all confirmed unused)</h3>
-          <table>
-            <tr><th>What</th><th>Why it's safe</th></tr>
-            <tr><td><b>5 dead pages/endpoints</b></td><td>No screen links to them — verified by exhaustive search</td></tr>
-            <tr><td><b>An unused “AI request” counter</b></td><td>Books allowance for a feature the screens never call</td></tr>
-          <tr><td><b>Leftover test-mode props</b></td><td>Old code path that today's test screen replaced</td></tr>
-          </table>
-        </div>
-        <div class="card">
-          <h3>How you'll know it worked</h3>
-          <ul>
-            <li>All 283 automated tests still pass, plus the full type-check</li>
-            <li>Human check: sign in → answer one question → next question appears</li>
-            <li>Nothing in her flow changes — same buttons, same screens</li>
-          </ul>
-          <div class="proof" style="margin-top:auto">Effort: <b>one focused session.</b> Risk: <b>near zero</b> (pure deletion of unused code, landed as its own checkpoint we can always reverse).</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 7 · MOCKUP STUDENT -->
-  <section class="slide">
-    <div class="kicker">Where we're heading · her screen</div>
-    <h2>Student — one thing at a time</h2>
-    <div class="frame">
-      <div class="head"><b>🎒 Practice flow</b><span class="url">mockups/student.html</span><span style="margin-left:auto;color:var(--muted)">scroll inside the frame — shows sign-in, skill pick, question, feedback</span></div>
-      <iframe src="mockups/student.html" title="Student mockup"></iframe>
-    </div>
-  </section>
-
-  <!-- 8 · MOCKUP PARENT -->
-  <section class="slide">
-    <div class="kicker">Where we're heading · your screen</div>
-    <h2>Parent — know where to help</h2>
-    <div class="frame">
-      <div class="head"><b>👨‍👩‍👧 Your dashboard</b><span class="url">mockups/parent.html</span><span style="margin-left:auto;color:var(--muted)">streaks, progress, one-tap practice suggestions</span></div>
-      <iframe src="mockups/parent.html" title="Parent mockup"></iframe>
-    </div>
-  </section>
-
-  <!-- 9 · MOCKUP ADMIN -->
-  <section class="slide">
-    <div class="kicker">Where we're heading · the control room</div>
-    <h2>Admin — accounts, topics, health, backup</h2>
-    <div class="frame">
-      <div class="head"><b>🛠️ Household admin</b><span class="url">mockups/admin.html</span><span style="margin-left:auto;color:var(--muted)">one place to see everything is OK — and back it up</span></div>
-      <iframe src="mockups/admin.html" title="Admin mockup"></iframe>
-    </div>
-  </section>
-
-  <!-- 10 · HER PROGRESS IS SAFE -->
-  <section class="slide">
-    <div class="kicker">Milestone 5 · safety net</div>
-    <h2>Her progress lives in one safe file — and you hold the key</h2>
-    <div class="content">
-      <div class="cols">
-        <div class="card">
-          <h3>Already solid today <span class="tag keep">verified</span></h3>
-          <ul>
-            <li>All her history is stored in one industry-standard database (SQLite — the one inside every phone and browser)</li>
-            <li>Sign-ins are protected the way banks do it: salted, slow-hashed passwords; lockout after failed tries; sessions that expire</li>
-            <li>Every write is checked against tampering from outside the app</li>
-            <li>Answers and history are stored safely — never shown raw to anyone but her</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>What we're adding <span class="tag new">new</span></h3>
-          <ul>
-            <li><b>One-tap backup</b> from the admin screen — a single file you can copy to a USB stick or cloud drive</li>
-            <li><b>Export her progress</b> as a readable file (and reset if ever needed)</li>
-            <li><b>A health panel</b> — green lights for database, topics, everything (so you know it's OK without asking anyone)</li>
-            <li><b>A first-run admin account</b> — today there's literally no way to create an admin on a fresh install; we fix that</li>
-          </ul>
-        </div>
-      </div>
-      <div class="proof">Bottom line: <b>her years of practice history become a single portable file you can back up in one tap.</b> Local-first — no cloud account needed, nothing leaves the house.</div>
-    </div>
-  </section>
-
-  <!-- 11 · HOW WE KNOW IT'S WORKING -->
-  <section class="slide">
-    <div class="kicker">Results, measured</div>
-    <h2>How you'll see the scores move</h2>
-    <div class="content">
-      <div class="cols">
-        <div class="card">
-          <h3>The dashboard tells the story</h3>
-          <ul>
-            <li><b>Practice streak</b> — days in a row. The single best predictor of math growth.</li>
-            <li><b>Correct attempts</b> — volume going up = fluency building</li>
-            <li><b>Level per skill</b> — the engine tracks Level 1→3 for every standard; you see which are strong, which need reps</li>
-            <li><b>Test scores over time</b> — exam-mode results trend upward as practice accumulates</li>
-            <li><b>Suggested next practice</b> — the app surfaces exactly the skill her recent slips point to</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>The loop that drives it</h3>
-          <div class="steps" style="justify-content:center">
-            <div class="step" style="padding:10px 14px"><div class="n" style="width:32px;height:32px;font-size:14px">1</div><div><span>She practices daily (small, calm sessions — the app makes it easy to start)</span></div></div>
-            <div class="step" style="padding:10px 14px"><div class="n" style="width:32px;height:32px;font-size:14px">2</div><div><span>Slips instantly become step-by-step lessons; difficulty auto-adjusts</span></div></div>
-            <div class="step" style="padding:10px 14px"><div class="n" style="width:32px;height:32px;font-size:14px">3</div><div><span>You see the trend and nudge the exact weak skill with one tap</span></div></div>
-            <div class="step" style="padding:10px 14px"><div class="n" style="width:32px;height:32px;font-size:14px">4</div><div><span>Test scores reflect the reps — and the dashboard shows it</span></div></div>
+        <!-- 2 · WHAT RESULTS MEANS -->
+        <section class="slide">
+          <div class="kicker">What “results” means here</div>
+          <h2>Four things lift a kid's math scores</h2>
+          <p class="lead">
+            Decades of learning research agree on the recipe. An app helps only
+            if it delivers all four — every change in this plan is measured
+            against this list.
+          </p>
+          <div class="content">
+            <div class="heart">
+              <div class="card">
+                <div class="ico">🎯</div>
+                <h3>Right difficulty</h3>
+                <p>
+                  Practice at her level — not bored on what she's mastered, not
+                  crushed by what's ahead. Hard enough to grow, easy enough to
+                  continue.
+                </p>
+              </div>
+              <div class="card">
+                <div class="ico">💡</div>
+                <h3>Mistakes → lessons</h3>
+                <p>
+                  Every wrong answer shows a hint, then full step-by-step
+                  solution. A slip becomes a taught moment, seconds after it
+                  happens.
+                </p>
+              </div>
+              <div class="card">
+                <div class="ico">🔥</div>
+                <h3>Motivation that sticks</h3>
+                <p>
+                  Streaks, levels, small wins, fun facts. The pull to come back
+                  tomorrow — because consistency beats intensity in math.
+                </p>
+              </div>
+              <div class="card">
+                <div class="ico">🧭</div>
+                <h3>A parent in the loop</h3>
+                <p>
+                  You see exactly where she's strong and where she's slipping —
+                  and can nudge the right practice with one tap.
+                </p>
+              </div>
+            </div>
+            <div class="proof">
+              The good news:
+              <b
+                >the learning engine already does all four, and it's tested and
+                solid.</b
+              >
+              283 automated tests pass. We're not rebuilding the engine — we're
+              clearing everything that got built around it.
+            </div>
           </div>
-        </div>
+        </section>
+
+        <!-- 3 · MAYA'S EXPERIENCE -->
+        <section class="slide">
+          <div class="kicker">Her experience, end to end</div>
+          <h2>A typical 10-minute practice</h2>
+          <div class="content">
+            <div class="steps">
+              <div class="step">
+                <div class="n">1</div>
+                <div>
+                  <b>She signs in → “Continue: Ratios” is right there</b
+                  ><span
+                    >No hunting. Her grade, her last skill, one tap to
+                    resume.</span
+                  ><span class="you">She notices: zero friction to start</span>
+                </div>
+              </div>
+              <div class="step">
+                <div class="n">2</div>
+                <div>
+                  <b>One question at a time — with a picture when it helps</b
+                  ><span
+                    >Clean screen, big type, labeled diagrams for geometry-style
+                    problems. Nothing else competing for attention.</span
+                  ><span class="you"
+                    >She notices: it's calm, not a worksheet wall</span
+                  >
+                </div>
+              </div>
+              <div class="step">
+                <div class="n">3</div>
+                <div>
+                  <b>Stuck? A hint. Wrong? The full solution, step by step</b
+                  ><span
+                    >The app then adjusts — easier after a rough patch, harder
+                    when she's rolling.</span
+                  ><span class="you"
+                    >She notices: she learns right at the moment of
+                    mistake</span
+                  >
+                </div>
+              </div>
+              <div class="step">
+                <div class="n">4</div>
+                <div>
+                  <b>Streak grows, level rises, progress dots fill</b
+                  ><span
+                    >Test mode (9 questions, exam-style) whenever she's ready to
+                    rehearse for the real thing.</span
+                  ><span class="you"
+                    >She notices: “I'm getting better at this” — visible
+                    proof</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4 · WHAT'S IN THE WAY -->
+        <section class="slide">
+          <div class="kicker">The honest problem</div>
+          <h2>Great engine, buried in a machine shop</h2>
+          <p class="lead">
+            Over two years this app grew a “curriculum factory” and fancy
+            plumbing nobody asked for. Like a house where you have to walk
+            through a workshop to reach the kitchen.
+          </p>
+          <div class="content">
+            <div class="cols">
+              <div class="card">
+                <h3>What's in the way</h3>
+                <ul>
+                  <li>
+                    <b>A fresh install shows zero topics.</b> The topic list
+                    lives only in a database file that isn't part of the app —
+                    so on a new laptop, she literally can't practice
+                    <span class="tag cut">the bug this plan fixes</span>
+                  </li>
+                  <li>
+                    <b>Her practice screen is crowded code</b> — a 1,000-line
+                    page doing sign-in, search, practice, tests and suggestions
+                    all at once
+                  </li>
+                  <li>
+                    <b>Duplicated machinery</b> — two question-picking systems,
+                    three databases, ~20 settings knobs
+                  </li>
+                  <li>
+                    <b>Five dead doors</b> — buttons and pages no screen links
+                    to anymore
+                  </li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Why this hurts her scores</h3>
+                <ul>
+                  <li>
+                    Setup friction = fewer practice days (and consistency is
+                    everything)
+                  </li>
+                  <li>
+                    Crowded screen = distraction tax on every single question
+                  </li>
+                  <li>
+                    Complexity = every improvement takes longer and risks
+                    breaking practice
+                  </li>
+                </ul>
+                <div class="proof" style="margin-top: auto">
+                  The fix is subtraction:
+                  <b>keep the tested engine, remove the factory.</b> About a
+                  third of the code goes away — none of it code she uses.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5 · THE PLAN IN ONE LINE -->
+        <section class="slide">
+          <div class="kicker">The plan</div>
+          <h2>One sentence, five milestones</h2>
+          <p class="lead">
+            <b
+              >Keep the learning engine and the three doors — Student, Parent,
+              Admin — make topics travel with the app, and strip out everything
+              else.</b
+            >
+          </p>
+          <div class="content">
+            <div class="steps">
+              <div class="step">
+                <div class="n">🗑️</div>
+                <div>
+                  <b>1 · Take out the trash</b
+                  ><span
+                    >Delete the five dead doors and unused machinery inside.
+                    Nothing she uses changes — the app just gets lighter.</span
+                  ><span class="you"
+                    >You'll notice: nothing (that's the point) — tests prove
+                    nothing broke</span
+                  >
+                </div>
+              </div>
+              <div class="step">
+                <div class="n">🧹</div>
+                <div>
+                  <b>2 · Clear the basement</b
+                  ><span
+                    >Remove the experimental memory/graph experiments (a third
+                    of the leftover bulk). Her practice results never depended
+                    on them.</span
+                  ><span class="you"
+                    >She'll notice: nothing. You'll notice: one less database
+                    file to worry about</span
+                  >
+                </div>
+              </div>
+              <div class="step">
+                <div class="n">📦</div>
+                <div>
+                  <b>3 · Topics travel with the app</b
+                  ><span
+                    >The skill catalog ships inside the app as a reviewed file,
+                    like a textbook in the box. Any laptop, first run: every
+                    topic is there.</span
+                  ><span class="you"
+                    >You'll notice: fresh install works instantly — the “can't
+                    practice” bug dies here</span
+                  >
+                </div>
+              </div>
+              <div class="step">
+                <div class="n">🧘</div>
+                <div>
+                  <b>4 · A calmer practice screen</b
+                  ><span
+                    >Replace the elaborate display machinery with one simple,
+                    fast renderer. Same questions, same diagrams — less between
+                    her and the math.</span
+                  ><span class="you"
+                    >She'll notice: pages feel snappier and cleaner</span
+                  >
+                </div>
+              </div>
+              <div class="step">
+                <div class="n">✨</div>
+                <div>
+                  <b>5 · The finished app, kept safe</b
+                  ><span
+                    >Rebuild the three screens to the mockups ahead, merge to
+                    one data file, and add one-tap backup + progress
+                    export.</span
+                  ><span class="you"
+                    >You'll notice: her history is safe and portable —
+                    forever</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6 · MILESTONE 1 DETAIL -->
+        <section class="slide">
+          <div class="kicker">Starting now · milestone 1</div>
+          <h2>“Take out the trash” — exactly what happens</h2>
+          <div class="content">
+            <div class="cols">
+              <div class="card">
+                <h3>Removed (all confirmed unused)</h3>
+                <table>
+                  <tr>
+                    <th>What</th>
+                    <th>Why it's safe</th>
+                  </tr>
+                  <tr>
+                    <td><b>5 dead pages/endpoints</b></td>
+                    <td>
+                      No screen links to them — verified by exhaustive search
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>An unused “AI request” counter</b></td>
+                    <td>
+                      Books allowance for a feature the screens never call
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>Leftover test-mode props</b></td>
+                    <td>Old code path that today's test screen replaced</td>
+                  </tr>
+                </table>
+              </div>
+              <div class="card">
+                <h3>How you'll know it worked</h3>
+                <ul>
+                  <li>
+                    All 283 automated tests still pass, plus the full type-check
+                  </li>
+                  <li>
+                    Human check: sign in → answer one question → next question
+                    appears
+                  </li>
+                  <li>
+                    Nothing in her flow changes — same buttons, same screens
+                  </li>
+                </ul>
+                <div class="proof" style="margin-top: auto">
+                  Effort: <b>one focused session.</b> Risk:
+                  <b>near zero</b> (pure deletion of unused code, landed as its
+                  own checkpoint we can always reverse).
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7 · MOCKUP STUDENT -->
+        <section class="slide">
+          <div class="kicker">Where we're heading · her screen</div>
+          <h2>Student — one thing at a time</h2>
+          <div class="frame">
+            <div class="head">
+              <b>🎒 Practice flow</b
+              ><span class="url">mockups/student.html</span
+              ><span style="margin-left: auto; color: var(--muted)"
+                >scroll inside the frame — shows sign-in, skill pick, question,
+                feedback</span
+              >
+            </div>
+            <iframe src="mockups/student.html" title="Student mockup"></iframe>
+          </div>
+        </section>
+
+        <!-- 8 · MOCKUP PARENT -->
+        <section class="slide">
+          <div class="kicker">Where we're heading · your screen</div>
+          <h2>Parent — know where to help</h2>
+          <div class="frame">
+            <div class="head">
+              <b>👨‍👩‍👧 Your dashboard</b
+              ><span class="url">mockups/parent.html</span
+              ><span style="margin-left: auto; color: var(--muted)"
+                >streaks, progress, one-tap practice suggestions</span
+              >
+            </div>
+            <iframe src="mockups/parent.html" title="Parent mockup"></iframe>
+          </div>
+        </section>
+
+        <!-- 9 · MOCKUP ADMIN -->
+        <section class="slide">
+          <div class="kicker">Where we're heading · the control room</div>
+          <h2>Admin — accounts, topics, health, backup</h2>
+          <div class="frame">
+            <div class="head">
+              <b>🛠️ Household admin</b
+              ><span class="url">mockups/admin.html</span
+              ><span style="margin-left: auto; color: var(--muted)"
+                >one place to see everything is OK — and back it up</span
+              >
+            </div>
+            <iframe src="mockups/admin.html" title="Admin mockup"></iframe>
+          </div>
+        </section>
+
+        <!-- 10 · HER PROGRESS IS SAFE -->
+        <section class="slide">
+          <div class="kicker">Milestone 5 · safety net</div>
+          <h2>Her progress lives in one safe file — and you hold the key</h2>
+          <div class="content">
+            <div class="cols">
+              <div class="card">
+                <h3>
+                  Already solid today <span class="tag keep">verified</span>
+                </h3>
+                <ul>
+                  <li>
+                    All her history is stored in one industry-standard database
+                    (SQLite — the one inside every phone and browser)
+                  </li>
+                  <li>
+                    Sign-ins are protected the way banks do it: salted,
+                    slow-hashed passwords; lockout after failed tries; sessions
+                    that expire
+                  </li>
+                  <li>
+                    Every write is checked against tampering from outside the
+                    app
+                  </li>
+                  <li>
+                    Answers and history are stored safely — never shown raw to
+                    anyone but her
+                  </li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>What we're adding <span class="tag new">new</span></h3>
+                <ul>
+                  <li>
+                    <b>One-tap backup</b> from the admin screen — a single file
+                    you can copy to a USB stick or cloud drive
+                  </li>
+                  <li>
+                    <b>Export her progress</b> as a readable file (and reset if
+                    ever needed)
+                  </li>
+                  <li>
+                    <b>A health panel</b> — green lights for database, topics,
+                    everything (so you know it's OK without asking anyone)
+                  </li>
+                  <li>
+                    <b>A first-run admin account</b> — today there's literally
+                    no way to create an admin on a fresh install; we fix that
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="proof">
+              Bottom line:
+              <b
+                >her years of practice history become a single portable file you
+                can back up in one tap.</b
+              >
+              Local-first — no cloud account needed, nothing leaves the house.
+            </div>
+          </div>
+        </section>
+
+        <!-- 11 · HOW WE KNOW IT'S WORKING -->
+        <section class="slide">
+          <div class="kicker">Results, measured</div>
+          <h2>How you'll see the scores move</h2>
+          <div class="content">
+            <div class="cols">
+              <div class="card">
+                <h3>The dashboard tells the story</h3>
+                <ul>
+                  <li>
+                    <b>Practice streak</b> — days in a row. The single best
+                    predictor of math growth.
+                  </li>
+                  <li>
+                    <b>Correct attempts</b> — volume going up = fluency building
+                  </li>
+                  <li>
+                    <b>Level per skill</b> — the engine tracks Level 1→3 for
+                    every standard; you see which are strong, which need reps
+                  </li>
+                  <li>
+                    <b>Test scores over time</b> — exam-mode results trend
+                    upward as practice accumulates
+                  </li>
+                  <li>
+                    <b>Suggested next practice</b> — the app surfaces exactly
+                    the skill her recent slips point to
+                  </li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>The loop that drives it</h3>
+                <div class="steps" style="justify-content: center">
+                  <div class="step" style="padding: 10px 14px">
+                    <div
+                      class="n"
+                      style="width: 32px; height: 32px; font-size: 14px"
+                    >
+                      1
+                    </div>
+                    <div>
+                      <span
+                        >She practices daily (small, calm sessions — the app
+                        makes it easy to start)</span
+                      >
+                    </div>
+                  </div>
+                  <div class="step" style="padding: 10px 14px">
+                    <div
+                      class="n"
+                      style="width: 32px; height: 32px; font-size: 14px"
+                    >
+                      2
+                    </div>
+                    <div>
+                      <span
+                        >Slips instantly become step-by-step lessons; difficulty
+                        auto-adjusts</span
+                      >
+                    </div>
+                  </div>
+                  <div class="step" style="padding: 10px 14px">
+                    <div
+                      class="n"
+                      style="width: 32px; height: 32px; font-size: 14px"
+                    >
+                      3
+                    </div>
+                    <div>
+                      <span
+                        >You see the trend and nudge the exact weak skill with
+                        one tap</span
+                      >
+                    </div>
+                  </div>
+                  <div class="step" style="padding: 10px 14px">
+                    <div
+                      class="n"
+                      style="width: 32px; height: 32px; font-size: 14px"
+                    >
+                      4
+                    </div>
+                    <div>
+                      <span
+                        >Test scores reflect the reps — and the dashboard shows
+                        it</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 12 · HONEST RISKS + DECISION -->
+        <section class="slide">
+          <div class="kicker">Straight talk</div>
+          <h2>What could go wrong — and the one call I need from you</h2>
+          <div class="content">
+            <div class="cols">
+              <div class="card">
+                <h3>Risks, handled</h3>
+                <table>
+                  <tr>
+                    <th>Risk</th>
+                    <th>How we protect her</th>
+                  </tr>
+                  <tr>
+                    <td>Screen changes break practice</td>
+                    <td>
+                      Every change lands with all tests green; each milestone is
+                      its own reversible checkpoint
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Topic list migration</td>
+                    <td>
+                      New catalog ships inside the app, reviewed like a textbook
+                      — installed before the old pipeline is removed
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Data merge hiccup</td>
+                    <td>
+                      Her accounts and history are copied forward, never
+                      transformed in place; old file kept
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              <div class="card">
+                <h3>
+                  <span class="tag ask">one decision</span> A display library
+                </h3>
+                <p>
+                  Today the app uses an elaborate “remote control” system (A2UI)
+                  to draw question buttons and choices — about 1,700 lines to do
+                  what one simple component can.
+                  <b>I recommend replacing it</b> with the simple one (same
+                  safety checks, far less to break). Say yes and milestone 4
+                  proceeds; say keep and we skip it — the plan works either way.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 13 · NEXT STEPS -->
+        <section class="slide">
+          <div class="kicker">What happens next</div>
+          <h2>From here to “she's using it weekly”</h2>
+          <div class="content">
+            <div class="cols">
+              <div class="card">
+                <h3>This week</h3>
+                <ul>
+                  <li>① You say “go” (and make the display-library call)</li>
+                  <li>② Milestone 1 lands: trash out, all tests green</li>
+                  <li>③ Milestone 2 lands: basement cleared</li>
+                  <li>
+                    ④ Milestone 3: topics travel with the app —
+                    <b>install-anywhere bug dead</b>
+                  </li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>After that</h3>
+                <ul>
+                  <li>⑤ Calm practice screen (milestone 4)</li>
+                  <li>
+                    ⑥ The three polished screens, built to the mockups
+                    (milestone 5)
+                  </li>
+                  <li>⑦ One data file, one-tap backup, export, health panel</li>
+                  <li>
+                    ⑧ Her first full practice cycle — and the dashboard starts
+                    telling the story
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="proof">
+              Every milestone is already tracked in the project's work queue
+              with its checks — any session can pick up exactly where we left
+              off.
+              <b
+                >The engine is ready. The plan is reviewed. We're one “go”
+                away.</b
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- 14 · ENGINEERING APPENDIX -->
+        <section class="slide">
+          <div class="kicker">Appendix · for the record</div>
+          <h2>Milestones ↔ engineering phases (RFC-0006)</h2>
+          <div class="content">
+            <table>
+              <tr>
+                <th>Milestone (this deck)</th>
+                <th>Phase in RFC-0006</th>
+                <th>Key changes</th>
+                <th>Tests</th>
+              </tr>
+              <tr>
+                <td><b>1 · Take out the trash</b></td>
+                <td>Phase 1 — dead-code cut</td>
+                <td>
+                  Delete <code>/api/topics</code>,
+                  <code>/api/achievements</code>,
+                  <code>/api/generated-question</code>,
+                  <code>/api/parent/chat</code>,
+                  <code>/api/parent/summary</code>; unwind generated-question
+                  allowance machinery in <code>identity.ts</code> +
+                  <code>/api/answer</code>; drop vestigial PracticePanel test
+                  props
+                </td>
+                <td>
+                  5 route test files removed; answer-route assertions updated
+                </td>
+              </tr>
+              <tr>
+                <td><b>2 · Clear the basement</b></td>
+                <td>Phase 2 — memory cut</td>
+                <td>
+                  Remove <code>server/memory/*</code> (engram adapter, knowledge
+                  graph), <code>/api/memory</code>,
+                  <code>/api/knowledge*</code>, graph page,
+                  <code>3d-force-graph</code>; strip answer-route projection
+                  writes + admin Knowledge panel
+                </td>
+                <td>memory/KG tests deleted; agent + answer tests updated</td>
+              </tr>
+              <tr>
+                <td><b>3 · Topics travel with the app</b></td>
+                <td>Phase 3 — seeder, then ingestion cut</td>
+                <td>
+                  Enriched reviewed JSON catalog + idempotent startup seed into
+                  <code>gold_curriculum_records</code>; then remove ingestion
+                  pipeline, semantic search, <code>sqlite-vec</code>, gold
+                  DELETE, ✨ toggle
+                </td>
+                <td>
+                  seeder tests added; ingestion/vector tests removed; e2e moved
+                  to seeder
+                </td>
+              </tr>
+              <tr>
+                <td><b>4 · Calm practice screen</b></td>
+                <td>Phases 4–5 — renderer + engine</td>
+                <td>
+                  Replace A2UI with zod-validated interaction renderer (owner
+                  sign-off); consolidate to adaptive-pool single selection path;
+                  keep <code>pi-ai</code> boundary
+                </td>
+                <td>zod schemas become renderer contract tests</td>
+              </tr>
+              <tr>
+                <td><b>5 · Finished, safe app</b></td>
+                <td>Phases 6–8 — surfaces, consolidation, production</td>
+                <td>
+                  Rebuild 3 persona screens per mockups; two DBs → one
+                  <code>odyssey.db</code> (copy-forward cutover); production
+                  admin bootstrap, <code>VACUUM INTO</code> backup,
+                  export/reset, health probe, config hardening, smoke gate
+                </td>
+                <td>per-surface tests; smoke script as release gate</td>
+              </tr>
+            </table>
+            <p class="footnote">
+              Full detail, evidence, and review findings:
+              <code>docs/rfc/0006-simplify-to-persona-app.md</code> (rev 2,
+              adversarially reviewed) · mockups:
+              <code>docs/rfc/0006-notes/mockups/</code> · queue:
+              <code>workspace.toml</code> · navigate: ← → or space
+            </p>
+          </div>
+        </section>
       </div>
     </div>
-  </section>
 
-  <!-- 12 · HONEST RISKS + DECISION -->
-  <section class="slide">
-    <div class="kicker">Straight talk</div>
-    <h2>What could go wrong — and the one call I need from you</h2>
-    <div class="content">
-      <div class="cols">
-        <div class="card">
-          <h3>Risks, handled</h3>
-          <table>
-            <tr><th>Risk</th><th>How we protect her</th></tr>
-            <tr><td>Screen changes break practice</td><td>Every change lands with all tests green; each milestone is its own reversible checkpoint</td></tr>
-            <tr><td>Topic list migration</td><td>New catalog ships inside the app, reviewed like a textbook — installed before the old pipeline is removed</td></tr>
-            <tr><td>Data merge hiccup</td><td>Her accounts and history are copied forward, never transformed in place; old file kept</td></tr>
-          </table>
-        </div>
-        <div class="card">
-          <h3><span class="tag ask">one decision</span> A display library</h3>
-          <p>Today the app uses an elaborate “remote control” system (A2UI) to draw question buttons and choices — about 1,700 lines to do what one simple component can. <b>I recommend replacing it</b> with the simple one (same safety checks, far less to break). Say yes and milestone 4 proceeds; say keep and we skip it — the plan works either way.</p>
-        </div>
-      </div>
+    <div class="nav">
+      <span class="title">Odyssey — the plan behind higher math scores</span>
+      <span class="grow"></span>
+      <button id="prev">← Back</button>
+      <span class="counter" id="counter">1 / 14</span>
+      <button id="next">Next →</button>
     </div>
-  </section>
 
-  <!-- 13 · NEXT STEPS -->
-  <section class="slide">
-    <div class="kicker">What happens next</div>
-    <h2>From here to “she's using it weekly”</h2>
-    <div class="content">
-      <div class="cols">
-        <div class="card">
-          <h3>This week</h3>
-          <ul>
-            <li>① You say “go” (and make the display-library call)</li>
-            <li>② Milestone 1 lands: trash out, all tests green</li>
-            <li>③ Milestone 2 lands: basement cleared</li>
-            <li>④ Milestone 3: topics travel with the app — <b>install-anywhere bug dead</b></li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>After that</h3>
-          <ul>
-            <li>⑤ Calm practice screen (milestone 4)</li>
-            <li>⑥ The three polished screens, built to the mockups (milestone 5)</li>
-            <li>⑦ One data file, one-tap backup, export, health panel</li>
-            <li>⑧ Her first full practice cycle — and the dashboard starts telling the story</li>
-          </ul>
-        </div>
-      </div>
-      <div class="proof">Every milestone is already tracked in the project's work queue with its checks — any session can pick up exactly where we left off. <b>The engine is ready. The plan is reviewed. We're one “go” away.</b></div>
-    </div>
-  </section>
+    <script>
+      const stage = document.getElementById("stage");
+      const slides = [...document.querySelectorAll(".slide")];
+      let i = 0;
+      const counter = document.getElementById("counter");
+      const bar = document.getElementById("bar");
 
-  <!-- 14 · ENGINEERING APPENDIX -->
-  <section class="slide">
-    <div class="kicker">Appendix · for the record</div>
-    <h2>Milestones ↔ engineering phases (RFC-0006)</h2>
-    <div class="content">
-      <table>
-        <tr><th>Milestone (this deck)</th><th>Phase in RFC-0006</th><th>Key changes</th><th>Tests</th></tr>
-        <tr><td><b>1 · Take out the trash</b></td><td>Phase 1 — dead-code cut</td><td>Delete <code>/api/topics</code>, <code>/api/achievements</code>, <code>/api/generated-question</code>, <code>/api/parent/chat</code>, <code>/api/parent/summary</code>; unwind generated-question allowance machinery in <code>identity.ts</code> + <code>/api/answer</code>; drop vestigial PracticePanel test props</td><td>5 route test files removed; answer-route assertions updated</td></tr>
-        <tr><td><b>2 · Clear the basement</b></td><td>Phase 2 — memory cut</td><td>Remove <code>server/memory/*</code> (engram adapter, knowledge graph), <code>/api/memory</code>, <code>/api/knowledge*</code>, graph page, <code>3d-force-graph</code>; strip answer-route projection writes + admin Knowledge panel</td><td>memory/KG tests deleted; agent + answer tests updated</td></tr>
-        <tr><td><b>3 · Topics travel with the app</b></td><td>Phase 3 — seeder, then ingestion cut</td><td>Enriched reviewed JSON catalog + idempotent startup seed into <code>gold_curriculum_records</code>; then remove ingestion pipeline, semantic search, <code>sqlite-vec</code>, gold DELETE, ✨ toggle</td><td>seeder tests added; ingestion/vector tests removed; e2e moved to seeder</td></tr>
-        <tr><td><b>4 · Calm practice screen</b></td><td>Phases 4–5 — renderer + engine</td><td>Replace A2UI with zod-validated interaction renderer (owner sign-off); consolidate to adaptive-pool single selection path; keep <code>pi-ai</code> boundary</td><td>zod schemas become renderer contract tests</td></tr>
-        <tr><td><b>5 · Finished, safe app</b></td><td>Phases 6–8 — surfaces, consolidation, production</td><td>Rebuild 3 persona screens per mockups; two DBs → one <code>odyssey.db</code> (copy-forward cutover); production admin bootstrap, <code>VACUUM INTO</code> backup, export/reset, health probe, config hardening, smoke gate</td><td>per-surface tests; smoke script as release gate</td></tr>
-      </table>
-      <p class="footnote">Full detail, evidence, and review findings: <code>docs/rfc/0006-simplify-to-persona-app.md</code> (rev 2, adversarially reviewed) · mockups: <code>docs/rfc/0006-notes/mockups/</code> · queue: <code>workspace.toml</code> · navigate: ← → or space</p>
-    </div>
-  </section>
+      // Scale the fixed 1280x720 stage to fit any window — this is what keeps
+      // every slide identically aligned on every screen.
+      function fit() {
+        const vw = innerWidth,
+          vh = innerHeight - 52; // minus nav bar
+        const scale = Math.min(vw / 1280, vh / 720);
+        stage.style.transform = "scale(" + scale + ")";
+      }
+      addEventListener("resize", fit);
 
-</div></div>
-
-<div class="nav">
-  <span class="title">Odyssey — the plan behind higher math scores</span>
-  <span class="grow"></span>
-  <button id="prev">← Back</button>
-  <span class="counter" id="counter">1 / 14</span>
-  <button id="next">Next →</button>
-</div>
-
-<script>
-  const stage = document.getElementById('stage');
-  const slides = [...document.querySelectorAll('.slide')];
-  let i = 0;
-  const counter = document.getElementById('counter');
-  const bar = document.getElementById('bar');
-
-  // Scale the fixed 1280x720 stage to fit any window — this is what keeps
-  // every slide identically aligned on every screen.
-  function fit() {
-    const vw = innerWidth, vh = innerHeight - 52; // minus nav bar
-    const scale = Math.min(vw / 1280, vh / 720);
-    stage.style.transform = 'scale(' + scale + ')';
-  }
-  addEventListener('resize', fit);
-
-  function show(n) {
-    i = Math.max(0, Math.min(slides.length - 1, n));
-    slides.forEach((s, k) => s.classList.toggle('active', k === i));
-    counter.textContent = (i + 1) + ' / ' + slides.length;
-    bar.style.width = ((i + 1) / slides.length * 100) + '%';
-  }
-  document.getElementById('next').onclick = () => show(i + 1);
-  document.getElementById('prev').onclick = () => show(i - 1);
-  addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
-    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
-    if (e.key === 'Home') show(0);
-    if (e.key === 'End') show(slides.length - 1);
-  });
-  fit(); show(0);
-</script>
-</body>
+      function show(n) {
+        i = Math.max(0, Math.min(slides.length - 1, n));
+        slides.forEach((s, k) => s.classList.toggle("active", k === i));
+        counter.textContent = i + 1 + " / " + slides.length;
+        bar.style.width = ((i + 1) / slides.length) * 100 + "%";
+      }
+      document.getElementById("next").onclick = () => show(i + 1);
+      document.getElementById("prev").onclick = () => show(i - 1);
+      addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+          e.preventDefault();
+          show(i + 1);
+        }
+        if (e.key === "ArrowLeft" || e.key === "PageUp") {
+          e.preventDefault();
+          show(i - 1);
+        }
+        if (e.key === "Home") show(0);
+        if (e.key === "End") show(slides.length - 1);
+      });
+      fit();
+      show(0);
+    </script>
+  </body>
 </html>

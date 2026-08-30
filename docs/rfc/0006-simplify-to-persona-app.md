@@ -21,10 +21,10 @@ Concretely:
    embeddings), the Bronze→Silver→Gold ingestion pipeline, and the
    dead/unwired routes.
 3. **Replace A2UI** with a small plain-React interaction renderer fed by
-   zod-validated server payloads — preserving the guardrail's *spirit*
+   zod-validated server payloads — preserving the guardrail's _spirit_
    (validated, constrained component catalog) while dropping the
-   `@a2ui` machinery. *This is a brief amendment requiring owner
-   sign-off; see Alternatives.*
+   `@a2ui` machinery. _This is a brief amendment requiring owner
+   sign-off; see Alternatives._
 4. **Make the versioned JSON catalog the only curriculum source — as new
    seeding work.** Today the student browse tree reads Gold records from
    the local curriculum DB, and the **only** runtime writer of those
@@ -57,7 +57,7 @@ found:
 - **Dead code**: `/api/topics`, `/api/achievements`, and
   `/api/generated-question` have **no UI callers**; `/api/parent/chat`
   and `/api/parent/summary` are 410-Gone stubs; the generated-question
-  *allowance* machinery writes state nothing consumes.
+  _allowance_ machinery writes state nothing consumes.
 - **A 1,046-line student god-component** mixing auth, search, practice,
   test mode, and suggestion concerns; a 1,118-line admin console whose
   majority surface (ingestion, knowledge graph) exists to feed
@@ -90,18 +90,18 @@ Admin     /admin     accounts (parents; create/reset),
 
 ### Subsystem dispositions
 
-| Subsystem | Disposition | Rationale |
-| --- | --- | --- |
-| `server/memory/*` (engram adapter, knowledge graph) + `/api/memory`, `/api/knowledge*`, `dashboard/graph` | **Cut** (~2,000 LOC + 3rd DB + `3d-force-graph` dep) | Brief defers the engram adapter explicitly; graph is an admin diagnostic; answer-route projection writes are best-effort and unused by any screen. |
-| `vector-repository`, `gold-semantic-index`, `ollama-embeddings`, `sqlite-vec` dep | **Cut** (~400 LOC + dep) | Only serves the student `✨` semantic search toggle and gold-delete index cleanup; text search fallback already exists. The cut **also removes**: the `DELETE` handler on `/api/curriculum/gold` and the vector-coupled delete functions in `gold-query.ts` (kept code imports the cut module today), the semantic branch/imports of the search route, and the `✨` toggle (`learner-header.tsx`) + `semanticSearch()` (`page.tsx`). |
-| `promotion-*`, `source-importer`, `curriculum-pi-agent`, `curriculum-indexer`, `/api/curriculum/ingestions*`, `ingestion/page.tsx` | **Cut** (~1,500 LOC) — **after** the JSON seeder ships | Ingestion is currently the only Gold writer; the seeder (Decision §4) replaces it. LLM-driven standards authoring is out of scope for a simple app. |
-| A2UI (`src/a2ui/*`, 3 surface wrappers, `@a2ui/*` deps, A2UI docs in routes) | **Replace** with plain interaction renderer (~150 LOC) | Functionally renders text / multiple-choice / true-false interactions. Guardrail preserved via zod-validated payloads; ~1,700 LOC and 2 deps removed. **Needs sign-off** (amends brief wording). |
-| `/api/topics`, `/api/achievements`, `/api/generated-question`, `/api/parent/chat`, `/api/parent/summary`, allowance machinery | **Cut** | Zero UI callers; 410 stubs; allowance state nothing consumes. Cutting the allowance also removes the grant call in `/api/answer` and the grant/consume helpers in `identity.ts`; the `auth_sessions.generated_requests`/`allowance_topic` columns wither in place (no migration). `achievements.ts` module stays (feeds performance docs). |
-| `adaptive-pool` + `agent` + `question-bank` | **Consolidate** to one path | Two overlapping selection systems. Keep adaptive-pool as the engine; `agent.ts` remains the bounded Ollama completion+validation boundary used *internally* by the pool (bank-first with optional generation fallback — matches brief). `@earendil-works/pi-ai` **is retained** (it is the completion boundary). |
-| `parent-suggestions`, `mistake-to-mastery`, `parent-performance`, `parent-preview` | **Keep as-is** | They are the parent persona's actual value. The parent surface stays aggregate-safe; per-skill level detail for parents is a *possible* future extension, not part of this RFC. |
-| Assessment (test mode), suggested-practice banner, achievements/fun-facts in performance docs | **Keep** | Working, tested, persona-relevant. |
-| Identity (roles, links, sessions) | **Keep as-is** | Sound foundation; matches the 3-persona goal. SSO stub (`resolveExternalIdentitySubject`) cut in a later pass. |
-| Databases | **Two → one** (optional final step, with data cutover) | Learning + curriculum merge into `odyssey.db`; the knowledge-graph DB disappears with the memory cut. Cutover copies `gold_curriculum_records` rows into the merged file, keeps `ODYSSEY_DB_PATH` as the single knob, and accepts legacy tables remaining (dropping them would require kind-aware migrations on both existing files). |
+| Subsystem                                                                                                                          | Disposition                                            | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `server/memory/*` (engram adapter, knowledge graph) + `/api/memory`, `/api/knowledge*`, `dashboard/graph`                          | **Cut** (~2,000 LOC + 3rd DB + `3d-force-graph` dep)   | Brief defers the engram adapter explicitly; graph is an admin diagnostic; answer-route projection writes are best-effort and unused by any screen.                                                                                                                                                                                                                                                                                   |
+| `vector-repository`, `gold-semantic-index`, `ollama-embeddings`, `sqlite-vec` dep                                                  | **Cut** (~400 LOC + dep)                               | Only serves the student `✨` semantic search toggle and gold-delete index cleanup; text search fallback already exists. The cut **also removes**: the `DELETE` handler on `/api/curriculum/gold` and the vector-coupled delete functions in `gold-query.ts` (kept code imports the cut module today), the semantic branch/imports of the search route, and the `✨` toggle (`learner-header.tsx`) + `semanticSearch()` (`page.tsx`). |
+| `promotion-*`, `source-importer`, `curriculum-pi-agent`, `curriculum-indexer`, `/api/curriculum/ingestions*`, `ingestion/page.tsx` | **Cut** (~1,500 LOC) — **after** the JSON seeder ships | Ingestion is currently the only Gold writer; the seeder (Decision §4) replaces it. LLM-driven standards authoring is out of scope for a simple app.                                                                                                                                                                                                                                                                                  |
+| A2UI (`src/a2ui/*`, 3 surface wrappers, `@a2ui/*` deps, A2UI docs in routes)                                                       | **Replace** with plain interaction renderer (~150 LOC) | Functionally renders text / multiple-choice / true-false interactions. Guardrail preserved via zod-validated payloads; ~1,700 LOC and 2 deps removed. **Needs sign-off** (amends brief wording).                                                                                                                                                                                                                                     |
+| `/api/topics`, `/api/achievements`, `/api/generated-question`, `/api/parent/chat`, `/api/parent/summary`, allowance machinery      | **Cut**                                                | Zero UI callers; 410 stubs; allowance state nothing consumes. Cutting the allowance also removes the grant call in `/api/answer` and the grant/consume helpers in `identity.ts`; the `auth_sessions.generated_requests`/`allowance_topic` columns wither in place (no migration). `achievements.ts` module stays (feeds performance docs).                                                                                           |
+| `adaptive-pool` + `agent` + `question-bank`                                                                                        | **Consolidate** to one path                            | Two overlapping selection systems. Keep adaptive-pool as the engine; `agent.ts` remains the bounded Ollama completion+validation boundary used _internally_ by the pool (bank-first with optional generation fallback — matches brief). `@earendil-works/pi-ai` **is retained** (it is the completion boundary).                                                                                                                     |
+| `parent-suggestions`, `mistake-to-mastery`, `parent-performance`, `parent-preview`                                                 | **Keep as-is**                                         | They are the parent persona's actual value. The parent surface stays aggregate-safe; per-skill level detail for parents is a _possible_ future extension, not part of this RFC.                                                                                                                                                                                                                                                      |
+| Assessment (test mode), suggested-practice banner, achievements/fun-facts in performance docs                                      | **Keep**                                               | Working, tested, persona-relevant.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Identity (roles, links, sessions)                                                                                                  | **Keep as-is**                                         | Sound foundation; matches the 3-persona goal. SSO stub (`resolveExternalIdentitySubject`) cut in a later pass.                                                                                                                                                                                                                                                                                                                       |
+| Databases                                                                                                                          | **Two → one** (optional final step, with data cutover) | Learning + curriculum merge into `odyssey.db`; the knowledge-graph DB disappears with the memory cut. Cutover copies `gold_curriculum_records` rows into the merged file, keeps `ODYSSEY_DB_PATH` as the single knob, and accepts legacy tables remaining (dropping them would require kind-aware migrations on both existing files).                                                                                                |
 
 ### Phases
 
@@ -113,7 +113,7 @@ deletes or updates — "lands green" is checkable.
    `/api/generated-question`, `/api/parent/chat`, `/api/parent/summary`
    and their route tests; remove the allowance grant call in
    `/api/answer`, the grant/consume/issue helpers in `identity.ts`, and
-   the vestigial test-mode props in `PracticePanel`. *Tests:* delete the
+   the vestigial test-mode props in `PracticePanel`. _Tests:_ delete the
    five route test files; fold the answer-route allowance assertions
    (currently in `generated-question/route.test.ts`) into
    `answer/route.test.ts` expectations, which must now show no grant
@@ -122,10 +122,10 @@ deletes or updates — "lands green" is checkable.
    `engram-memory`) — remove `server/memory/*`, `/api/memory`,
    `/api/knowledge*`, `dashboard/graph/page.tsx`, the `3d-force-graph`
    dep, and the projection writes in `/api/answer`; strip the Knowledge
-   panel from `dashboard/page.tsx` (kept file). *Tests:* delete memory
-   + knowledge-route tests; update `agent.test.ts` (imports
-   `parseRetrievedProfileMemory`) and `answer/route.test.ts` projection
-   assertions.
+   panel from `dashboard/page.tsx` (kept file). _Tests:_ delete memory
+   - knowledge-route tests; update `agent.test.ts` (imports
+     `parseRetrievedProfileMemory`) and `answer/route.test.ts` projection
+     assertions.
 3. **Seeder + ingestion/semantic cut** — **first** add the enriched
    reviewed JSON catalog and the idempotent startup seeder into
    `gold_curriculum_records` (with tests, and a one-time export of the
@@ -135,7 +135,7 @@ deletes or updates — "lands green" is checkable.
    `DELETE` handler on `/api/curriculum/gold` and vector-coupled
    deletes in `gold-query.ts`, the search route's semantic branch, the
    `✨` toggle + `semanticSearch()`, `ingestion/page.tsx`, and the
-   Ingestion panel from `dashboard/page.tsx`. *Tests:* delete
+   Ingestion panel from `dashboard/page.tsx`. _Tests:_ delete
    ingestion/embedding/vector tests; rewrite
    `curriculum/search/route.test.ts` (currently imports
    `deleteGoldRecord` + vector repo); add seeder tests; update e2e
@@ -143,7 +143,7 @@ deletes or updates — "lands green" is checkable.
    seeder.
 4. **A2UI replacement** — plain `QuestionInteraction` renderer +
    zod-validated payloads; drop `@a2ui/react` + `@a2ui/web_core`;
-   delete the duplicate surface wrappers. *Tests:* the existing zod
+   delete the duplicate surface wrappers. _Tests:_ the existing zod
    document schemas become contract tests for the new renderer.
 5. **Question-path consolidation** — one selection path (adaptive pool
    with optional validated generation fallback); retire the overlapping
@@ -151,7 +151,7 @@ deletes or updates — "lands green" is checkable.
 6. **Persona surface rebuild** — split `page.tsx` into focused student
    screens; rebuild the admin console (accounts / catalog+coverage /
    health) from the mockups; keep the parent page aggregate-safe (its
-   mockup's per-skill "focus areas" come from the *existing*
+   mockup's per-skill "focus areas" come from the _existing_
    suggestions read model — no new parent data surface). Admin child
    unlink stays parent-side; the admin console manages parents (and
    reads children) only.
@@ -166,8 +166,8 @@ deletes or updates — "lands green" is checkable.
    enforced in `persistence/sqlite.ts`):
    - **Production admin bootstrap** — env-gated first-admin seed
      mirroring the existing parent bootstrap (`ODYSSEY_ADMIN_BOOTSTRAP_*`
-     + zero-admins guard); today *no production admin provisioning
-     exists* (dev fixtures only).
+     - zero-admins guard); today _no production admin provisioning
+       exists_ (dev fixtures only).
    - **Backup** — on-demand `VACUUM INTO` backup from the admin console
      (safe under WAL) + documented cold-copy procedure; single
      `ODYSSEY_DB_PATH` after Phase 7 makes the file set one artifact.
@@ -200,7 +200,7 @@ deletes or updates — "lands green" is checkable.
 - **Keep A2UI** (brief-literal): preserves the letter of the brief's
   "small, validated A2UI component catalog" guardrail; costs ~1,700 LOC,
   two deps, and near-duplicate surface wrappers to render a radio group.
-  Rejected for a *simple* app, but this RFC defers to the owner — if
+  Rejected for a _simple_ app, but this RFC defers to the owner — if
   A2UI alignment matters strategically (e.g. multi-client agent UIs
   later), Phase 4 can be skipped at the cost of the simplification goal.
 - **Cut the parent persona** (brief-literal: parent portal is

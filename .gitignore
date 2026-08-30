@@ -68,3 +68,7 @@ docs/knowledge/*.lock.stale-*
 *.db
 *.db-shm
 *.db-wal
+
+# Local tooling artifacts (embedding model cache, local MCP config)
+.fastembed_cache/
+.mcp.json

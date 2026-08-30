@@ -1,151 +1,457 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Odyssey — Admin console (mockup)</title>
-<style>
-  :root {
-    --bg: #f6f7f9; --surface: #ffffff; --ink: #1c2430; --muted: #5b6675;
-    --line: #e3e7ec; --brand: #3b5bdb; --brand-ink: #ffffff; --accent: #eef1ff;
-    --ok: #2f9e44; --ok-bg: #ebfbee; --warn: #e8590c; --warn-bg: #fff4e6;
-    --radius: 14px; --shadow: 0 1px 2px rgba(28,36,48,.06), 0 8px 24px rgba(28,36,48,.06);
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 96px; }
-  header.top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-  .logo { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #3b5bdb, #7048e8); color: #fff; display: grid; place-items: center; font-weight: 700; }
-  header.top .name { font-weight: 600; }
-  header.top .who { margin-left: auto; color: var(--muted); font-size: 14px; }
-  .tabs { display: flex; gap: 4px; margin: 14px 0 20px; border-bottom: 1px solid var(--line); }
-  .tab { padding: 9px 16px; font-size: 14px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  .tab.on { color: var(--brand); font-weight: 600; border-color: var(--brand); }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; }
-  .card h2 { font-size: 16px; margin: 0 0 12px; }
-  button { font: inherit; cursor: pointer; border: none; border-radius: 10px; }
-  .ghost { border: 1px solid var(--line); background: var(--surface); color: var(--muted); padding: 7px 12px; font-size: 13px; }
-  .cta { background: var(--brand); color: #fff; font-weight: 600; padding: 8px 14px; font-size: 13.5px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  td { padding: 10px; border-bottom: 1px solid var(--line); }
-  tr:last-child td { border-bottom: none; }
-  .tag { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 10px; }
-  .tag.parent { background: var(--accent); color: var(--brand); }
-  .tag.student { background: #f3f0ff; color: #6741d9; }
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
-  ul.tree { list-style: none; margin: 0; padding-left: 0; font-size: 14px; }
-  ul.tree ul { padding-left: 20px; margin-top: 4px; }
-  .dom { font-weight: 600; margin-top: 8px; }
-  .std { color: var(--muted); display: flex; justify-content: space-between; padding: 3px 0; }
-  .std .cnt { color: var(--brand); font-weight: 600; }
-  .health { display: grid; gap: 10px; }
-  .hrow { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; }
-  .dot.ok { background: var(--ok); } .dot.off { background: var(--warn); }
-  .hrow .val { margin-left: auto; color: var(--muted); font-size: 13px; }
-  .note { font-size: 13.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 14px; margin-top: 8px; }
-  .seclabel { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 30px 0 10px; }
-</style>
-</head>
-<body>
-<div class="wrap">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Odyssey — Admin console (mockup)</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --ink: #1c2430;
+        --muted: #5b6675;
+        --line: #e3e7ec;
+        --brand: #3b5bdb;
+        --brand-ink: #ffffff;
+        --accent: #eef1ff;
+        --ok: #2f9e44;
+        --ok-bg: #ebfbee;
+        --warn: #e8590c;
+        --warn-bg: #fff4e6;
+        --radius: 14px;
+        --shadow:
+          0 1px 2px rgba(28, 36, 48, 0.06), 0 8px 24px rgba(28, 36, 48, 0.06);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          16px/1.55 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 24px 20px 96px;
+      }
+      header.top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #3b5bdb, #7048e8);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+      }
+      header.top .name {
+        font-weight: 600;
+      }
+      header.top .who {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin: 14px 0 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .tab {
+        padding: 9px 16px;
+        font-size: 14px;
+        color: var(--muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+      .tab.on {
+        color: var(--brand);
+        font-weight: 600;
+        border-color: var(--brand);
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .card h2 {
+        font-size: 16px;
+        margin: 0 0 12px;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: none;
+        border-radius: 10px;
+      }
+      .ghost {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--muted);
+        padding: 7px 12px;
+        font-size: 13px;
+      }
+      .cta {
+        background: var(--brand);
+        color: #fff;
+        font-weight: 600;
+        padding: 8px 14px;
+        font-size: 13.5px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      td {
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 2px 10px;
+      }
+      .tag.parent {
+        background: var(--accent);
+        color: var(--brand);
+      }
+      .tag.student {
+        background: #f3f0ff;
+        color: #6741d9;
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      @media (max-width: 760px) {
+        .two {
+          grid-template-columns: 1fr;
+        }
+      }
+      ul.tree {
+        list-style: none;
+        margin: 0;
+        padding-left: 0;
+        font-size: 14px;
+      }
+      ul.tree ul {
+        padding-left: 20px;
+        margin-top: 4px;
+      }
+      .dom {
+        font-weight: 600;
+        margin-top: 8px;
+      }
+      .std {
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+      }
+      .std .cnt {
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .health {
+        display: grid;
+        gap: 10px;
+      }
+      .hrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+      .dot.ok {
+        background: var(--ok);
+      }
+      .dot.off {
+        background: var(--warn);
+      }
+      .hrow .val {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .note {
+        font-size: 13.5px;
+        color: var(--muted);
+        border-top: 1px dashed var(--line);
+        padding-top: 14px;
+        margin-top: 8px;
+      }
+      .seclabel {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 30px 0 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <div class="logo">Ω</div>
+        <div class="name">Odyssey · Admin</div>
+        <div class="who">Signed in as Admin · Sign out</div>
+      </header>
 
-  <header class="top">
-    <div class="logo">Ω</div>
-    <div class="name">Odyssey · Admin</div>
-    <div class="who">Signed in as Admin · Sign out</div>
-  </header>
+      <div class="tabs">
+        <div class="tab on">Accounts</div>
+        <div class="tab">Curriculum</div>
+        <div class="tab">Question bank</div>
+        <div class="tab">System</div>
+      </div>
 
-  <div class="tabs">
-    <div class="tab on">Accounts</div>
-    <div class="tab">Curriculum</div>
-    <div class="tab">Question bank</div>
-    <div class="tab">System</div>
-  </div>
+      <!-- TAB 1 · Accounts -->
+      <div class="seclabel">Tab 1 · Accounts</div>
+      <div class="card">
+        <h2>Accounts</h2>
+        <table>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Linked to</th>
+            <th style="text-align: right">Actions</th>
+          </tr>
+          <tr>
+            <td><b>parent1</b></td>
+            <td><span class="tag parent">Parent</span></td>
+            <td>Maya, Sam</td>
+            <td style="text-align: right">
+              <button class="ghost">Reset password</button>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Maya</b></td>
+            <td><span class="tag student">Student</span></td>
+            <td>parent1</td>
+            <td style="text-align: right">
+              <button class="ghost">Reset password</button>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Sam</b></td>
+            <td><span class="tag student">Student</span></td>
+            <td>parent1</td>
+            <td style="text-align: right">
+              <button class="ghost">Reset password</button>
+            </td>
+          </tr>
+        </table>
+        <div style="margin-top: 14px; display: flex; gap: 10px">
+          <button class="cta">＋ Create parent account</button>
+        </div>
+      </div>
 
-  <!-- TAB 1 · Accounts -->
-  <div class="seclabel">Tab 1 · Accounts</div>
-  <div class="card">
-    <h2>Accounts</h2>
-    <table>
-      <tr><th>User</th><th>Role</th><th>Linked to</th><th style="text-align:right">Actions</th></tr>
-      <tr><td><b>parent1</b></td><td><span class="tag parent">Parent</span></td><td>Maya, Sam</td><td style="text-align:right"><button class="ghost">Reset password</button></td></tr>
-      <tr><td><b>Maya</b></td><td><span class="tag student">Student</span></td><td>parent1</td><td style="text-align:right"><button class="ghost">Reset password</button></td></tr>
-      <tr><td><b>Sam</b></td><td><span class="tag student">Student</span></td><td>parent1</td><td style="text-align:right"><button class="ghost">Reset password</button></td></tr>
-    </table>
-    <div style="margin-top:14px; display:flex; gap:10px">
-      <button class="cta">＋ Create parent account</button>
-    </div>
-  </div>
-
-  <!-- TAB 2 · Curriculum -->
-  <div class="seclabel">Tab 2 · Curriculum — the versioned JSON catalog, seeded &amp; browsable</div>
-  <div class="card">
-    <h2>Curriculum catalog <span style="font-weight:400;color:var(--muted);font-size:13px">· source: <code>data/topics.json</code> · seeded 2026-08-30</span></h2>
-    <div style="display:flex; gap:8px; margin-bottom:14px">
-      <select style="font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
-        <option>Mathematics</option>
-      </select>
-      <select style="font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
-        <option>Grade 6</option><option>Grade 7</option><option>Grade 8</option>
-      </select>
-      <button class="ghost" style="margin-left:auto">Seed from JSON (idempotent)</button>
-    </div>
-    <ul class="tree">
-      <li><span class="dom">Ratio and Proportional Relationships</span>
-        <ul>
-          <li class="std"><span>6.RP.1 — Understand the concept of a ratio</span><span class="cnt">14 questions</span></li>
-          <li class="std"><span>6.RP.2 — Unit rate</span><span class="cnt">11 questions</span></li>
-          <li class="std"><span>6.RP.3 — Percent problems</span><span class="cnt">9 questions</span></li>
+      <!-- TAB 2 · Curriculum -->
+      <div class="seclabel">
+        Tab 2 · Curriculum — the versioned JSON catalog, seeded &amp; browsable
+      </div>
+      <div class="card">
+        <h2>
+          Curriculum catalog
+          <span style="font-weight: 400; color: var(--muted); font-size: 13px"
+            >· source: <code>data/topics.json</code> · seeded 2026-08-30</span
+          >
+        </h2>
+        <div style="display: flex; gap: 8px; margin-bottom: 14px">
+          <select
+            style="
+              font: inherit;
+              padding: 7px 10px;
+              border: 1px solid var(--line);
+              border-radius: 10px;
+              background: var(--surface);
+            "
+          >
+            <option>Mathematics</option>
+          </select>
+          <select
+            style="
+              font: inherit;
+              padding: 7px 10px;
+              border: 1px solid var(--line);
+              border-radius: 10px;
+              background: var(--surface);
+            "
+          >
+            <option>Grade 6</option>
+            <option>Grade 7</option>
+            <option>Grade 8</option>
+          </select>
+          <button class="ghost" style="margin-left: auto">
+            Seed from JSON (idempotent)
+          </button>
+        </div>
+        <ul class="tree">
+          <li>
+            <span class="dom">Ratio and Proportional Relationships</span>
+            <ul>
+              <li class="std">
+                <span>6.RP.1 — Understand the concept of a ratio</span
+                ><span class="cnt">14 questions</span>
+              </li>
+              <li class="std">
+                <span>6.RP.2 — Unit rate</span
+                ><span class="cnt">11 questions</span>
+              </li>
+              <li class="std">
+                <span>6.RP.3 — Percent problems</span
+                ><span class="cnt">9 questions</span>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <span class="dom">Geometry</span>
+            <ul>
+              <li class="std">
+                <span>6.G.1 — Area of triangles &amp; polygons</span
+                ><span class="cnt">12 questions</span>
+              </li>
+              <li class="std">
+                <span>6.G.2 — Volume with fractions</span
+                ><span class="cnt">0 questions ⚠</span>
+              </li>
+            </ul>
+          </li>
         </ul>
-      </li>
-      <li><span class="dom">Geometry</span>
-        <ul>
-          <li class="std"><span>6.G.1 — Area of triangles &amp; polygons</span><span class="cnt">12 questions</span></li>
-          <li class="std"><span>6.G.2 — Volume with fractions</span><span class="cnt">0 questions ⚠</span></li>
-        </ul>
-      </li>
-    </ul>
-    <div class="note">No Bronze/Silver/Gold workflow — the catalog is a versioned, reviewed JSON file in the repo (seeded idempotently at startup). Editing it is a code change with review.</div>
-  </div>
+        <div class="note">
+          No Bronze/Silver/Gold workflow — the catalog is a versioned, reviewed
+          JSON file in the repo (seeded idempotently at startup). Editing it is
+          a code change with review.
+        </div>
+      </div>
 
-  <!-- TAB 3 · Question bank -->
-  <div class="seclabel">Tab 3 · Question bank — coverage per standard</div>
-  <div class="card">
-    <h2>Question bank</h2>
-    <table>
-      <tr><th>Standard</th><th>Banked</th><th>Generated fallback</th><th>Coverage</th></tr>
-      <tr><td>6.RP.1 Understand ratios</td><td>14</td><td>enabled</td><td><span class="tag" style="background:var(--ok-bg);color:var(--ok)">healthy</span></td></tr>
-      <tr><td>6.RP.2 Unit rates</td><td>11</td><td>enabled</td><td><span class="tag" style="background:var(--ok-bg);color:var(--ok)">healthy</span></td></tr>
-      <tr><td>6.G.2 Volume with fractions</td><td>0</td><td>enabled</td><td><span class="tag" style="background:var(--warn-bg);color:var(--warn)">empty — add questions</span></td></tr>
-    </table>
-    <div class="note">Banked questions come from the reviewed JSON; the optional local generator (Ollama) only fills gaps and its output is validated before a child ever sees it.</div>
-  </div>
+      <!-- TAB 3 · Question bank -->
+      <div class="seclabel">Tab 3 · Question bank — coverage per standard</div>
+      <div class="card">
+        <h2>Question bank</h2>
+        <table>
+          <tr>
+            <th>Standard</th>
+            <th>Banked</th>
+            <th>Generated fallback</th>
+            <th>Coverage</th>
+          </tr>
+          <tr>
+            <td>6.RP.1 Understand ratios</td>
+            <td>14</td>
+            <td>enabled</td>
+            <td>
+              <span
+                class="tag"
+                style="background: var(--ok-bg); color: var(--ok)"
+                >healthy</span
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>6.RP.2 Unit rates</td>
+            <td>11</td>
+            <td>enabled</td>
+            <td>
+              <span
+                class="tag"
+                style="background: var(--ok-bg); color: var(--ok)"
+                >healthy</span
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>6.G.2 Volume with fractions</td>
+            <td>0</td>
+            <td>enabled</td>
+            <td>
+              <span
+                class="tag"
+                style="background: var(--warn-bg); color: var(--warn)"
+                >empty — add questions</span
+              >
+            </td>
+          </tr>
+        </table>
+        <div class="note">
+          Banked questions come from the reviewed JSON; the optional local
+          generator (Ollama) only fills gaps and its output is validated before
+          a child ever sees it.
+        </div>
+      </div>
 
-  <!-- TAB 4 · System -->
-  <div class="seclabel">Tab 4 · System</div>
-  <div class="two">
-    <div class="card">
-      <h2>Health</h2>
-      <div class="health">
-        <div class="hrow"><span class="dot ok"></span>Learning database <span class="val">odyssey-learning.db · schema v11</span></div>
-        <div class="hrow"><span class="dot ok"></span>Curriculum catalog <span class="val">128 standards seeded</span></div>
-        <div class="hrow"><span class="dot off"></span>Question generator (Ollama) <span class="val">not configured — bank-only</span></div>
-        <div class="hrow"><span class="dot ok"></span>Question validation <span class="val">strict mode</span></div>
+      <!-- TAB 4 · System -->
+      <div class="seclabel">Tab 4 · System</div>
+      <div class="two">
+        <div class="card">
+          <h2>Health</h2>
+          <div class="health">
+            <div class="hrow">
+              <span class="dot ok"></span>Learning database
+              <span class="val">odyssey-learning.db · schema v11</span>
+            </div>
+            <div class="hrow">
+              <span class="dot ok"></span>Curriculum catalog
+              <span class="val">128 standards seeded</span>
+            </div>
+            <div class="hrow">
+              <span class="dot off"></span>Question generator (Ollama)
+              <span class="val">not configured — bank-only</span>
+            </div>
+            <div class="hrow">
+              <span class="dot ok"></span>Question validation
+              <span class="val">strict mode</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>About this app</h2>
+          <div style="font-size: 14px; color: var(--muted)">
+            Local-first · one database file · no external services required. The
+            generator is optional: without Ollama the app runs entirely on the
+            reviewed question bank.
+          </div>
+        </div>
       </div>
     </div>
-    <div class="card">
-      <h2>About this app</h2>
-      <div style="font-size:14px;color:var(--muted)">
-        Local-first · one database file · no external services required.
-        The generator is optional: without Ollama the app runs entirely on the
-        reviewed question bank.
-      </div>
-    </div>
-  </div>
-
-</div>
-</body>
+  </body>
 </html>

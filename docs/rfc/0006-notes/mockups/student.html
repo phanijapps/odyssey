@@ -1,171 +1,502 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Odyssey — Student (mockup)</title>
-<style>
-  :root {
-    --bg: #f6f7f9; --surface: #ffffff; --ink: #1c2430; --muted: #5b6675;
-    --line: #e3e7ec; --brand: #3b5bdb; --brand-ink: #ffffff; --accent: #eef1ff;
-    --ok: #2f9e44; --ok-bg: #ebfbee; --warn: #e8590c; --warn-bg: #fff4e6;
-    --radius: 14px; --shadow: 0 1px 2px rgba(28,36,48,.06), 0 8px 24px rgba(28,36,48,.06);
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 20px 96px; }
-  header.top { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-  .logo { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #3b5bdb, #7048e8); color: #fff; display: grid; place-items: center; font-weight: 700; }
-  header.top .name { font-weight: 600; }
-  header.top .who { margin-left: auto; color: var(--muted); font-size: 14px; display: flex; gap: 10px; align-items: center; }
-  .pill { background: var(--accent); color: var(--brand); font-weight: 600; border-radius: 999px; padding: 3px 12px; font-size: 13px; }
-  .streak { font-size: 14px; }
-  .state-label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 34px 0 10px; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
-  /* sign in */
-  .auth { max-width: 380px; margin: 40px auto; text-align: center; }
-  .auth h1 { font-size: 22px; margin: 0 0 2px; }
-  .auth p { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
-  input { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; font: inherit; margin: 6px 0; background: #fbfcfe; }
-  button { font: inherit; cursor: pointer; border: none; border-radius: 10px; }
-  .primary { width: 100%; background: var(--brand); color: var(--brand-ink); font-weight: 600; padding: 12px; margin-top: 10px; }
-  /* skill picker */
-  .skills h2 { font-size: 18px; margin: 0 0 2px; }
-  .skills .sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-  .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: 14px; color: var(--muted); cursor: pointer; }
-  .chip.on { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
-  .domains { display: grid; gap: 10px; }
-  .domain { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
-  .domain b { font-size: 14px; }
-  .domain ul { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
-  .skill { font-size: 13px; background: var(--accent); color: var(--brand); padding: 5px 10px; border-radius: 8px; cursor: pointer; font-weight: 500; }
-  /* practice */
-  .crumb { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
-  .crumb b { color: var(--ink); }
-  .q { font-size: 21px; font-weight: 600; margin: 0 0 18px; }
-  .diagram { border: 1px dashed var(--line); border-radius: 12px; background: #fbfcfe; padding: 14px; display: grid; place-items: center; margin-bottom: 18px; }
-  .diagram svg { display: block; }
-  .diagram .cap { font-size: 12px; color: var(--muted); margin-top: 8px; }
-  .answer-row { display: flex; gap: 10px; }
-  .answer-row input { margin: 0; flex: 1; }
-  .submit { background: var(--brand); color: #fff; font-weight: 600; padding: 12px 22px; white-space: nowrap; }
-  .hint { margin-top: 14px; font-size: 14px; color: var(--muted); }
-  .hint a { color: var(--brand); }
-  .foot { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 13px; color: var(--muted); }
-  .dots { display: flex; gap: 5px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-  .dot.done { background: var(--brand); }
-  .dot.now { background: var(--brand); opacity: .45; }
-  .mode { margin-left: auto; display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; font-size: 13px; }
-  .mode span { padding: 5px 14px; }
-  .mode .on { background: var(--accent); color: var(--brand); font-weight: 600; }
-  /* feedback */
-  .feedback { border-radius: 12px; padding: 16px; margin-bottom: 16px; font-size: 15px; }
-  .feedback.good { background: var(--ok-bg); color: var(--ok); font-weight: 600; }
-  .feedback.bad { background: var(--warn-bg); color: var(--warn); font-weight: 600; }
-  .steps { margin: 12px 0 0; padding: 0 0 0 2px; list-style: none; counter-reset: step; }
-  .steps li { counter-increment: step; margin: 8px 0; font-size: 15px; color: var(--ink); }
-  .steps li::before { content: counter(step); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--brand); font-size: 12px; font-weight: 700; margin-right: 10px; }
-  .next { background: var(--brand); color: #fff; font-weight: 600; padding: 12px 22px; }
-</style>
-</head>
-<body>
-<div class="wrap">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Odyssey — Student (mockup)</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --ink: #1c2430;
+        --muted: #5b6675;
+        --line: #e3e7ec;
+        --brand: #3b5bdb;
+        --brand-ink: #ffffff;
+        --accent: #eef1ff;
+        --ok: #2f9e44;
+        --ok-bg: #ebfbee;
+        --warn: #e8590c;
+        --warn-bg: #fff4e6;
+        --radius: 14px;
+        --shadow:
+          0 1px 2px rgba(28, 36, 48, 0.06), 0 8px 24px rgba(28, 36, 48, 0.06);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          16px/1.55 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 24px 20px 96px;
+      }
+      header.top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #3b5bdb, #7048e8);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+      }
+      header.top .name {
+        font-weight: 600;
+      }
+      header.top .who {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 14px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .pill {
+        background: var(--accent);
+        color: var(--brand);
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 3px 12px;
+        font-size: 13px;
+      }
+      .streak {
+        font-size: 14px;
+      }
+      .state-label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 34px 0 10px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 24px;
+      }
+      /* sign in */
+      .auth {
+        max-width: 380px;
+        margin: 40px auto;
+        text-align: center;
+      }
+      .auth h1 {
+        font-size: 22px;
+        margin: 0 0 2px;
+      }
+      .auth p {
+        color: var(--muted);
+        margin: 0 0 20px;
+        font-size: 14px;
+      }
+      input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font: inherit;
+        margin: 6px 0;
+        background: #fbfcfe;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: none;
+        border-radius: 10px;
+      }
+      .primary {
+        width: 100%;
+        background: var(--brand);
+        color: var(--brand-ink);
+        font-weight: 600;
+        padding: 12px;
+        margin-top: 10px;
+      }
+      /* skill picker */
+      .skills h2 {
+        font-size: 18px;
+        margin: 0 0 2px;
+      }
+      .skills .sub {
+        color: var(--muted);
+        font-size: 14px;
+        margin: 0 0 16px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+      .chip {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 14px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .chip.on {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+        font-weight: 600;
+      }
+      .domains {
+        display: grid;
+        gap: 10px;
+      }
+      .domain {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px;
+      }
+      .domain b {
+        font-size: 14px;
+      }
+      .domain ul {
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .skill {
+        font-size: 13px;
+        background: var(--accent);
+        color: var(--brand);
+        padding: 5px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      /* practice */
+      .crumb {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .crumb b {
+        color: var(--ink);
+      }
+      .q {
+        font-size: 21px;
+        font-weight: 600;
+        margin: 0 0 18px;
+      }
+      .diagram {
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        background: #fbfcfe;
+        padding: 14px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 18px;
+      }
+      .diagram svg {
+        display: block;
+      }
+      .diagram .cap {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      .answer-row {
+        display: flex;
+        gap: 10px;
+      }
+      .answer-row input {
+        margin: 0;
+        flex: 1;
+      }
+      .submit {
+        background: var(--brand);
+        color: #fff;
+        font-weight: 600;
+        padding: 12px 22px;
+        white-space: nowrap;
+      }
+      .hint {
+        margin-top: 14px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .hint a {
+        color: var(--brand);
+      }
+      .foot {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 18px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .dots {
+        display: flex;
+        gap: 5px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--line);
+      }
+      .dot.done {
+        background: var(--brand);
+      }
+      .dot.now {
+        background: var(--brand);
+        opacity: 0.45;
+      }
+      .mode {
+        margin-left: auto;
+        display: flex;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        overflow: hidden;
+        font-size: 13px;
+      }
+      .mode span {
+        padding: 5px 14px;
+      }
+      .mode .on {
+        background: var(--accent);
+        color: var(--brand);
+        font-weight: 600;
+      }
+      /* feedback */
+      .feedback {
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        font-size: 15px;
+      }
+      .feedback.good {
+        background: var(--ok-bg);
+        color: var(--ok);
+        font-weight: 600;
+      }
+      .feedback.bad {
+        background: var(--warn-bg);
+        color: var(--warn);
+        font-weight: 600;
+      }
+      .steps {
+        margin: 12px 0 0;
+        padding: 0 0 0 2px;
+        list-style: none;
+        counter-reset: step;
+      }
+      .steps li {
+        counter-increment: step;
+        margin: 8px 0;
+        font-size: 15px;
+        color: var(--ink);
+      }
+      .steps li::before {
+        content: counter(step);
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 700;
+        margin-right: 10px;
+      }
+      .next {
+        background: var(--brand);
+        color: #fff;
+        font-weight: 600;
+        padding: 12px 22px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <div class="logo">Ω</div>
+        <div class="name">Odyssey</div>
+        <div class="who">
+          <span class="streak">🔥 4-day streak</span
+          ><span class="pill">Grade 6</span>Sign out
+        </div>
+      </header>
 
-  <header class="top">
-    <div class="logo">Ω</div>
-    <div class="name">Odyssey</div>
-    <div class="who"><span class="streak">🔥 4-day streak</span><span class="pill">Grade 6</span>Sign out</div>
-  </header>
-
-  <!-- STATE 1 · Sign-in -->
-  <div class="state-label">State 1 · Sign-in (first screen for everyone)</div>
-  <div class="card auth">
-    <h1>Welcome back</h1>
-    <p>Sign in to keep practicing.</p>
-    <input placeholder="Username" value="maya" />
-    <input placeholder="Password" type="password" value="••••••••" />
-    <button class="primary">Start practicing</button>
-  </div>
-
-  <!-- STATE 2 · Pick a skill -->
-  <div class="state-label">State 2 · Pick a skill (one screen, no clutter)</div>
-  <div class="card skills">
-    <h2>What do you want to practice, Maya?</h2>
-    <p class="sub">Continue where you left off, or browse your grade.</p>
-    <div class="chips">
-      <span class="chip on">▶ Continue: Ratios &amp; Proportions</span>
-      <span class="chip">Test me (9 questions)</span>
-    </div>
-    <div class="domains">
-      <div class="domain"><b>Ratio and Proportional Relationships</b>
-        <ul><li class="skill">Understand ratios (6.RP.1)</li><li class="skill">Unit rates (6.RP.2)</li><li class="skill">Percent problems (6.RP.3)</li></ul>
+      <!-- STATE 1 · Sign-in -->
+      <div class="state-label">
+        State 1 · Sign-in (first screen for everyone)
       </div>
-      <div class="domain"><b>The Number System</b>
-        <ul><li class="skill">Divide fractions (6.NS.1)</li><li class="skill">Common factors (6.NS.4)</li></ul>
+      <div class="card auth">
+        <h1>Welcome back</h1>
+        <p>Sign in to keep practicing.</p>
+        <input placeholder="Username" value="maya" />
+        <input placeholder="Password" type="password" value="••••••••" />
+        <button class="primary">Start practicing</button>
       </div>
-      <div class="domain"><b>Geometry</b>
-        <ul><li class="skill">Area of triangles (6.G.1)</li><li class="skill">Volume (6.G.2)</li></ul>
+
+      <!-- STATE 2 · Pick a skill -->
+      <div class="state-label">
+        State 2 · Pick a skill (one screen, no clutter)
+      </div>
+      <div class="card skills">
+        <h2>What do you want to practice, Maya?</h2>
+        <p class="sub">Continue where you left off, or browse your grade.</p>
+        <div class="chips">
+          <span class="chip on">▶ Continue: Ratios &amp; Proportions</span>
+          <span class="chip">Test me (9 questions)</span>
+        </div>
+        <div class="domains">
+          <div class="domain">
+            <b>Ratio and Proportional Relationships</b>
+            <ul>
+              <li class="skill">Understand ratios (6.RP.1)</li>
+              <li class="skill">Unit rates (6.RP.2)</li>
+              <li class="skill">Percent problems (6.RP.3)</li>
+            </ul>
+          </div>
+          <div class="domain">
+            <b>The Number System</b>
+            <ul>
+              <li class="skill">Divide fractions (6.NS.1)</li>
+              <li class="skill">Common factors (6.NS.4)</li>
+            </ul>
+          </div>
+          <div class="domain">
+            <b>Geometry</b>
+            <ul>
+              <li class="skill">Area of triangles (6.G.1)</li>
+              <li class="skill">Volume (6.G.2)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 3 · Practice question -->
+      <div class="state-label">
+        State 3 · Practice — one question at a time (generous room for problem +
+        diagram)
+      </div>
+      <div class="card">
+        <div class="crumb">
+          Ratios &amp; Proportions · <b>Understand ratios (6.RP.1)</b> · Level 2
+        </div>
+        <p class="q">
+          The ratio of squares to circles below is 3∶4. If there are 12 circles,
+          how many squares are there?
+        </p>
+        <div class="diagram">
+          <svg
+            width="320"
+            height="86"
+            viewBox="0 0 320 86"
+            role="img"
+            aria-label="3 squares and 4 circles"
+          >
+            <g fill="#3b5bdb" opacity=".85">
+              <rect x="10" y="16" width="34" height="34" rx="4" />
+              <rect x="54" y="16" width="34" height="34" rx="4" />
+              <rect x="98" y="16" width="34" height="34" rx="4" />
+            </g>
+            <g fill="#7048e8" opacity=".85">
+              <circle cx="188" cy="33" r="17" />
+              <circle cx="228" cy="33" r="17" />
+              <circle cx="268" cy="33" r="17" />
+              <circle cx="308" cy="33" r="17" />
+            </g>
+          </svg>
+          <div class="cap">
+            squares 3 ∶ 4 circles — labeled diagram, validated before display
+          </div>
+        </div>
+        <div class="answer-row">
+          <input placeholder="Your answer" value="9" />
+          <button class="submit">Check</button>
+        </div>
+        <div class="hint">Stuck? <a>Show a hint</a></div>
+        <div class="foot">
+          <span class="dots"
+            ><span class="dot done"></span><span class="dot done"></span
+            ><span class="dot now"></span><span class="dot"></span
+            ><span class="dot"></span><span class="dot"></span
+          ></span>
+          <span>Question 3 of 6 in this set · difficulty adapts to you</span>
+          <div class="mode">
+            <span class="on">Practice</span><span>Test</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 4 · Feedback -->
+      <div class="state-label">
+        State 4 · Feedback — correct + worked solution (same screen, no
+        navigation)
+      </div>
+      <div class="card">
+        <div class="crumb">
+          Ratios &amp; Proportions · <b>Understand ratios (6.RP.1)</b> · Level 2
+        </div>
+        <div class="feedback good">
+          ✓ Correct — nice work! Level up to Level 3.
+        </div>
+        <p class="q" style="font-size: 18px">
+          The ratio of squares to circles is 3∶4. There are 12 circles. How many
+          squares?
+        </p>
+        <ol class="steps">
+          <li>The ratio 3∶4 means 3 squares for every 4 circles.</li>
+          <li>12 circles = 4 × 3 groups, so scale the squares by 3 too.</li>
+          <li>3 squares × 3 groups = <strong>9 squares</strong>.</li>
+        </ol>
+        <div style="margin-top: 16px">
+          <button class="next">Next question →</button>
+        </div>
+        <div class="foot">
+          <span class="dots"
+            ><span class="dot done"></span><span class="dot done"></span
+            ><span class="dot done"></span><span class="dot now"></span
+            ><span class="dot"></span><span class="dot"></span
+          ></span>
+          <span>Streak: 6 correct in a row 🔥</span>
+          <div class="mode">
+            <span class="on">Practice</span><span>Test</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="state-label">Notes</div>
+      <div class="card" style="font-size: 14px; color: var(--muted)">
+        Everything below the header changes; the header never grows. Test mode
+        reuses this exact layout with the mode toggle set to <b>Test</b> (9
+        questions, no hints, score at the end — computed, never hard-coded).
+        Performance lives one link away, not on this screen. Parent-suggested
+        practice appears as a single dismissible banner above the card.
       </div>
     </div>
-  </div>
-
-  <!-- STATE 3 · Practice question -->
-  <div class="state-label">State 3 · Practice — one question at a time (generous room for problem + diagram)</div>
-  <div class="card">
-    <div class="crumb">Ratios &amp; Proportions · <b>Understand ratios (6.RP.1)</b> · Level 2</div>
-    <p class="q">The ratio of squares to circles below is 3∶4. If there are 12 circles, how many squares are there?</p>
-    <div class="diagram">
-      <svg width="320" height="86" viewBox="0 0 320 86" role="img" aria-label="3 squares and 4 circles">
-        <g fill="#3b5bdb" opacity=".85">
-          <rect x="10" y="16" width="34" height="34" rx="4"/><rect x="54" y="16" width="34" height="34" rx="4"/><rect x="98" y="16" width="34" height="34" rx="4"/>
-        </g>
-        <g fill="#7048e8" opacity=".85">
-          <circle cx="188" cy="33" r="17"/><circle cx="228" cy="33" r="17"/><circle cx="268" cy="33" r="17"/><circle cx="308" cy="33" r="17"/>
-        </g>
-      </svg>
-      <div class="cap">squares 3 ∶ 4 circles — labeled diagram, validated before display</div>
-    </div>
-    <div class="answer-row">
-      <input placeholder="Your answer" value="9" />
-      <button class="submit">Check</button>
-    </div>
-    <div class="hint">Stuck? <a>Show a hint</a></div>
-    <div class="foot">
-      <span class="dots"><span class="dot done"></span><span class="dot done"></span><span class="dot now"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
-      <span>Question 3 of 6 in this set · difficulty adapts to you</span>
-      <div class="mode"><span class="on">Practice</span><span>Test</span></div>
-    </div>
-  </div>
-
-  <!-- STATE 4 · Feedback -->
-  <div class="state-label">State 4 · Feedback — correct + worked solution (same screen, no navigation)</div>
-  <div class="card">
-    <div class="crumb">Ratios &amp; Proportions · <b>Understand ratios (6.RP.1)</b> · Level 2</div>
-    <div class="feedback good">✓ Correct — nice work! Level up to Level 3.</div>
-    <p class="q" style="font-size:18px">The ratio of squares to circles is 3∶4. There are 12 circles. How many squares?</p>
-    <ol class="steps">
-      <li>The ratio 3∶4 means 3 squares for every 4 circles.</li>
-      <li>12 circles = 4 × 3 groups, so scale the squares by 3 too.</li>
-      <li>3 squares × 3 groups = <strong>9 squares</strong>.</li>
-    </ol>
-    <div style="margin-top:16px"><button class="next">Next question →</button></div>
-    <div class="foot">
-      <span class="dots"><span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot now"></span><span class="dot"></span><span class="dot"></span></span>
-      <span>Streak: 6 correct in a row 🔥</span>
-      <div class="mode"><span class="on">Practice</span><span>Test</span></div>
-    </div>
-  </div>
-
-  <div class="state-label">Notes</div>
-  <div class="card" style="font-size:14px;color:var(--muted)">
-    Everything below the header changes; the header never grows. Test mode reuses this exact
-    layout with the mode toggle set to <b>Test</b> (9 questions, no hints, score at the end —
-    computed, never hard-coded). Performance lives one link away, not on this screen.
-    Parent-suggested practice appears as a single dismissible banner above the card.
-  </div>
-
-</div>
-</body>
+  </body>
 </html>

@@ -1,6 +1,5 @@
 import {
   appendSessionPoolQuestion,
-  grantGeneratedPracticeAllowance,
   requireLearnerMutationProof,
 } from "../../../server/identity/identity";
 import {
@@ -116,7 +115,6 @@ export async function POST(request: Request): Promise<Response> {
         : standards,
       (next) => appendSessionPoolQuestion(request, next),
     );
-    grantGeneratedPracticeAllowance(request, body.topicId);
 
     const { nextPracticeDifficulty: _nextPracticeDifficulty, ...response } =
       result;

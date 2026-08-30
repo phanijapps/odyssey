@@ -583,46 +583,7 @@ export function requireParentMutationProof(request: Request): {
   return { parentAccountId: proof.principalId };
 }
 
-/** Grants one topic-bound provider request after an accepted local answer. */
-export function grantGeneratedPracticeAllowance(
-  _request: Request,
-  _topicId: string,
-): void {
-  const session = activeSession(_request);
-  if (!session) return;
-  if (
-    session.generated_requests <
-    getIdentityPolicy().maxGeneratedContentRequestsPerSession
-  )
-    learningDb
-      .prepare(
-        "UPDATE auth_sessions SET allowance_topic = ? WHERE token_hash = ?",
-      )
-      .run(_topicId, session.token_hash);
-}
-
 /** Consumes the session's one-use, topic-bound provider request allowance. */
-export function consumeGeneratedPracticeAllowance(
-  _request: Request,
-  _topicId: string,
-): { childId: string } {
-  const { childId } = requireMutationProof(_request);
-  const session = activeSession(_request);
-  if (
-    !session ||
-    session.allowance_topic !== _topicId ||
-    session.generated_requests >=
-      getIdentityPolicy().maxGeneratedContentRequestsPerSession
-  )
-    throw new Error("Generated practice allowance required");
-  learningDb
-    .prepare(
-      "UPDATE auth_sessions SET allowance_topic = NULL, generated_requests = generated_requests + 1 WHERE token_hash = ?",
-    )
-    .run(session.token_hash);
-  return { childId };
-}
-
 /** @deprecated Use requireAdminRead or requireAdminMutationProof by route method. */
 export function requireAdmin(request: Request): { childId: string } {
   return requireAdminRead(request);
@@ -1054,68 +1015,6 @@ export function compareAndSetSessionPool(
 /** Creates a CSPRNG opaque token which is valid for one stored assignment. */
 export function createPracticeAssignmentToken(): string {
   return randomBytes(32).toString("base64url");
-}
-
-/**
- * Replaces an idle Practice pool with one generated question and its opaque,
- * one-use assignment token. An existing issued assignment is never replaced.
- */
-export function issueGeneratedPracticeAssignment(
-  request: Request,
-  question: {
-    topicId: string;
-    question: string;
-    interaction: LearnerQuestionInteraction;
-    answer: string;
-    acceptableAnswers: readonly string[];
-    hint: string;
-    solution: readonly string[];
-    diagramSvg: string;
-  },
-): { assignmentToken: string } | null {
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const state = getSessionPoolState(request);
-    const pool = state?.pool;
-    if (
-      !state ||
-      !pool ||
-      (pool.mode ?? "practice") !== "practice" ||
-      pool.topicId !== question.topicId ||
-      pool.activeAssignment ||
-      !Number.isInteger(pool.currentDifficulty) ||
-      pool.currentDifficulty < 1 ||
-      pool.currentDifficulty > 3
-    )
-      return null;
-
-    const assignmentToken = createPracticeAssignmentToken();
-    const questionId = `generated-${assignmentToken}`;
-    const replacement: SessionPool = {
-      topicId: question.topicId,
-      questions: [
-        {
-          id: questionId,
-          question: question.question,
-          interaction: question.interaction,
-          answer: question.answer,
-          acceptableAnswers: question.acceptableAnswers,
-          hint: question.hint,
-          solution: question.solution,
-          diagramSvg: question.diagramSvg,
-          difficulty: pool.currentDifficulty,
-        },
-      ],
-      shownIds: [questionId],
-      currentDifficulty: pool.currentDifficulty,
-      batchPosition: 1,
-      batchSize: pool.batchSize,
-      mode: "practice",
-      activeAssignment: { questionId, token: assignmentToken },
-    };
-    if (compareAndSetSessionPool(request, state.serialized, replacement))
-      return { assignmentToken };
-  }
-  return null;
 }
 
 /**

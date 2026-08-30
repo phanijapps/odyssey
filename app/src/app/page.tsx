@@ -85,12 +85,6 @@ export default function HomePage() {
   const [poolDifficulty, setPoolDifficulty] = useState(2);
 
   // Test state
-  const [testScore, setTestScore] = useState(0);
-  const [testIndex, setTestIndex] = useState(0);
-  const [testDone, setTestDone] = useState(false);
-  const [testLog, setTestLog] = useState<
-    { correct: boolean; points: number; difficulty: number }[]
-  >([]);
   const [testSelectedIds, setTestSelectedIds] = useState<string[]>([]);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [assessmentQuestion, setAssessmentQuestion] =
@@ -300,10 +294,6 @@ export default function HomePage() {
     setResult(null);
     setAnswer("");
     setQuestionFailed(false);
-    setTestDone(false);
-    setTestScore(0);
-    setTestIndex(0);
-    setTestLog([]);
     setIsLoadingQuestion(true);
     setQuestion("Loading…");
     setAssignmentToken(null);
@@ -337,7 +327,6 @@ export default function HomePage() {
       setPoolPos(d.poolProgress?.position ?? 0);
       setPoolTotal(d.poolProgress?.total ?? 0);
       setPoolDifficulty(d.poolProgress?.difficulty ?? 2);
-      setTestIndex(Math.max(0, (d.poolProgress?.position ?? 1) - 1));
       if (d.nextQuestion?.question) {
         setQuestion(d.nextQuestion.question);
         setAnswerMaxLength(
@@ -408,22 +397,9 @@ export default function HomePage() {
       setFeedback({
         kind: d.correct ? "success" : "error",
         message: d.correct
-          ? mode === "test"
-            ? `Correct! +${d.points} points`
-            : "Correct!"
+          ? "Correct!"
           : `Not quite. The correct answer is ${d.correctAnswer}.`,
       });
-      if (mode === "test") {
-        setTestScore((score) => score + d.points);
-        setTestLog((log) => [
-          ...log,
-          {
-            correct: d.correct,
-            points: d.points,
-            difficulty: d.answeredDifficulty,
-          },
-        ]);
-      }
       if (d.poolProgress) {
         setPoolPos(d.poolProgress.position);
         setPoolTotal(d.poolProgress.total);
@@ -468,16 +444,6 @@ export default function HomePage() {
     setAssignmentToken(null);
     setPracticeA2ui(null);
     setDiagramSvg(null);
-    if (requestedMode === "test" && currentResult) {
-      const nextIndex = currentResult.testPosition; // server counts the just-served one
-      setTestIndex(nextIndex);
-      if (currentResult.testPosition >= currentResult.testTotal) {
-        setTestDone(true);
-        setIsLoadingQuestion(false);
-        setQuestion("");
-        return;
-      }
-    }
     try {
       const params = new URLSearchParams({
         subject: skill.subject,
@@ -509,9 +475,6 @@ export default function HomePage() {
         );
         setPracticeA2ui(d.nextQuestion.a2ui ?? null);
         setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
-      } else if (requestedMode === "test") {
-        setTestDone(true);
-        setQuestion("");
       } else {
         setQuestion("");
         setQuestionFailed(true);
@@ -609,7 +572,6 @@ export default function HomePage() {
     }
     setResult(null);
     setFeedback(null);
-    setTestDone(false);
     setTestError("");
     if (next === "practice" && activeSkill)
       void selectSkill(activeSkill, "practice");
@@ -1023,16 +985,11 @@ export default function HomePage() {
             question={question}
             questionFailed={questionFailed}
             result={result}
-            testDone={testDone}
-            testLog={testLog}
-            testScore={testScore}
             onAnswerChange={setAnswer}
             onA2uiSubmit={submitA2uiPracticeAnswer}
             onNextQuestion={() => void nextQuestion()}
             onRetry={() => void selectSkill(activeSkill)}
-            onStartNewTest={() => void selectSkill(activeSkill)}
             onSubmitAnswer={submitAnswer}
-            onSwitchToPractice={() => switchMode("practice")}
           />
         ) : (
           <div className="empty-practice">

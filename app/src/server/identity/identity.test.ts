@@ -3,8 +3,6 @@ import {
   appendSessionPoolQuestion,
   assertChildRecordScope,
   authenticateChild,
-  consumeGeneratedPracticeAllowance,
-  grantGeneratedPracticeAllowance,
   getIdentityPolicy,
   getSessionPool,
   learnerScopeKeyForUsername,
@@ -125,30 +123,6 @@ test("STUB: AC6 permits a same-site mutation only after validation", async () =>
       async () => "persisted",
     ),
   ).resolves.toBe("persisted");
-});
-
-test("enforces the generated-practice session cap before an eleventh request", async () => {
-  const session = await authenticateChild({
-    username: "test-learner",
-    password: "test-learner-password",
-  });
-  const request = new Request("http://localhost/generated-practice", {
-    method: "POST",
-    headers: {
-      cookie: `session=${session.sessionToken}`,
-      origin: "http://localhost",
-    },
-  });
-  for (let index = 0; index < 10; index += 1) {
-    grantGeneratedPracticeAllowance(request, "ratio");
-    expect(consumeGeneratedPracticeAllowance(request, "ratio")).toEqual({
-      childId: "test-learner",
-    });
-  }
-  grantGeneratedPracticeAllowance(request, "ratio");
-  expect(() => consumeGeneratedPracticeAllowance(request, "ratio")).toThrow(
-    "Generated practice allowance required",
-  );
 });
 
 test("STUB: AC6 rejects cross-site mutations before running their side effect", async () => {
