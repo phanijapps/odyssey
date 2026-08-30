@@ -5,9 +5,7 @@ import {
   getOllamaOpenAIUrl,
   getGeneratedOutputInstruction,
   parseOpenAICompletionJson,
-  getLearningFixtureExpectedAnswer,
   redactAgentAudit,
-  requestLearningFixture,
   requestOllamaLearningQuestion,
   validateGeneratedLearningResponse,
   validateGeneratedQuestionText,
@@ -15,104 +13,6 @@ import {
 import { validateLearningPayload } from "../validation/payloads";
 
 // STUB: AC7
-
-test("STUB: AC7 supplies the approved local question and diagram fixture", async () => {
-  const fixture = await requestLearningFixture({
-    childId: "child-1",
-    topicId: "ratio",
-    level: 1,
-    attemptCount: 0,
-  });
-  expect(fixture.question).toContain("ratio of flour to sugar");
-  expect(fixture.diagramSvg).toContain('aria-label="ratio diagram"');
-  expect(() =>
-    validateLearningPayload({
-      component: "GeometryDiagram",
-      diagramSvg: fixture.diagramSvg,
-    }),
-  ).not.toThrow();
-});
-
-test("supplies a topic-aligned linear fixture", async () => {
-  const fixture = await requestLearningFixture({
-    childId: "child-1",
-    topicId: "linear",
-    level: 1,
-    attemptCount: 1,
-  });
-  expect(fixture.question).toContain("y = 3x");
-  expect(fixture.diagramSvg).toContain('aria-label="linear relationship"');
-  expect(fixture.diagramSvg).toContain("y = 3x");
-  expect(fixture.diagramSvg).toContain('stroke="#8fc9dc"');
-  expect(() =>
-    validateLearningPayload({
-      component: "GeometryDiagram",
-      diagramSvg: fixture.diagramSvg,
-    }),
-  ).not.toThrow();
-});
-
-test("rejects fixture requests outside the reviewed topic and level bounds", async () => {
-  await expect(
-    requestLearningFixture({
-      childId: "child-1",
-      topicId: "not-a-topic",
-      level: 1,
-      attemptCount: 1,
-    }),
-  ).rejects.toThrow("Invalid learning request");
-  await expect(
-    requestLearningFixture({
-      childId: "child-1",
-      topicId: "__proto__",
-      level: 1,
-      attemptCount: 1,
-    }),
-  ).rejects.toThrow("Invalid learning request");
-  await expect(
-    requestLearningFixture({
-      childId: "child-1",
-      topicId: "ratio",
-      level: 14,
-      attemptCount: 1,
-    }),
-  ).rejects.toThrow("Invalid learning request");
-  await expect(
-    requestLearningFixture({
-      childId: "child-1",
-      topicId: "ratio",
-      level: 1,
-      attemptCount: -1,
-    }),
-  ).rejects.toThrow("Invalid learning request");
-});
-
-test("cycles approved topic prompts deterministically by attempt count", async () => {
-  const questions = await Promise.all(
-    [0, 1, 2, 3].map(async (attemptCount) =>
-      requestLearningFixture({
-        childId: "child-1",
-        topicId: "ratio",
-        level: 1,
-        attemptCount,
-      }),
-    ),
-  );
-  expect(questions.map((fixture) => fixture.question)).toEqual([
-    "A recipe uses 2 cups of flour for every 1 cup of sugar. What is the ratio of flour to sugar? (Use the format number:number)",
-    "In a classroom, the ratio of boys to girls is 3:2. If there are 6 boys, how many girls are there?",
-    "A smoothie uses 3 strawberries for every 1 banana. If you use 9 strawberries, how many bananas do you need?",
-    "The ratio of red to blue marbles in a bag is 5:3. If there are 40 marbles total, how many are red?",
-  ]);
-});
-
-test("keeps each reviewed fixture answer aligned to its attempt position", () => {
-  expect(
-    [0, 1, 2, 3].map((attemptCount) =>
-      getLearningFixtureExpectedAnswer({ topicId: "ratio", attemptCount }),
-    ),
-  ).toEqual(["2:1", "4", "3", "25"]);
-});
 
 test("rejects unsafe or malformed generated question text", () => {
   expect(() =>

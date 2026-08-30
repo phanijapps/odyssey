@@ -1,98 +1,9 @@
 import "server-only";
-import {
-  questionBank,
-  getQuestionByIndex,
-  type QuestionBankEntry,
-} from "./question-bank";
 import { sanitizeGeneratedDiagramSvg } from "../validation/payloads";
-import { assertLearningAction } from "../learning/learning-actions";
 import { completeWithLocalOllama } from "../pi-completion";
 import { getOllamaOpenAIUrl } from "../ollama-openai-url";
 
 export { getOllamaOpenAIUrl } from "../ollama-openai-url";
-
-/** Extracts a numeric value from a string answer for tolerant comparison. */
-function extractNumber(input: string): number | null {
-  const match = input.match(/-?\d+(?:\.\d+)?/);
-  return match ? Number.parseFloat(match[0]) : null;
-}
-
-/** Compares a submitted answer against the expected and acceptable answers. */
-export function checkAnswer(
-  submitted: string,
-  expected: string,
-  acceptable?: readonly string[],
-): boolean {
-  const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
-  const submittedNorm = normalize(submitted);
-  if (submittedNorm === normalize(expected)) return true;
-  if (acceptable?.some((a) => normalize(a) === submittedNorm)) return true;
-  const submittedNum = extractNumber(submittedNorm);
-  const expectedNum = extractNumber(normalize(expected));
-  if (submittedNum !== null && expectedNum !== null)
-    return Math.abs(submittedNum - expectedNum) < 0.01;
-  return false;
-}
-
-/** Returns a question bank entry by topic and attempt count position. */
-function getEntry(topicId: string, attemptCount: number): QuestionBankEntry {
-  if (!Number.isInteger(attemptCount) || attemptCount < 0)
-    throw new Error("Invalid learning request");
-  return getQuestionByIndex(topicId, attemptCount);
-}
-
-/** Builds a bounded fixture response through the same adapter shape as Pi Mono. */
-export async function requestLearningFixture(_input: {
-  childId: string;
-  topicId: string;
-  level: number;
-  attemptCount: number;
-}): Promise<{ question: string; diagramSvg: string }> {
-  assertLearningAction("request-question");
-  assertLearningAction("request-diagram");
-  if (
-    !Number.isInteger(_input.level) ||
-    _input.level < 1 ||
-    _input.level > 13 ||
-    !Number.isInteger(_input.attemptCount) ||
-    _input.attemptCount < 0
-  )
-    throw new Error("Invalid learning request");
-  if (!Object.hasOwn(questionBank, _input.topicId))
-    throw new Error("Invalid learning request");
-  const entry = getEntry(_input.topicId, _input.attemptCount);
-  return { question: entry.question, diagramSvg: entry.diagramSvg };
-}
-
-/** Reads the server-owned expected answer for a reviewed question position. */
-export function getLearningFixtureExpectedAnswer(_input: {
-  topicId: string;
-  attemptCount: number;
-}): string {
-  if (!Number.isInteger(_input.attemptCount) || _input.attemptCount < 0)
-    throw new Error("Invalid learning request");
-  return getEntry(_input.topicId, _input.attemptCount).expectedAnswer;
-}
-
-/** Returns acceptable alternative answers for a reviewed question position. */
-export function getLearningFixtureAcceptableAnswers(_input: {
-  topicId: string;
-  attemptCount: number;
-}): readonly string[] {
-  if (!Number.isInteger(_input.attemptCount) || _input.attemptCount < 0)
-    throw new Error("Invalid learning request");
-  return getEntry(_input.topicId, _input.attemptCount).acceptableAnswers ?? [];
-}
-
-/** Returns the reviewed hint for a question position, shown on a wrong answer. */
-export function getLearningFixtureHint(_input: {
-  topicId: string;
-  attemptCount: number;
-}): string {
-  if (!Number.isInteger(_input.attemptCount) || _input.attemptCount < 0)
-    throw new Error("Invalid learning request");
-  return getEntry(_input.topicId, _input.attemptCount).hint;
-}
 
 /** Runs the local Ollama integration to generate a fresh question with its answer. */
 export async function requestOllamaLearningQuestion(input: {

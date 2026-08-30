@@ -103,6 +103,17 @@ e2e: T5 (real artifact).
   action wiring) all pass against the plain renderer. Retitling deferred
   with the e2e-seeder-migration backlog entry.
 
+## Evidence correction (2026-08-30, phase-5 gates)
+
+The 6/6 e2e evidence above was recorded against a stale production
+build: `next start` serves the last `pnpm build` output, and no rebuild
+ran between the phase-4 source changes and those e2e runs. Phase-5
+gates rebuilt first, exposing one real regression the stale build had
+masked: the rewritten performance page dropped the Retry button the
+old page offered after a 500. Restored (retry re-fetches), and the full
+suite re-verified 6/6 against a build that provably contains phases 4-5
+(question-text guard + Retry flow both exercised).
+
 ## Review round 2 fixes (recorded 2026-08-30)
 
 - Blocker fixed: the practice question heading was hidden whenever an

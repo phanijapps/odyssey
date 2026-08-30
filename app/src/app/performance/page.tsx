@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { PerformanceReport } from "../../server/learning/performance";
 
 /** Renders the server-issued learner performance report. */
@@ -8,9 +8,12 @@ export default function PerformancePage() {
   const [report, setReport] = useState<PerformanceReport | null>(null);
   const [failed, setFailed] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setChecked(false);
+    setFailed(false);
     (async () => {
       try {
         const response = await fetch("/api/performance", {
@@ -29,12 +32,17 @@ export default function PerformancePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
+
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   if (failed)
     return (
       <main className="performance-page">
         <p role="alert">Performance is unavailable. Please retry.</p>
+        <button className="secondary-btn" onClick={retry}>
+          Retry
+        </button>
       </main>
     );
   if (!checked || !report)

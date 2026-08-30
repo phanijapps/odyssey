@@ -499,24 +499,3 @@ export const questionBank: Readonly<
     },
   ],
 };
-
-/** Returns the list of topic ids that have questions in the bank. */
-export function getQuestionBankTopics(): readonly string[] {
-  return Object.keys(questionBank);
-}
-
-/** Returns the number of questions available for a topic. */
-export function getTopicQuestionCount(topicId: string): number {
-  return questionBank[topicId]?.length ?? 0;
-}
-
-/** Selects a question from the bank by topic and index (wraps around). */
-export function getQuestionByIndex(
-  topicId: string,
-  index: number,
-): QuestionBankEntry {
-  const questions = questionBank[topicId];
-  if (!questions || !Number.isInteger(index) || index < 0)
-    throw new Error("Invalid learning request");
-  return questions[index % questions.length];
-}
