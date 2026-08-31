@@ -13,7 +13,8 @@
     "lint": "pnpm format:check",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
-    "audit:dependencies": "pnpm audit --audit-level high"
+    "audit:dependencies": "pnpm audit --audit-level high",
+    "serve": "bash tooling/scripts/serve.sh"
   },
   "devDependencies": {
     "prettier": "3.7.4"
