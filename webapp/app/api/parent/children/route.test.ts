@@ -1,7 +1,7 @@
 import { randomBytes, scryptSync } from "node:crypto";
 import { expect, test } from "vitest";
 import { learningDb } from "@odyssey/db";
-import { authenticateChild } from "../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../server/identity/identity";
 import { DELETE, PATCH } from "./[childId]/route";
 import { GET, POST } from "./route";
 
@@ -39,7 +39,7 @@ function parentHeaders(token: string): HeadersInit {
 
 test("parent child endpoints derive scope from the parent session and link", async () => {
   provisionParent("parent-routes", "parent-password");
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: "parent-routes",
     password: "parent-password",
   });
@@ -96,7 +96,7 @@ test("parent child endpoints derive scope from the parent session and link", asy
 
 test("a learner cannot read parent child accounts", async () => {
   provisionAccount("unlinked-learner", "learner-password", "student");
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "unlinked-learner",
     password: "learner-password",
   });
@@ -115,7 +115,7 @@ test("parent lifecycle routes fail closed for anonymous, malformed, and cross-or
   expect(anonymous.headers.get("cache-control")).toBe("no-store");
 
   provisionParent("parent-origin", "parent-password");
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: "parent-origin",
     password: "parent-password",
   });

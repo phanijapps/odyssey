@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import {
   appendSessionPoolQuestion,
   assertChildRecordScope,
-  authenticateChild,
+  authenticateAccount,
   getIdentityPolicy,
   getSessionPool,
   learnerScopeKeyForUsername,
@@ -26,11 +26,9 @@ test("learner scope keys match the fixture childId or derive from the username",
   expect(learnerScopeKeyForUsername("made-up-user")).toBe("child:made-up-user");
 });
 
-// STUB: AC2
-
-test("STUB: AC2 creates a rotated session for the local seeded child", async () => {
+test("creates a rotated session for the local seeded child", async () => {
   await expect(
-    authenticateChild({
+    authenticateAccount({
       username: "test-learner",
       password: "test-learner-password",
     }),
@@ -43,9 +41,9 @@ test("STUB: AC2 creates a rotated session for the local seeded child", async () 
   });
 });
 
-test("STUB: AC2 returns one generic rejection for invalid credentials", async () => {
+test("returns one generic rejection for invalid credentials", async () => {
   await expect(
-    authenticateChild({
+    authenticateAccount({
       username: "unknown",
       password: "wrong",
       environment: "development",
@@ -55,7 +53,7 @@ test("STUB: AC2 returns one generic rejection for invalid credentials", async ()
 
 test("rejects generic fixture credentials when production is selected", async () => {
   await expect(
-    authenticateChild({
+    authenticateAccount({
       username: "test-learner",
       password: "test-learner-password",
       environment: "production",
@@ -64,14 +62,14 @@ test("rejects generic fixture credentials when production is selected", async ()
 });
 
 test("authenticates each provisioned account with its own identity", async () => {
-  const student = await authenticateChild({
+  const student = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
   expect(student.role).toBe("student");
   expect(student.username).toBe("test-learner");
 
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });
@@ -79,11 +77,11 @@ test("authenticates each provisioned account with its own identity", async () =>
   expect(admin.childId).toBe("test-admin");
 
   await expect(
-    authenticateChild({ username: "test-learner", password: "wrong" }),
+    authenticateAccount({ username: "test-learner", password: "wrong" }),
   ).rejects.toThrow("Invalid credentials");
 });
 
-test("STUB: AC2 configures the password, session, throttling, and cookie controls", () => {
+test("configures the password, session, throttling, and cookie controls", () => {
   expect(getIdentityPolicy()).toEqual({
     passwordKdf: "scrypt",
     perPasswordSalt: true,
@@ -100,19 +98,17 @@ test("STUB: AC2 configures the password, session, throttling, and cookie control
   });
 });
 
-// STUB: AC5
-test("STUB: AC5 rejects access to another child's records", () => {
+test("rejects access to another child's records", () => {
   expect(() => assertChildRecordScope("child-1", "child-2")).toThrow();
 });
 
-// STUB: AC6
-test("STUB: AC6 rejects a mutation without a same-site anti-forgery proof", () => {
+test("rejects a mutation without a same-site anti-forgery proof", () => {
   expect(() =>
     requireMutationProof(new Request("http://localhost/answer")),
   ).toThrow();
 });
 
-test("STUB: AC6 permits a same-site mutation only after validation", async () => {
+test("permits a same-site mutation only after validation", async () => {
   await expect(
     runProtectedMutation(
       new Request("http://localhost/answer", {
@@ -124,7 +120,7 @@ test("STUB: AC6 permits a same-site mutation only after validation", async () =>
   ).resolves.toBe("persisted");
 });
 
-test("STUB: AC6 rejects cross-site mutations before running their side effect", async () => {
+test("rejects cross-site mutations before running their side effect", async () => {
   let mutationRan = false;
 
   await expect(
@@ -144,7 +140,7 @@ test("STUB: AC6 rejects cross-site mutations before running their side effect", 
 });
 
 test("logout invalidates the issued session token", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -156,11 +152,11 @@ test("logout invalidates the issued session token", async () => {
 });
 
 test("rotates an existing child session on a new login", async () => {
-  const first = await authenticateChild({
+  const first = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
-  const second = await authenticateChild({
+  const second = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -173,7 +169,7 @@ test("rotates an existing child session on a new login", async () => {
 });
 
 test("expires sessions after the idle timeout", async () => {
-  const idleSession = await authenticateChild({
+  const idleSession = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -183,7 +179,7 @@ test("expires sessions after the idle timeout", async () => {
 });
 
 test("opportunistically purges expired sessions and their persisted question pool", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -215,7 +211,7 @@ test("expires an active session at the absolute timeout", async () => {
   // few real milliseconds and make this absolute-timeout test flaky.
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-  const absoluteSession = await authenticateChild({
+  const absoluteSession = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -241,11 +237,11 @@ test("expires an active session at the absolute timeout", async () => {
 test("throttles repeated failed logins", async () => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await expect(
-      authenticateChild({ username: "throttle-user", password: "wrong" }),
+      authenticateAccount({ username: "throttle-user", password: "wrong" }),
     ).rejects.toThrow("Invalid credentials");
   }
   await expect(
-    authenticateChild({
+    authenticateAccount({
       username: "throttle-user",
       password: "test-learner-password",
     }),
@@ -260,21 +256,21 @@ test("allows a correct sign-in after the throttle window expires", async () => {
     attempt += 1
   ) {
     await expect(
-      authenticateChild({ username, password: "wrong" }),
+      authenticateAccount({ username, password: "wrong" }),
     ).rejects.toThrow("Invalid credentials");
   }
   await expect(
-    authenticateChild({ username, password: "test-learner-password" }),
+    authenticateAccount({ username, password: "test-learner-password" }),
   ).rejects.toThrow("Invalid credentials");
 
   vi.useFakeTimers();
   vi.setSystemTime(Date.now() + getIdentityPolicy().throttleWindowMs + 1);
   await expect(
-    authenticateChild({ username, password: "test-learner-password" }),
+    authenticateAccount({ username, password: "test-learner-password" }),
   ).resolves.toMatchObject({ childId: "test-learner" });
 });
 
-test("STUB: AC6 rejects a cookie-authenticated POST with no Origin or CSRF token before state access", async () => {
+test("rejects a cookie-authenticated POST with no Origin or CSRF token before state access", async () => {
   let mutationRan = false;
 
   await expect(
@@ -305,7 +301,7 @@ test("rejects a same-host but cross-port mutation origin", () => {
 });
 
 test("rejects an admin from learner-only mutations", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });
@@ -323,11 +319,11 @@ test("rejects an admin from learner-only mutations", async () => {
 });
 
 test("scopes reads by role and admin mutations by canonical origin", async () => {
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });
@@ -371,7 +367,7 @@ test("scopes reads by role and admin mutations by canonical origin", async () =>
 });
 
 test("caps and deduplicates a prefetched Practice pool", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

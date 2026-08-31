@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../server/identity/identity";
+import { authenticateAccount } from "../../../server/identity/identity";
 import { learningDb } from "@odyssey/db";
 import { GET as getPerformance } from "./route";
 import { GET as getPlan } from "./plan/route";
@@ -31,7 +31,7 @@ function snapshotLearningState(childId: string): string {
 }
 
 test("Performance and plan reads never mutate Practice, Test, or attempt state", async () => {
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

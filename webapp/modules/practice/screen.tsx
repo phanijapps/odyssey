@@ -71,7 +71,6 @@ export function StudentScreen() {
   const [interaction, setInteraction] =
     useState<LearnerQuestionInteraction | null>(null);
   const [diagramSvg, setDiagramSvg] = useState<string | null>(null);
-  const [level, setLevel] = useState(1);
   const [correctStreak, setCorrectStreak] = useState(0);
   const [poolPos, setPoolPos] = useState(0);
   const [poolTotal, setPoolTotal] = useState(0);
@@ -296,7 +295,6 @@ export function StudentScreen() {
       }
       const d = await res.json();
       if (progressVersion.current !== version) return;
-      setLevel(d.level ?? 1);
       setCorrectStreak(d.correctStreak ?? 0);
       setPoolPos(d.poolProgress?.position ?? 0);
       setPoolTotal(d.poolProgress?.total ?? 0);
@@ -359,7 +357,6 @@ export function StudentScreen() {
         poolProgress?: { position: number; total: number; difficulty: number };
       };
       if (progressVersion.current !== version) return;
-      setLevel(d.level);
       setCorrectStreak(d.correctStreak);
       setResult(d);
       setAssignmentToken(null);
@@ -397,7 +394,6 @@ export function StudentScreen() {
     const version = ++progressVersion.current;
     const skill = activeSkill;
     const requestedMode = mode;
-    const currentResult = result;
     setResult(null);
     setFeedback(null);
     setQuestionFailed(false);

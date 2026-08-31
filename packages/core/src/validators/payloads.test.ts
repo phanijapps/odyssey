@@ -4,9 +4,7 @@ import {
   validateLearningPayload,
 } from "./payloads";
 
-// STUB: AC7
-
-test("STUB: AC7 accepts the approved SVG learning payload", () => {
+test("accepts the approved SVG learning payload", () => {
   expect(() =>
     validateLearningPayload({
       component: "GeometryDiagram",
@@ -53,8 +51,7 @@ test("accepts the fixed SVG namespace required by standalone diagram images", ()
     ).toThrow();
 });
 
-// STUB: AC9
-test("STUB: AC9 rejects untyped input before persistence or rendering", () => {
+test("rejects untyped input before persistence or rendering", () => {
   for (const payload of [
     { diagramSvg: "<script />" },
     { diagramSvg: '<svg><a href="https://example.invalid" /></svg>' },

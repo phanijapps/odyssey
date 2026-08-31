@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
 import { withGoldDatabase } from "./gold-database";
 
 export type GoldRecordSummary = {

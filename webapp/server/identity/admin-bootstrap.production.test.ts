@@ -20,9 +20,9 @@ test("seeds exactly the explicitly configured first production admin", async () 
   process.env.ODYSSEY_ADMIN_BOOTSTRAP_USERNAME = "bootstrap-admin";
   process.env.ODYSSEY_ADMIN_BOOTSTRAP_PASSWORD = "bootstrap-password";
   try {
-    const { authenticateChild } = await import("./identity");
+    const { authenticateAccount } = await import("./identity");
     await expect(
-      authenticateChild({
+      authenticateAccount({
         username: "bootstrap-admin",
         password: "bootstrap-password",
         environment: "production",
@@ -65,10 +65,10 @@ test("suppresses the admin bootstrap once any admin exists", async () => {
   process.env.ODYSSEY_ADMIN_BOOTSTRAP_USERNAME = "second-admin";
   process.env.ODYSSEY_ADMIN_BOOTSTRAP_PASSWORD = "second-password";
   try {
-    const { authenticateChild } = await import("./identity");
+    const { authenticateAccount } = await import("./identity");
     // The configured bootstrap admin is NOT created: only one admin exists.
     await expect(
-      authenticateChild({
+      authenticateAccount({
         username: "second-admin",
         password: "second-password",
         environment: "production",

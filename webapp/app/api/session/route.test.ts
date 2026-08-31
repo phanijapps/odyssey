@@ -1,10 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { authenticateChild } from "../../../server/identity/identity";
+import { authenticateAccount } from "../../../server/identity/identity";
 import { DELETE, GET, POST } from "./route";
 afterEach(() => vi.unstubAllEnvs());
 
 test("reports the current authenticated child session with role", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

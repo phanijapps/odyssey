@@ -1,6 +1,6 @@
 import { randomBytes, scryptSync } from "node:crypto";
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../../../server/identity/identity";
 import { learningDb } from "@odyssey/db";
 import { GET, POST, DELETE } from "./route";
 
@@ -72,7 +72,7 @@ function setup(): void {
 }
 
 async function parentSession(): Promise<string> {
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: "sugg-route-parent",
     password: "pass-word-1",
   });
@@ -82,11 +82,11 @@ async function parentSession(): Promise<string> {
 test("suggestion routes fail closed for bad principals and bodies", async () => {
   setup();
   const token = await parentSession();
-  const other = await authenticateChild({
+  const other = await authenticateAccount({
     username: "sugg-route-other",
     password: "pass-word-1",
   });
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "sugg-route-child",
     password: "pass-word-1",
   });

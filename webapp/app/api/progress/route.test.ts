@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import {
-  authenticateChild,
+  authenticateAccount,
   requireLearnerRead,
 } from "../../../server/identity/identity";
 import {
@@ -11,7 +11,7 @@ import { withGoldDatabase } from "@odyssey/db";
 import { GET } from "./route";
 
 test("returns only the signed-in child's persisted topic progress", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -67,7 +67,7 @@ test("returns only the signed-in child's persisted topic progress", async () => 
 });
 
 test("treats a legacy test query as practice", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -92,7 +92,7 @@ test("rejects anonymous progress reads", async () => {
 });
 
 test("rejects an admin from child-scoped practice progress", async () => {
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });
@@ -111,7 +111,7 @@ test("rejects an admin from child-scoped practice progress", async () => {
 });
 
 test("concurrent progress reads return the same active assignment", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -135,7 +135,7 @@ test("concurrent progress reads return the same active assignment", async () => 
 });
 
 test("rejects a selected standard whose composite topic identity was tampered", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -154,7 +154,7 @@ test("rejects a selected standard whose composite topic identity was tampered", 
 });
 
 test("rejects a requested standard absent from the selected Gold domain", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -198,7 +198,7 @@ test("accepts the exact topic identity for a reviewed selected standard", async 
         "2026-01-01",
       );
   });
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

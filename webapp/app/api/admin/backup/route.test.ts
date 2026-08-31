@@ -1,7 +1,7 @@
 import { rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../server/identity/identity";
 import { resolveDatabasePath } from "@odyssey/db";
 import { POST } from "./route";
 
@@ -22,7 +22,7 @@ const backupsDirectory = join(
 
 test("backup requires an admin session with same-origin proof", async () => {
   expect((await POST(request())).status).toBe(403);
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -30,7 +30,7 @@ test("backup requires an admin session with same-origin proof", async () => {
     (await POST(request(`session=${learner.sessionToken}`, "http://localhost")))
       .status,
   ).toBe(403);
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });
@@ -58,7 +58,7 @@ test("backup refuses to overwrite an existing snapshot file", async () => {
   const occupied = join(backupsDirectory, `learning-${stamp}.db`);
   writeFileSync(occupied, sentinel);
 
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });
@@ -74,7 +74,7 @@ test("backup refuses to overwrite an existing snapshot file", async () => {
 
 test("backup writes a snapshot file under data/backups", async () => {
   rmSync(backupsDirectory, { force: true, recursive: true });
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });

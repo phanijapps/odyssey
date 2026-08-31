@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../server/identity/identity";
 import { GET } from "./route";
 
 function request(cookie?: string): Request {
@@ -13,7 +13,7 @@ test("health requires an admin session and is no-store", async () => {
   expect(anonymous.status).toBe(403);
   expect(anonymous.headers.get("cache-control")).toBe("no-store");
 
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -22,7 +22,7 @@ test("health requires an admin session and is no-store", async () => {
 });
 
 test("health reports schema, catalog, and generator state for an admin", async () => {
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });

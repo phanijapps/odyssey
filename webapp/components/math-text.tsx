@@ -88,9 +88,6 @@ function formatMath(text: string): ReactNode[] {
    Key-value highlighting: numbers, units, variables, operators
    ============================================================ */
 
-const UNIT_WORDS =
-  /\b(cm|mm|m|km|in|ft|feet|inch(?:es)?|yd|yards?|mi|miles?|kg|g|lb|lbs|pounds?|oz|L|mL|cups?|tbsp|tsp|hours?|hrs?|minutes?|mins?|seconds?|secs?|days?|weeks?|dollars?|cents?|percent|%|mph|degrees?|°)\b/gi;
-
 /** Wraps key values in styled spans: numbers, units, variables, operators. */
 function highlightKeyValues(text: string, nextKey: () => number): ReactNode {
   if (!text) return text;

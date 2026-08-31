@@ -344,7 +344,7 @@ function expireIfStale(
 }
 
 /** Authenticates a provisioned account without exposing account existence. */
-export async function authenticateChild(_credentials: {
+export async function authenticateAccount(_credentials: {
   username: string;
   password: string;
   environment?: "development" | "production";

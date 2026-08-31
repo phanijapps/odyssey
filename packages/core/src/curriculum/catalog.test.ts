@@ -1,9 +1,7 @@
 import { expect, test } from "vitest";
 import { parseCurriculumCatalog } from "./catalog";
 
-// STUB: AC3
-
-test("STUB: AC3 parses a reviewed catalog record with its Ohio source trace", () => {
+test("parses a reviewed catalog record with its Ohio source trace", () => {
   expect(
     parseCurriculumCatalog({
       revision: "2026-08-08",
@@ -23,8 +21,7 @@ test("STUB: AC3 parses a reviewed catalog record with its Ohio source trace", ()
   });
 });
 
-// STUB: AC9
-test("STUB: AC9 rejects unknown catalog fields", () => {
+test("rejects unknown catalog fields", () => {
   expect(() =>
     parseCurriculumCatalog({ revision: "v1", topics: [], extra: true }),
   ).toThrow();

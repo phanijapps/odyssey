@@ -1,7 +1,7 @@
-/** Versioned system prompt for generated practice questions. */
-/** Constrains the model to the reviewed response schema and SVG allowlist. */
+/** Versioned system prompt constraining generated questions to the reviewed
+ *  response schema and SVG allowlist. */
 export function getGenerationInstruction(
-  topicId: string,
+  _topicId: string,
   standards?: readonly { standardCode: string; standardText: string }[],
 ): string {
   const standard = standards?.[0];

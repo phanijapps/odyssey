@@ -21,15 +21,15 @@ test("local bootstrap and devparent fixture seed together in development", async
   process.env.ODYSSEY_PARENT_BOOTSTRAP_USERNAME = "order-bootstrap-parent";
   process.env.ODYSSEY_PARENT_BOOTSTRAP_PASSWORD = "bootstrap-password";
   try {
-    const { authenticateChild } = await import("./identity");
+    const { authenticateAccount } = await import("./identity");
     await expect(
-      authenticateChild({
+      authenticateAccount({
         username: "order-bootstrap-parent",
         password: "bootstrap-password",
       }),
     ).resolves.toMatchObject({ role: "parent" });
     await expect(
-      authenticateChild({ username: "devparent", password: "parent" }),
+      authenticateAccount({ username: "devparent", password: "parent" }),
     ).resolves.toMatchObject({ role: "parent" });
   } finally {
     for (const [key, value] of snapshot) {

@@ -6,11 +6,11 @@ vi.mock("../../../server/learning/performance", () => ({
   },
 }));
 
-import { authenticateChild } from "../../../server/identity/identity";
+import { authenticateAccount } from "../../../server/identity/identity";
 import { GET } from "./route";
 
 test("Performance returns a generic no-store 500 when its read model fails", async () => {
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

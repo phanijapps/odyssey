@@ -1,6 +1,6 @@
 import { randomBytes, scryptSync } from "node:crypto";
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../server/identity/identity";
 import { learningDb } from "@odyssey/db";
 import { GET } from "./route";
 import { formatPracticePhrases } from "../../../../modules/parent/performance-phrases";
@@ -52,7 +52,7 @@ test("parent Performance derives active child scope and redacts details", async 
        VALUES ('child:linked-child', 'Mathematics::Grade 8::Expressions::8.EE.7', 1, 1, 2, '2026-08-18T16:00:00.000Z')`,
     )
     .run();
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: "performance-parent",
     password: "parent-password",
   });
@@ -141,7 +141,7 @@ test("parent Performance caps the children projection at the document cap", asyn
     );
     link.run(accountId);
   }
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: "cap-parent",
     password: "parent-password",
   });
@@ -166,7 +166,7 @@ test("parent Performance rejects anonymous and learner requests", async () => {
   expect(
     GET(new Request("http://localhost/api/parent/performance")).status,
   ).toBe(401);
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

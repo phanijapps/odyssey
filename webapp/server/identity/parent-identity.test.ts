@@ -2,7 +2,7 @@ import { randomBytes, scryptSync } from "node:crypto";
 import { expect, test } from "vitest";
 import { learningDb } from "@odyssey/db";
 import {
-  authenticateChild,
+  authenticateAccount,
   createParentChildAccount,
   listParentChildren,
   requireParentMutationProof,
@@ -26,7 +26,7 @@ function provisionParent(username: string, password: string): string {
 
 test("a parent can create, reset, and revoke only linked child accounts", async () => {
   const parentId = provisionParent("parent-lifecycle", "parent-password");
-  const parentSession = await authenticateChild({
+  const parentSession = await authenticateAccount({
     username: "parent-lifecycle",
     password: "parent-password",
   });
@@ -44,10 +44,13 @@ test("a parent can create, reset, and revoke only linked child accounts", async 
     "new-child-password",
   );
   await expect(
-    authenticateChild({ username: "linked-child", password: "child-password" }),
+    authenticateAccount({
+      username: "linked-child",
+      password: "child-password",
+    }),
   ).rejects.toThrow("Invalid credentials");
   await expect(
-    authenticateChild({
+    authenticateAccount({
       username: "linked-child",
       password: "new-child-password",
     }),
@@ -137,7 +140,7 @@ test("parent lifecycle mutations roll back when their audit write fails", async 
     resetParentChildPassword(parentId, child.accountId, "new-child-password"),
   ).rejects.toThrow("fixture audit write failed");
   await expect(
-    authenticateChild({
+    authenticateAccount({
       username: "rollback-child",
       password: "child-password",
     }),
@@ -160,7 +163,7 @@ test("parent lifecycle mutations roll back when their audit write fails", async 
 
 test("parent guards require a parent session and canonical mutation origin", async () => {
   const parentId = provisionParent("parent-guard", "parent-password");
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "parent-guard",
     password: "parent-password",
   });

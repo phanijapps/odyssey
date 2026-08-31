@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import {
-  authenticateChild,
+  authenticateAccount,
   setSessionPool,
 } from "../../../server/identity/identity";
 import { withGoldDatabase } from "@odyssey/db";
@@ -26,7 +26,7 @@ function request(token: string, ans: string) {
 }
 
 test("after answering, the next fetched question stays on the standard", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

@@ -1,5 +1,5 @@
 import {
-  authenticateChild,
+  authenticateAccount,
   logoutSession,
   resolveSession,
 } from "../../../server/identity/identity";
@@ -47,7 +47,7 @@ function parseSessionCredentials(body: unknown): SessionCredentials {
 export async function POST(request: Request): Promise<Response> {
   try {
     const credentials = parseSessionCredentials(await request.json());
-    const session = await authenticateChild(credentials);
+    const session = await authenticateAccount(credentials);
     return Response.json(
       {
         childId: session.childId,

@@ -1,6 +1,6 @@
 import { randomBytes, scryptSync } from "node:crypto";
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../../../server/identity/identity";
 import { learningDb } from "@odyssey/db";
 import { GET } from "./route";
 
@@ -52,7 +52,7 @@ test("export requires the parent role", async () => {
   });
   expect(anonymous.status).toBe(403);
 
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -65,7 +65,7 @@ test("export requires the parent role", async () => {
 
 test("export denies a child the parent is not linked to", async () => {
   const { parentAccountId } = provisionLinkedParent();
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: `export-parent-${parentAccountId.slice(0, 6)}`,
     password: "parent-password",
   });
@@ -80,7 +80,7 @@ test("export denies a child the parent is not linked to", async () => {
 
 test("export downloads a linked child's parent-safe progress", async () => {
   const { childAccountId, parentAccountId } = provisionLinkedParent();
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: `export-parent-${parentAccountId.slice(0, 6)}`,
     password: "parent-password",
   });

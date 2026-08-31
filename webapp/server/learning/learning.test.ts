@@ -9,9 +9,7 @@ import {
 } from "./learning";
 import { learningDb } from "@odyssey/db";
 
-// STUB: AC4
-
-test("STUB: AC4 persists the accepted recommendation and next question", async () => {
+test("persists the accepted recommendation and next question", async () => {
   await expect(
     submitAnswer({
       childId: "child-1",
@@ -113,8 +111,7 @@ test("rejects an all-whitespace answer before persisting an attempt", async () =
   expect(getLearningProgress("blank-answer-child", "ratio")).toBeNull();
 });
 
-// STUB: AC16
-test("STUB: AC16 redacts raw child answers from learning audit data", () => {
+test("redacts raw child answers from learning audit data", () => {
   expect(
     redactLearningAudit({ event: "answer-recorded", rawAnswer: "secret" }),
   ).toEqual({
@@ -122,8 +119,7 @@ test("STUB: AC16 redacts raw child answers from learning audit data", () => {
   });
 });
 
-// STUB: AC9
-test("STUB: AC9 persists correctness without a raw child-answer column", async () => {
+test("persists correctness without a raw child-answer column", async () => {
   await submitAnswer({
     childId: "privacy-test-child",
     topicId: "ratio",

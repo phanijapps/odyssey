@@ -1,13 +1,13 @@
 import { expect, test } from "vitest";
 import { NextRequest } from "next/server";
-import { authenticateChild } from "../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../server/identity/identity";
 import { GET } from "./route";
 
 async function sessionHeaders(
   username: "test-admin" | "test-learner",
   origin?: string,
 ): Promise<HeadersInit> {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username,
     password: `${username}-password`,
   });

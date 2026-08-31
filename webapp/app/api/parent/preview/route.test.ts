@@ -1,6 +1,6 @@
 import { randomBytes, scryptSync } from "node:crypto";
 import { beforeAll, expect, test } from "vitest";
-import { authenticateChild } from "../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../server/identity/identity";
 import { learningDb } from "@odyssey/db";
 import { GET } from "./route";
 
@@ -117,7 +117,7 @@ let parentToken = "";
 
 beforeAll(async () => {
   provisionLinkedFamily();
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: PARENT.username,
     password: PARENT.password,
   });
@@ -128,7 +128,7 @@ test("practice preview is parent-only and no-store", async () => {
   expect(GET(new Request("http://localhost/api/parent/preview")).status).toBe(
     401,
   );
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -139,7 +139,7 @@ test("practice preview is parent-only and no-store", async () => {
       }),
     ).status,
   ).toBe(403);
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });

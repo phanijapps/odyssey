@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../server/identity/identity";
+import { authenticateAccount } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
 import { GET as progressGET } from "../progress/route";
 import { POST } from "./route";
 
 const TOPIC = "ratio";
 
-type Session = Awaited<ReturnType<typeof authenticateChild>>;
+type Session = Awaited<ReturnType<typeof authenticateAccount>>;
 
 function answerRequest(session: Session, body: unknown): Request {
   return new Request("http://localhost/api/answer", {
@@ -38,7 +38,7 @@ async function issueAssignment(
 }
 
 test("requires the opaque assignmentToken in the answer DTO", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -82,7 +82,7 @@ test("requires the opaque assignmentToken in the answer DTO", async () => {
 });
 
 test("rejects fabricated and replayed Practice tokens without another attempt", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });
@@ -119,7 +119,7 @@ test("rejects fabricated and replayed Practice tokens without another attempt", 
 });
 
 test("concurrent submissions consume an assignment exactly once and persist difficulty", async () => {
-  const session = await authenticateChild({
+  const session = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

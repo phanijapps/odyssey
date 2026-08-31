@@ -16,9 +16,9 @@ test("seeds exactly the explicitly configured first production parent", async ()
   process.env.ODYSSEY_PARENT_BOOTSTRAP_USERNAME = "bootstrap-parent";
   process.env.ODYSSEY_PARENT_BOOTSTRAP_PASSWORD = "bootstrap-password";
   try {
-    const { authenticateChild } = await import("./identity");
+    const { authenticateAccount } = await import("./identity");
     await expect(
-      authenticateChild({
+      authenticateAccount({
         username: "bootstrap-parent",
         password: "bootstrap-password",
         environment: "production",

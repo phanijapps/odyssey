@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../../server/identity/identity";
+import { authenticateAccount } from "../../../../server/identity/identity";
 import { GET } from "./route";
 
 test("Mistake-to-Mastery plan is learner-only and no-store", async () => {
@@ -7,7 +7,7 @@ test("Mistake-to-Mastery plan is learner-only and no-store", async () => {
   expect(anonymous.status).toBe(401);
   expect(anonymous.headers.get("cache-control")).toBe("no-store");
 
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "test-admin",
     password: "test-admin-password",
   });
@@ -18,7 +18,7 @@ test("Mistake-to-Mastery plan is learner-only and no-store", async () => {
   );
   expect(denied.status).toBe(403);
 
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "test-learner",
     password: "test-learner-password",
   });

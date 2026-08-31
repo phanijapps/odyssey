@@ -1,7 +1,7 @@
 import { randomBytes, scryptSync } from "node:crypto";
 import { expect, test } from "vitest";
 import {
-  authenticateChild,
+  authenticateAccount,
   createParentChildAccount,
 } from "../../../../server/identity/identity";
 import { learningDb } from "@odyssey/db";
@@ -39,7 +39,7 @@ function adminHeaders(token: string): HeadersInit {
 
 test("an admin lists, creates, and resets parent accounts", async () => {
   provisionAccount("admin-parents", "admin-password", "admin");
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "admin-parents",
     password: "admin-password",
   });
@@ -81,7 +81,7 @@ test("an admin lists, creates, and resets parent accounts", async () => {
   expect(made?.children).toEqual([{ username: "admin-made-child" }]);
 
   // The created parent signs in and manages their own children.
-  const parentSession = await authenticateChild({
+  const parentSession = await authenticateAccount({
     username: "admin-made-parent",
     password: "parent-password",
   });
@@ -109,12 +109,12 @@ test("an admin lists, creates, and resets parent accounts", async () => {
   );
   expect(staleParentView.status).toBe(401);
   await expect(
-    authenticateChild({
+    authenticateAccount({
       username: "admin-made-parent",
       password: "parent-password",
     }),
   ).rejects.toThrow();
-  const rotated = await authenticateChild({
+  const rotated = await authenticateAccount({
     username: "admin-made-parent",
     password: "rotated-password",
   });
@@ -157,7 +157,7 @@ test("an admin lists, creates, and resets parent accounts", async () => {
 
 test("non-admin sessions cannot manage parents", async () => {
   provisionAccount("parent-forbidden", "parent-password", "parent");
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: "parent-forbidden",
     password: "parent-password",
   });
@@ -170,7 +170,7 @@ test("non-admin sessions cannot manage parents", async () => {
   expect(parentList.headers.get("cache-control")).toBe("no-store");
 
   provisionAccount("learner-forbidden", "learner-password", "student");
-  const learner = await authenticateChild({
+  const learner = await authenticateAccount({
     username: "learner-forbidden",
     password: "learner-password",
   });
@@ -188,7 +188,7 @@ test("admin parent routes fail closed for anonymous, malformed, and cross-origin
   expect(anonymous.headers.get("cache-control")).toBe("no-store");
 
   provisionAccount("admin-origin", "admin-password", "admin");
-  const admin = await authenticateChild({
+  const admin = await authenticateAccount({
     username: "admin-origin",
     password: "admin-password",
   });

@@ -65,7 +65,6 @@ export function ParentScreen() {
   const [resetPending, setResetPending] = useState(false);
   const [revokePending, setRevokePending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [progressLoading, setProgressLoading] = useState(true);
   const progressRequest = useRef(0);
   const [preview, setPreview] = useState<PracticePreview | null>(null);
   const [previewLoaded, setPreviewLoaded] = useState(false);
@@ -89,7 +88,6 @@ export function ParentScreen() {
 
   const loadProgress = useCallback(async () => {
     const request = ++progressRequest.current;
-    setProgressLoading(true);
     try {
       const response = await fetch("/api/parent/performance", {
         cache: "no-store",
@@ -110,8 +108,6 @@ export function ParentScreen() {
         setProgress(null);
         setProgressError("Progress is unavailable right now.");
       }
-    } finally {
-      if (request === progressRequest.current) setProgressLoading(false);
     }
   }, []);
 

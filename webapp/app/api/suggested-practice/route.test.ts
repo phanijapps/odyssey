@@ -1,6 +1,6 @@
 import { randomBytes, scryptSync } from "node:crypto";
 import { expect, test } from "vitest";
-import { authenticateChild } from "../../../server/identity/identity";
+import { authenticateAccount } from "../../../server/identity/identity";
 import { learningDb } from "@odyssey/db";
 import { suggestPractice } from "../../../server/learning/parent-suggestions";
 import { GET } from "./route";
@@ -63,7 +63,7 @@ function setup(): Promise<string> {
        VALUES ('sugg-child-route-test', 1, 'sugg-cr-gold', 'fixture', 1, 0, 0, '2026-01-02')`,
     )
     .run();
-  return authenticateChild({
+  return authenticateAccount({
     username: "sugg-child-route",
     password: "child-pass-1",
   }).then((session) => session.sessionToken);
@@ -151,7 +151,7 @@ test("suggested-practice routes fail closed", async () => {
        VALUES ('${"b".repeat(32)}', 'sugg-cr-signin-parent', ?, ?, 'parent')`,
     )
     .run(scryptSync("parent-pass-1", parentSalt, 32), parentSalt);
-  const parent = await authenticateChild({
+  const parent = await authenticateAccount({
     username: "sugg-cr-signin-parent",
     password: "parent-pass-1",
   });
