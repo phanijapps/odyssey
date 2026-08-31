@@ -12,7 +12,7 @@ const LOCAL_OLLAMA_PROVIDER = "local-ollama";
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_TOKENS = 2_048;
 const MAX_TIMEOUT_MS = 120_000;
-const MAX_MAX_TOKENS = 8_192;
+const MAX_MAX_TOKENS = 32_768;
 const models = createModels();
 
 /** Initialized once per process — provider registration is not cheap. */
@@ -123,7 +123,8 @@ export function extractLocalOllamaCompletionText(
 ): string {
   if (completion.stopReason !== "stop") {
     throw new LocalOllamaCompletionError(
-      completion.errorMessage || "Local Ollama completion failed",
+      completion.errorMessage ||
+        `Local Ollama completion failed (stopReason: ${completion.stopReason}, usage: ${JSON.stringify(completion.usage)})`,
     );
   }
   const text = contentText(completion.content);

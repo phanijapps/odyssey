@@ -34,7 +34,7 @@ export async function generateSkillAtlas(input: {
     systemPrompt: getAtlasInstruction(input.standardCode, input.standardText),
     messages: [`Generate the practice atlas for ${input.standardCode} now.`],
     timeoutMs: 90_000,
-    maxTokens: 8_192,
+    maxTokens: 16_384,
   });
 
   let parsed: { nodes?: RawAtlasNode[] };

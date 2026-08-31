@@ -7,7 +7,6 @@ import {
 import type { AtlasNode } from "@odyssey/core";
 import { getStandardsForSelection } from "@odyssey/db";
 import {
-  appendSessionPoolQuestion,
   compareAndSetSessionPool,
   createPracticeAssignmentToken,
   getSessionPoolState,
@@ -39,7 +38,8 @@ function atlasNodeToPoolQuestion(
 
 /**
  * Fires ONE background atlas generation call for the skill.
- * Bank questions serve immediately; atlas nodes append when they land.
+ * Bank questions serve immediately; atlas nodes land atomically with a
+ * pool resize so the 6-question bank-era batchSize doesn't block them.
  */
 function launchAtlasBackgroundFetch(
   request: Request,
@@ -56,11 +56,29 @@ function launchAtlasBackgroundFetch(
         standardText: standard.standardText,
       });
       if (!atlas) return;
-      for (const node of atlas.nodes) {
-        appendSessionPoolQuestion(
-          request,
-          atlasNodeToPoolQuestion(node, topicId),
+
+      // Atomically replace unshown bank placeholders with atlas nodes.
+      // Shown questions stay (already consumed); unshown bank questions
+      // were just placeholders during generation and are superseded.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const state = getSessionPoolState(request);
+        if (!state) return;
+        const pool = state.pool;
+        if (pool.topicId !== topicId) return; // learner switched skills
+
+        const kept = pool.questions.filter(
+          (q) => pool.shownIds.includes(q.id),
         );
+        const atlasQuestions = atlas.nodes.map((n) =>
+          atlasNodeToPoolQuestion(n, topicId),
+        );
+
+        const replaced: SessionPool = {
+          ...pool,
+          questions: [...kept, ...atlasQuestions],
+          batchSize: kept.length + atlasQuestions.length,
+        };
+        if (compareAndSetSessionPool(request, state.serialized, replaced)) break;
       }
     } catch {
       // Atlas generation is best-effort — bank questions serve fine alone.
