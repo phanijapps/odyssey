@@ -1,20 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "./sign-in";
-import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-const databasePath = join(
-  process.cwd(),
-  "data",
-  "e2e",
-  ".playwright-parent.db",
-);
-const curriculumDatabasePath = join(
-  process.cwd(),
-  "data",
-  "e2e",
-  ".playwright-curriculum.db",
-);
+import {
+  e2eCurriculumDatabasePath as curriculumDatabasePath,
+  e2eLearningDatabasePath as databasePath,
+} from "./paths";
 
 /** Seeds the one reviewed Gold standard the guidance target must resolve to. */
 function seedReviewedCurriculum(): void {
