@@ -66,9 +66,7 @@ function launchAtlasBackgroundFetch(
         const pool = state.pool;
         if (pool.topicId !== topicId) return; // learner switched skills
 
-        const kept = pool.questions.filter(
-          (q) => pool.shownIds.includes(q.id),
-        );
+        const kept = pool.questions.filter((q) => pool.shownIds.includes(q.id));
         const atlasQuestions = atlas.nodes.map((n) =>
           atlasNodeToPoolQuestion(n, topicId),
         );
@@ -78,7 +76,8 @@ function launchAtlasBackgroundFetch(
           questions: [...kept, ...atlasQuestions],
           batchSize: kept.length + atlasQuestions.length,
         };
-        if (compareAndSetSessionPool(request, state.serialized, replaced)) break;
+        if (compareAndSetSessionPool(request, state.serialized, replaced))
+          break;
       }
     } catch {
       // Atlas generation is best-effort — bank questions serve fine alone.
