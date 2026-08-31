@@ -38,39 +38,58 @@ export function PerformanceScreen() {
 
   if (failed)
     return (
-      <main className="performance-page">
-        <p role="alert">Performance is unavailable. Please retry.</p>
-        <button className="secondary-btn" onClick={retry}>
-          Retry
-        </button>
+      <main className="perf-page">
+        <div className="perf-error" role="alert">
+          <p>Performance is unavailable. Please retry.</p>
+          <button className="secondary-btn" onClick={retry}>
+            Retry
+          </button>
+        </div>
       </main>
     );
   if (!checked || !report)
     return (
-      <main className="performance-page">
-        <p>Loading performance…</p>
+      <main className="perf-page">
+        <p className="perf-loading">Loading performance…</p>
       </main>
     );
 
   return (
-    <main className="performance-page">
-      <div className="a2ui-column">
+    <main className="perf-page">
+      <a className="perf-back" href="/">
+        ← Back to practice
+      </a>
+
+      <header className="perf-hero">
         <h1>Performance</h1>
-        <p className={`a2ui-status a2ui-status-${report.summary.tone}`}>
+        <p className={`perf-summary ${report.summary.tone}`}>
           {report.summary.text}
         </p>
+      </header>
 
-        <h2>Practice</h2>
-        <p
-          className={`a2ui-status a2ui-status-${report.practiceEvidence.tone}`}
-        >
-          {report.practiceEvidence.text}
-        </p>
-        <p>{report.practiceDetail}</p>
+      <section className="perf-card" aria-label="Practice evidence">
+        <div className="perf-card-head">
+          <h2>Practice</h2>
+          <span
+            className={`perf-pill ${report.practiceEvidence.tone === "positive" ? "positive" : "neutral"}`}
+          >
+            {report.practiceEvidence.tone === "positive"
+              ? "On track"
+              : "Building"}
+          </span>
+        </div>
+        <p className="perf-evidence">{report.practiceEvidence.text}</p>
+        <p className="perf-detail">{report.practiceDetail}</p>
+      </section>
 
-        <h2>Tests</h2>
-        <p>{report.testsDetail}</p>
+      <section className="perf-card" aria-label="Tests">
+        <div className="perf-card-head">
+          <h2>Tests</h2>
+        </div>
+        <p className="perf-detail">{report.testsDetail}</p>
+      </section>
 
+      <section className="perf-guidance" aria-label="Next practice">
         <h2>Next Practice</h2>
         {report.guidanceCards.length > 0 ? (
           report.guidanceCards.map(
@@ -94,17 +113,22 @@ export function PerformanceScreen() {
             ),
           )
         ) : (
-          <p>{report.guidanceFallback}</p>
+          <p className="perf-detail">{report.guidanceFallback}</p>
         )}
+      </section>
 
-        <h2>Practice achievements</h2>
-        <p>{report.achievementsDetail}</p>
-
-        <h2>Math fun fact</h2>
-        <p>{report.funFactDetail}</p>
-
-        <p className="eyebrow">{report.separationNote}</p>
+      <div className="perf-duo">
+        <section className="perf-card" aria-label="Practice achievements">
+          <h2>Practice achievements</h2>
+          <p className="perf-detail">{report.achievementsDetail}</p>
+        </section>
+        <section className="perf-card perf-fun" aria-label="Math fun fact">
+          <h2>Math fun fact</h2>
+          <p className="perf-detail">{report.funFactDetail}</p>
+        </section>
       </div>
+
+      <p className="perf-note">{report.separationNote}</p>
     </main>
   );
 }

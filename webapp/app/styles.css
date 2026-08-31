@@ -1355,6 +1355,140 @@ button {
   color: #dce6de;
 }
 
+/* ---- Learner Performance page ---- */
+.perf-page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 4vw, 48px) 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.perf-back {
+  align-self: flex-start;
+  color: #8ea596;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 6px 12px 6px 8px;
+  border-radius: 8px;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+.perf-back:hover {
+  color: #d8e6dd;
+  background: rgba(255, 255, 255, 0.06);
+}
+.perf-hero h1 {
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+.perf-summary {
+  margin: 0;
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+}
+.perf-summary.positive {
+  background: rgba(52, 192, 119, 0.09);
+  border-color: rgba(52, 192, 119, 0.28);
+  color: #7fe0ac;
+}
+.perf-summary.neutral {
+  background: rgba(255, 255, 255, 0.05);
+  color: #b8c6bd;
+}
+.perf-card {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.perf-card h2 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+.perf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.perf-card-head h2 {
+  margin-bottom: 0;
+}
+.perf-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.perf-pill.positive {
+  background: rgba(52, 192, 119, 0.14);
+  color: #7fe0ac;
+}
+.perf-pill.neutral {
+  background: rgba(255, 255, 255, 0.08);
+  color: #9fb0a6;
+}
+.perf-evidence {
+  margin: 10px 0 6px;
+  color: #cdd9d1;
+  font-weight: 600;
+}
+.perf-detail {
+  margin: 0;
+  color: #9fb0a6;
+  line-height: 1.6;
+}
+.perf-guidance h2 {
+  font-size: 1.05rem;
+  margin: 4px 0 12px;
+}
+.perf-guidance .guidance-card {
+  border-left: 3px solid #3ba075;
+}
+.perf-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.perf-fun {
+  background: rgba(123, 92, 246, 0.06);
+  border-color: rgba(123, 92, 246, 0.18);
+}
+.perf-note {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: #7d8b83;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+.perf-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 24px;
+}
+.perf-loading {
+  color: #9fb0a6;
+  padding: 48px 0;
+  text-align: center;
+}
+@media (max-width: 700px) {
+  .perf-duo {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Primary header navigation chip (student → Performance). */
 .progress-link {
   display: inline-flex;
