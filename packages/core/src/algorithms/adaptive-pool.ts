@@ -303,26 +303,10 @@ export function prefetchNextQuestion(
     });
 }
 
-/** Generates only the first question (medium) for fast startup.
- *  Remaining questions are generated lazily by generateLazyQuestion. */
-export async function generateQuestionPool(
-  topicId: string,
-  standards?: readonly { standardCode: string; standardText: string }[],
-  generator?: QuestionGenerator,
-): Promise<PoolQuestion[]> {
-  const first = await makeQuestion(topicId, 2, standards, new Set(), generator);
-  return first ? [first] : [];
-}
-
 /** Test plan: three questions per level in ascending order. Each level is
  *  worth 10 / 20 / 30 points, so a test scores out of 180. */
 export function buildTestPlan(): Difficulty[] {
   return [1, 1, 1, 2, 2, 2, 3, 3, 3] as Difficulty[];
-}
-
-/** Points a correct answer at each level is worth (10 / 20 / 30). */
-export function pointsForDifficulty(difficulty: Difficulty): number {
-  return difficulty === 1 ? 10 : difficulty === 2 ? 20 : 30;
 }
 
 /** Creates a new pool with one question ready. In test mode the first
@@ -397,50 +381,6 @@ export function selectNextQuestion(pool: QuestionPool): {
       batchPosition: pool.batchPosition + 1,
     },
   };
-}
-
-/** Test mode: select the next unseen question at the planned difficulty,
- *  following the fixed plan order. Falls back to any unseen question when
- *  the plan is exhausted. Practice callers use selectNextQuestion instead. */
-export function selectByPlan(
-  pool: QuestionPool,
-  planIndex: number,
-): { question: PoolQuestion | null; pool: QuestionPool } {
-  const unseen = pool.questions.filter((q) => !pool.shownIds.includes(q.id));
-  if (unseen.length === 0) return { question: null, pool };
-  const planned = pool.testPlan?.[planIndex] as Difficulty | undefined;
-  const candidates = planned
-    ? unseen.filter((q) => q.difficulty === planned)
-    : unseen;
-  // In test mode never fall back to a different difficulty — return null so
-  // the caller lazily generates the planned one.
-  if (candidates.length === 0) return { question: null, pool };
-  const pick = candidates[0];
-  return {
-    question: pick,
-    pool: {
-      ...pool,
-      shownIds: [...pool.shownIds, pick.id],
-      batchPosition: pool.batchPosition + 1,
-      currentDifficulty: planned ?? pool.currentDifficulty,
-    },
-  };
-}
-
-/** Adjusts difficulty: wrong → easier, correct → harder. */
-export function adjustDifficulty(
-  pool: QuestionPool,
-  correct: boolean,
-): QuestionPool {
-  const next = correct
-    ? Math.min(3, pool.currentDifficulty + 1)
-    : Math.max(1, pool.currentDifficulty - 1);
-  return { ...pool, currentDifficulty: next as Difficulty };
-}
-
-/** Returns true if the pool has more unseen questions. */
-export function hasMoreQuestions(pool: QuestionPool): boolean {
-  return pool.questions.some((q) => !pool.shownIds.includes(q.id));
 }
 
 /** Summarizes pool progress for the UI. */

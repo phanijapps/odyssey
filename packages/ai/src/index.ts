@@ -7,8 +7,6 @@ export {
   parseOpenAICompletionJson,
   assertAgentRequestBudget,
   buildAgentProfileData,
-  probeOllamaModel,
-  redactAgentAudit,
 } from "./agent";
 export { getOllamaOpenAIUrl } from "./providers/ollama-openai-url";
 export { completeWithLocalOllama } from "./providers/pi-completion";

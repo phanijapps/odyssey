@@ -145,15 +145,3 @@ function isSafeSvg(svg: string): boolean {
     })
   );
 }
-/** Serializes diagnostics without leaking provider material. */
-export function serializeSafeDiagnostic(_event: Record<string, unknown>): {
-  log: Record<string, unknown>;
-  clientError: { message: string };
-  audit: Record<string, unknown>;
-} {
-  return {
-    log: { event: _event.event ?? "unknown" },
-    clientError: { message: "Unable to complete this request." },
-    audit: { event: _event.event ?? "unknown" },
-  };
-}

@@ -1,7 +1,6 @@
 import { expect, test } from "vitest";
 import {
   sanitizeGeneratedDiagramSvg,
-  serializeSafeDiagnostic,
   validateLearningPayload,
 } from "./payloads";
 
@@ -107,24 +106,6 @@ test("fails closed for an unsafe generated diagram", () => {
       '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
     ),
   ).toBe("");
-});
-
-// STUB: AC16
-test("STUB: AC16 redacts every forbidden value from logs, client errors, and audit records", () => {
-  expect(
-    serializeSafeDiagnostic({
-      event: "agent-request",
-      password: "password",
-      sessionToken: "token",
-      providerCredential: "credential",
-      rawAnswer: "answer",
-      rawPrompt: "prompt",
-    }),
-  ).toEqual({
-    log: { event: "agent-request" },
-    clientError: { message: "Unable to complete this request." },
-    audit: { event: "agent-request" },
-  });
 });
 
 test("accepts polygon and ellipse diagrams for geometry questions", () => {

@@ -6,17 +6,12 @@ export {
 export { checkAnswer } from "./algorithms/grading";
 export {
   reviewedSampleForStandard,
-  generateQuestionPool,
   createQuestionPool,
   generateLazyQuestion,
   prefetchNextQuestion,
   selectNextQuestion,
-  selectByPlan,
-  adjustDifficulty,
-  hasMoreQuestions,
   poolProgress,
   buildTestPlan,
-  pointsForDifficulty,
   type Difficulty,
   type PoolQuestion,
   type PoolMode,
@@ -34,7 +29,6 @@ export {
 export {
   validateLearningPayload,
   sanitizeGeneratedDiagramSvg,
-  serializeSafeDiagnostic,
 } from "./validators/payloads";
 export {
   parseCurriculumCatalog,

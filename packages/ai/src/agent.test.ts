@@ -5,7 +5,6 @@ import {
   buildAgentProfileData,
   getOllamaOpenAIUrl,
   parseOpenAICompletionJson,
-  redactAgentAudit,
   requestOllamaLearningQuestion,
   validateGeneratedLearningResponse,
   validateGeneratedQuestionText,
@@ -180,15 +179,4 @@ test("constrains generated output to the reviewed question and SVG schema", () =
   expect(withStandard).toContain("MUST test this exact standard");
   expect(withStandard).toContain("6.RP.1");
   expect(instruction).toContain("No standard was provided");
-});
-
-// STUB: AC16
-test("STUB: AC16 redacts provider credentials and raw prompts from agent audit data", () => {
-  expect(
-    redactAgentAudit({
-      apiKey: "credential",
-      rawPrompt: "sensitive instruction",
-      event: "requested",
-    }),
-  ).toEqual({ event: "requested" });
 });

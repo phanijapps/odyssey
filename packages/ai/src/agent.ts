@@ -225,26 +225,3 @@ export function buildAgentProfileData(_profileContext: unknown): {
   });
   return { content: `<profile-data>${data}</profile-data>` };
 }
-
-/** Probes the cloud model with a deterministic response outside production budget. */
-export async function probeOllamaModel(): Promise<number> {
-  assertOllamaIntegrationConfiguration();
-  const content = await completeWithLocalOllama({
-    systemPrompt: "",
-    messages: ['Return JSON only: {"answer":2}'],
-    timeoutMs: 60_000,
-    maxTokens: 512,
-  });
-  const output = JSON.parse(assertOllamaCompletionContentLimit(content)) as {
-    answer?: unknown;
-  };
-  if (output?.answer !== 2) throw new Error("Invalid Ollama response");
-  return output.answer;
-}
-
-/** Returns the minimal persisted audit representation of an agent request. */
-export function redactAgentAudit(
-  _event: Record<string, unknown>,
-): Record<string, unknown> {
-  return { event: _event.event ?? "agent-request" };
-}
