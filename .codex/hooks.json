@@ -4,7 +4,7 @@
       {
         "hooks": [
           {
-            "command": "python tools/hooks/session-start.py",
+            "command": "python tooling/hooks/session-start.py",
             "type": "command"
           }
         ]
@@ -14,7 +14,7 @@
       {
         "hooks": [
           {
-            "command": "python tools/hooks/work-loop-check.py",
+            "command": "python tooling/hooks/work-loop-check.py",
             "type": "command"
           }
         ]

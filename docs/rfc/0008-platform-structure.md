@@ -1,6 +1,6 @@
 # RFC-0008: Platform-grade repository structure
 
-- **Status:** Draft — Track 3 decisions pending owner approval
+- **Status:** Accepted — Tracks 1–2 shipped 2026-08-31; Track 3 items remain product decisions
 - **Date:** 2026-08-31
 - **Reference:** owner-provided platform monorepo layout (apps/{web,teacher-portal,docs,storybook} + packages/{ai,api,core,db,ui,lib,config,types} + tooling/ + turbo.json)
 - **Prior art:** RFC-0007 (cal.com shape, shipped), structure deck v2 (Option 2 = domain packages, the "graduation path")
@@ -90,3 +90,21 @@ All 210 tests move with their modules; e2e proves behavior parity.
 - Track 2: say **graduate** (or hold at RFC-0007 shape).
 - Track 3: pick any of **smart-score / tutor / teacher** and it gets a spec
   and its own build loop.
+
+## Adoption record (2026-08-31)
+
+Shipped: `.github/` (ci.yml, e2e.yml, CODEOWNERS) · `tooling/`
+(hooks from tools/, shared Vitest node preset) · `packages/config`
+(TypeScript base extended by core/db/ai) · `packages/core` (algorithms
+adaptive-pool/grading/question-bank, validators interactions/payloads,
+curriculum catalog + data) · `packages/db` (client + repositories
+learning/gold/browse + catalog seeder) · `packages/ai` (providers,
+versioned generation prompt, agent boundary, generator adapter) ·
+`apps/web` under the restored `apps/` wrapper. `web/server` thins to
+identity + learning services; `persistence`, `validation`, `agent`, and
+`curriculum` dissolve into packages. Dead `curriculum-model` deleted.
+
+Deliberate deviations from the reference (no folder without a feature):
+no `db/seeds/` (catalog data lives in core beside its parser), no
+`bkt/`, `tutor/`, `ui/`, `types/`, `turbo.json`, storybook, or eslint
+config dir — each lands with its spec per the plan's product tracks.

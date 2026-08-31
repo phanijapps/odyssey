@@ -11,20 +11,27 @@
 .
 ├── AGENTS.md             # canonical contributor instructions
 ├── CLAUDE.md             # points to AGENTS.md
-├── web/                  # the one deployable Next.js application
-│   ├── app/              # thin routes: pages + App Router handlers
-│   ├── modules/          # screens the cal.com way (practice, assessment,
-│   │                     # parent, admin) — the unit of organization
-│   ├── components/       # reusable browser components
-│   ├── server/           # server-only policy and runtime modules
-│   ├── playwright/       # Playwright end-to-end suite
-│   └── tests/            # Vitest setup
-├── data/                 # git-ignored runtime SQLite state (see its README)
+├── apps/
+│   └── web/              # the one deployable Next.js application
+│       ├── app/          # thin routes: pages + App Router handlers
+│       ├── modules/      # screens the cal.com way (practice, assessment,
+│       │                 # parent, admin) — the unit of organization
+│       ├── components/   # reusable browser components
+│       ├── server/       # web-owned services (identity, learning)
+│       ├── playwright/   # Playwright end-to-end suite
+│       └── tests/        # Vitest setup
 ├── packages/
-│   └── practice-engine/  # pure question domain (bank, interactions,
-│                         # adaptive pool with injected generation, grading)
+│   ├── core/             # pure learning domain (algorithms, curriculum,
+│   │                     # validators) — absorbs the former practice-engine
+│   ├── db/               # node:sqlite client, ordered migrations,
+│   │                     # learning + curriculum repositories
+│   ├── ai/               # bounded generation boundary: providers,
+│   │                     # versioned prompts, generator adapter
+│   └── config/           # shared TypeScript base
+├── data/                 # git-ignored runtime SQLite state (see its README)
+├── tooling/              # dev hooks + shared Vitest preset
+├── .github/              # CI workflows (quality + e2e) and CODEOWNERS
 ├── README.md             # the project front door (quickstart, layout, config)
-├── tools/hooks/          # repository hooks
 ├── docs/
 │   ├── architecture/     # living implementation map
 │   ├── adr/              # frozen decision records
@@ -59,7 +66,7 @@ See [`application.md`](application.md#runtime-and-data-flow) for the full flow.
 
 ## Data ownership
 
-- `web/server/persistence/sqlite.ts` is the sole owner of SQLite connection
+- `packages/db/src/client.ts` is the sole owner of SQLite connection
   policy and ordered migrations. It opens the learning and curriculum stores
   under `app/data/` (git-ignored; see that directory's README).
 - `web/server/learning/` owns formative practice state, attempts, and

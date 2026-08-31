@@ -65,20 +65,25 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 
 ```text
 .
-├── web/                      # the one deployable Next.js application
-│   ├── app/                  #   thin routes (each page composes one module)
-│   ├── modules/              #   screens the cal.com way: practice,
-│   │                         #   assessment, parent, admin
-│   ├── components/           #   cross-screen shared components
-│   ├── server/               #   server-only modules (identity, learning,
-│   │                         #   curriculum, agent, persistence, validation)
-│   ├── playwright/           #   e2e journeys
-│   ├── tests/                #   Vitest setup
-│   └── .env.example          #   configuration template
+├── apps/
+│   └── web/                  # the Next.js application
+│       ├── app/              #   thin routes (each page composes one module)
+│       ├── modules/          #   screens: practice, assessment, parent, admin
+│       ├── components/       #   cross-screen shared components
+│       ├── server/           #   web-owned services (identity, learning)
+│       ├── playwright/       #   e2e journeys
+│       ├── tests/            #   Vitest setup
+│       └── .env.example      #   configuration template
 ├── packages/
-│   └── practice-engine/      # pure question domain: reviewed bank, learner
-│                             # interactions, adaptive pool (generation
-│                             # injected), grading — no app imports
+│   ├── core/                 # pure learning domain: adaptive algorithms,
+│   │                         # reviewed bank, interactions, grading,
+│   │                         # curriculum catalog + validators
+│   ├── db/                   # node:sqlite client, migrations, repositories
+│   ├── ai/                   # bounded generation: providers, prompts,
+│   │                         # the injected QuestionGenerator adapter
+│   └── config/               # shared TypeScript base config
+├── tooling/                  # dev hooks + shared Vitest preset
+├── .github/                  # CI (quality + e2e) and CODEOWNERS
 ├── data/                     # git-ignored runtime SQLite state (+ backups/)
 ├── docs/                     # living documentation
 │   ├── architecture/     #   the map of what runs today (start here)
@@ -112,7 +117,7 @@ child's progress as JSON from the parent portal.
 
 ## Configuration
 
-All configuration is environment-based; see [`web/.env.example`](web/.env.example)
+All configuration is environment-based; see [`apps/web/.env.example`](web/.env.example)
 for the full annotated template. The essentials:
 
 | Variable                                                                                                                                   | Purpose                                                                                   |

@@ -12,20 +12,7 @@ importers:
         specifier: 3.7.4
         version: 3.7.4
 
-  packages/practice-engine:
-    dependencies:
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
-    devDependencies:
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.7(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.0)
-
-  web:
+  apps/web:
     dependencies:
       '@base-ui/react':
         specifier: ^1.7.0
@@ -33,9 +20,15 @@ importers:
       '@earendil-works/pi-ai':
         specifier: 0.84.1
         version: 0.84.1(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(ws@8.21.3)(zod@3.25.76)
-      '@odyssey/practice-engine':
+      '@odyssey/ai':
         specifier: workspace:*
-        version: link:../packages/practice-engine
+        version: link:../../packages/ai
+      '@odyssey/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@odyssey/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
@@ -94,6 +87,56 @@ importers:
       vitest:
         specifier: 4.1.10
         version: 4.1.10(@opentelemetry/api@1.9.0)(@types/node@24.10.1)(vite@8.2.1(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/ai:
+    dependencies:
+      '@earendil-works/pi-ai':
+        specifier: 0.84.1
+        version: 0.84.1(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(ws@8.21.3)(zod@3.25.76)
+      '@odyssey/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.0)
+
+  packages/config: {}
+
+  packages/core:
+    dependencies:
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.0)
+
+  packages/db:
+    dependencies:
+      '@odyssey/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.0)
 
 packages:
 
