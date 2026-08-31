@@ -3,14 +3,14 @@
 #
 # Usage: tooling/scripts/serve.sh [port]
 #
-# Loads apps/web/.env.local first so generation settings reach `next start`
+# Loads webapp/.env.local first so generation settings reach `next start`
 # exactly as `next dev` would apply them, builds once if no bundle exists,
 # and serves on the given port with matching ODYSSEY_APP_ORIGIN.
 set -euo pipefail
 
 PORT="${1:-18790}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-WEB="$ROOT/apps/web"
+WEB="$ROOT/webapp"
 
 # Developer-local config (gitignored) — generation vars, fixtures.
 if [ -f "$WEB/.env.local" ]; then

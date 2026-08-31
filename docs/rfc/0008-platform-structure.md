@@ -12,7 +12,7 @@ wholesale changes what Odyssey is. Each element, mapped:
 
 | Reference element                                               | What it means for Odyssey                                         | Verdict                                                                                                                                                                                                                                                                        |
 | --------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `apps/web`                                                      | our `web/` — renamed back under `apps/`                           | **Adopt when app #2 lands** (per RFC-0007: apps/ returns without regret)                                                                                                                                                                                                       |
+| `webapp`                                                        | our `web/` — renamed back under `apps/`                           | **Adopt when app #2 lands** (per RFC-0007: apps/ returns without regret)                                                                                                                                                                                                       |
 | `apps/teacher-portal`                                           | a **fourth persona**: roster, assignments, real-time monitoring   | **Product decision** — Odyssey's personas are student/parent/admin today. Say yes and it becomes a spec, not a folder                                                                                                                                                          |
 | `apps/docs`                                                     | a developer-docs site (Fumadocs/Starlight)                        | **Defer** — `docs/` markdown serves; a site earns itself when contributors arrive                                                                                                                                                                                              |
 | `apps/storybook`                                                | UI component playground                                           | **Defer** — we have exactly 2 shared components; deleted the dead ones on purpose                                                                                                                                                                                              |
@@ -100,7 +100,7 @@ adaptive-pool/grading/question-bank, validators interactions/payloads,
 curriculum catalog + data) · `packages/db` (client + repositories
 learning/gold/browse + catalog seeder) · `packages/ai` (providers,
 versioned generation prompt, agent boundary, generator adapter) ·
-`apps/web` under the restored `apps/` wrapper. `web/server` thins to
+`webapp` under the restored `apps/` wrapper. `web/server` thins to
 identity + learning services; `persistence`, `validation`, `agent`, and
 `curriculum` dissolve into packages. Dead `curriculum-model` deleted.
 

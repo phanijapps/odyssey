@@ -117,7 +117,7 @@ child's progress as JSON from the parent portal.
 
 ## Configuration
 
-All configuration is environment-based; see [`apps/web/.env.example`](web/.env.example)
+All configuration is environment-based; see [`webapp/.env.example`](web/.env.example)
 for the full annotated template. The essentials:
 
 | Variable                                                                                                                                   | Purpose                                                                                   |
