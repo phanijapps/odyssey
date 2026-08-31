@@ -330,7 +330,7 @@ mechanical rule.
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
 - **Deferral token.** A criterion that ships *unmet on purpose* is not left
   unchecked and silent — it carries an inline `(deferred: <slug>)` marker whose
-  `<slug>` resolves to a `slug` field in `workspace.toml [backlog].open`, the
+  `<slug>` resolves to a `slug` field in `.agents/workspace.toml [backlog].open`, the
   durable register of open work. Form: `- [ ] <outcome> (deferred: <slug>)`. A
   deferral recorded only in a PR comment rots; the register is version-controlled
   and greppable. Run `workspace-status` to see all open backlog items.
@@ -546,7 +546,7 @@ right now?"
 - `initiatives/` (optional) — initiative brief artifacts and their
   `_template.md` seed. An initiative brief is the shaped output of the PE
   six-step sequence at altitude 1 (quarters, cross-repo scope); it links to
-  the corresponding `workspace.toml` initiative section.
+  the corresponding `.agents/workspace.toml` initiative section.
 - `research/<slug>/` (optional) — committed desk-research project output:
   finding summaries, synthesis matrix, and analytic memos. Distinct from
   `findings/` (governance registers) and from personal-workspace scratch

@@ -10,7 +10,7 @@ Entry points:
                                              — deterministic repair plan
 
 This engine is the canonical implementation invoked by the workspace-status skill
-via scripts/workspace_status.py. It reads workspace.toml and docs/specs/** to
+via scripts/workspace_status.py. It reads .agents/workspace.toml and docs/specs/** to
 produce DAG resolution, reconciliation, and cleanup-planning results.
 
 Known gaps (preserved from Phase 0 characterization):
@@ -155,7 +155,7 @@ class RepairPlan:
     """Output of compute_repair_plan — a deterministic, read-only repair plan."""
     automatic_operations: list[RepairOperation]
     manual_findings: list[ManualFinding]
-    workspace_fingerprint: str  # SHA-256 hexdigest of workspace.toml bytes at plan time
+    workspace_fingerprint: str  # SHA-256 hexdigest of .agents/workspace.toml bytes at plan time
     plan_id: str                # SHA-256 of canonical plan content (excludes plan_id)
 
 
@@ -245,7 +245,7 @@ def _parse_shaping_entry(raw) -> ShapingEntry:
 
 
 def parse_workspace(path: Path) -> dict:
-    """Parse workspace.toml; return raw TOML dict. Raises on parse error."""
+    """Parse .agents/workspace.toml; return raw TOML dict. Raises on parse error."""
     with Path(path).open("rb") as f:
         return tomllib.load(f)
 
@@ -804,7 +804,7 @@ def run_reconciliation(
 def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceStatusResult:
     """Run full workspace-status analysis from a repo root.
 
-    Reads workspace.toml, extracts initiatives, classifies queue entries,
+    Reads .agents/workspace.toml, extracts initiatives, classifies queue entries,
     and runs the three reconciliation scans.
 
     Only active initiatives contribute to ready/blocked classifications.
@@ -812,12 +812,12 @@ def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceSta
     scans (behavior per SKILL.md which does not filter by status in scans).
 
     workspace_bytes: when provided, parse from these bytes instead of re-reading
-    from disk. Callers that fingerprint workspace.toml before calling analyze()
+    from disk. Callers that fingerprint .agents/workspace.toml before calling analyze()
     should pass the same bytes to eliminate the TOCTOU window.
     """
     t0 = time.monotonic()
 
-    workspace_path = root / "workspace.toml"
+    workspace_path = root / ".agents/workspace.toml"
     if workspace_bytes is not None:
         workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
     else:
@@ -871,7 +871,7 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
     """
     t0 = time.monotonic()
 
-    workspace_path = root / "workspace.toml"
+    workspace_path = root / ".agents/workspace.toml"
     workspace = parse_workspace(workspace_path)
     initiatives = extract_initiatives(workspace)
 
@@ -1181,7 +1181,7 @@ def _toml_basic_string(s: str) -> str:
 
 # ── workspace-status Type 2 cleanup mutation shape ────────────────────────────
 #
-# work-loop no longer writes to workspace.toml
+# work-loop no longer writes to .agents/workspace.toml
 # active/shipped arrays. Its finish checklist only sets spec.md Status: Shipped.
 # Cleanup of stale active/queue entries is workspace-status's responsibility
 # (Type 2 cleanup write after user confirmation).
@@ -1199,7 +1199,7 @@ def compute_type2_cleanup(
     spec_path: str,
     spec_status: str,
 ) -> dict:
-    """Describe what workspace-status Type 2 cleanup WOULD write to workspace.toml.
+    """Describe what workspace-status Type 2 cleanup WOULD write to .agents/workspace.toml.
 
     Caller must supply the exact fields from a Type 2 ReconciliationFinding:
       ini_slug   — the initiative slug (e.g. "ini-001")
@@ -1257,7 +1257,7 @@ def compute_repair_plan(
     automatic_operations. Paths appearing more than once in the same initiative's
     queue (duplicates) and all other findings become manual_findings.
 
-    workspace_fingerprint: pre-computed SHA-256 of workspace.toml bytes, captured
+    workspace_fingerprint: pre-computed SHA-256 of .agents/workspace.toml bytes, captured
     before analyze() is called. When provided, binds the plan to that snapshot and
     eliminates the TOCTOU window between analysis and a separate read_bytes() call.
     """

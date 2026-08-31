@@ -37,7 +37,7 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         exit code); promoting it to a hard invariant stays deferred pending
         the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
-        resolves against `workspace.toml [backlog].open` slug fields.
+        resolves against `.agents/workspace.toml [backlog].open` slug fields.
         HARD (exit non-zero).
   (v)   spec↔contract traceability — a spec's
         `- **Contract:**` header (forward ref) names contract file(s) under
@@ -148,7 +148,7 @@ def parse_status(spec_text: str) -> str | None:
 
 
 def _regex_backlog_slugs(workspace_text: str) -> set[str]:
-    """Extract [backlog].open slugs from workspace.toml text via regex fallback.
+    """Extract [backlog].open slugs from .agents/workspace.toml text via regex fallback.
 
     Used when tomllib/tomli is unavailable or the TOML is malformed.
     Scans for slug = "..." lines within the [backlog] section only.
@@ -168,11 +168,11 @@ def _regex_backlog_slugs(workspace_text: str) -> set[str]:
 
 
 def backlog_open_slugs(workspace_path: Path) -> set[str]:
-    """Return the set of slugs from workspace.toml [backlog].open.
+    """Return the set of slugs from .agents/workspace.toml [backlog].open.
 
     Uses tomllib (Python 3.11+ stdlib) or tomli (backport) when available;
     falls back to regex for all other cases including malformed TOML.
-    Returns an empty set when workspace.toml is absent.
+    Returns an empty set when .agents/workspace.toml is absent.
     """
     if not workspace_path.is_file():
         return set()
@@ -410,7 +410,7 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
     hard: list[str] = []
     warn: list[str] = []
 
-    workspace_path = root / "workspace.toml"
+    workspace_path = root / ".agents/workspace.toml"
     anchors = backlog_open_slugs(workspace_path)
 
     base_resolvable = base_ref is not None
@@ -442,7 +442,7 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             if anchor not in anchors:
                 hard.append(
                     f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
-                    f"does not resolve in workspace.toml [backlog].open"
+                    f"does not resolve in .agents/workspace.toml [backlog].open"
                 )
 
         # (ii) ACs at the ship transition (diff-triggered)

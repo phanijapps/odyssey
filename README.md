@@ -88,7 +88,7 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 │   ├── product/          #   briefs, roadmap, changelog
 │   └── knowledge/        #   curated engineering lessons
 ├── tools/hooks/          # repository hooks
-├── workspace.toml        # work coordination queue
+├── .agents/                  # project skills, work queue, agent pack state
 └── AGENTS.md             # canonical contributor instructions
 ```
 

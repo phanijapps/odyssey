@@ -157,7 +157,7 @@ deletes or updates — "lands green" is checkable.
    reads children) only.
 7. **Consolidation** (optional) — single DB with the cutover described
    above; docs refresh (`architecture/`, route table, changelog,
-   `workspace.toml`), spec reconciliation (withdraw
+   `.agents/workspace.toml`), spec reconciliation (withdraw
    `curriculum-deep-agent`, `test-catalog`), delete the root-level
    stale `odyssey-*.db` leftovers (untracked).
 8. **Production readiness (SQLite)** — ship the local-first app as a

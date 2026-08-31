@@ -1,6 +1,6 @@
 ---
 name: author-brief
-description: Use this skill when the user has unstructured external input (an email thread, a prose description, a Linear Issue, a stakeholder message) and needs to produce a DoR-compliant product brief and queue it in workspace.toml. Triggers on "author a brief", "write a brief from this email", "create a brief from this Linear issue", "intake this brief", "turn this into a brief". Do NOT use to decompose an existing brief into specs (use receive-brief) or to author a single feature from scratch (use new-spec).
+description: Use this skill when the user has unstructured external input (an email thread, a prose description, a Linear Issue, a stakeholder message) and needs to produce a DoR-compliant product brief and queue it in .agents/workspace.toml. Triggers on "author a brief", "write a brief from this email", "create a brief from this Linear issue", "intake this brief", "turn this into a brief". Do NOT use to decompose an existing brief into specs (use receive-brief) or to author a single feature from scratch (use new-spec).
 ---
 
 # Skill: author-brief
@@ -79,7 +79,7 @@ Ask for each missing DoR field conversationally. Rules:
 
 ### 5. Queue
 
-Check `workspace.toml` in the working directory:
+Check `.agents/workspace.toml` in the working directory:
 
 - **Absent or unparseable:** create the brief file only. Emit the named
   diagnostic below — do not throw an error.
@@ -96,7 +96,7 @@ Check `workspace.toml` in the working directory:
     `tomllib` + `tomli_w` round-trip). Stage the file.
 
 **Named diagnostic (all no-write cases):**
-`"workspace.toml not available — brief created at docs/product/briefs/<slug>.md; add the path manually as a string element in [\"<initiative-slug>\".brief_queue].draft (e.g. append \"docs/product/briefs/<slug>.md\" to the list)."`
+`".agents/workspace.toml not available — brief created at docs/product/briefs/<slug>.md; add the path manually as a string element in [\"<initiative-slug>\".brief_queue].draft (e.g. append \"docs/product/briefs/<slug>.md\" to the list)."`
 
 ### 6. Hand off
 
@@ -128,7 +128,7 @@ Only `receive-brief`'s write-back step (after decomposition is confirmed) sets
 - **Silently overwriting an existing brief file.** Prompt before proceeding if
   `docs/product/briefs/<slug>.md` already exists.
 - **Guessing the target initiative** when multiple active ones exist in
-  `workspace.toml`. Prompt for selection in step 5.
-- **Making `workspace.toml` writes blocking.** A missing, unparseable, or
+  `.agents/workspace.toml`. Prompt for selection in step 5.
+- **Making `.agents/workspace.toml` writes blocking.** A missing, unparseable, or
   no-brief_queue file degrades to file-only operation with the named diagnostic.
   Never stop skill execution for a TOML write failure.

@@ -13,7 +13,7 @@ Output (stdout): deterministic UTF-8 JSON with schema_version = 1.
 
 Exit codes:
     0  — success
-    1  — workspace.toml not found (workspace_present: false in JSON)
+    1  — .agents/workspace.toml not found (workspace_present: false in JSON)
     2  — any other error (one-line message on stderr; no traceback, no internal paths)
 """
 
@@ -481,7 +481,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     parser = argparse.ArgumentParser(
-        description="workspace-status: parse workspace.toml and emit JSON"
+        description="workspace-status: parse .agents/workspace.toml and emit JSON"
     )
     parser.add_argument(
         "--root",
@@ -511,13 +511,13 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(args.root)
 
     try:
-        # Validate root before checking workspace.toml.
+        # Validate root before checking .agents/workspace.toml.
         # If root is a file (not a dir), Path.exists() returns False via ENOTDIR
         # without raising, which would falsely report workspace_present: false.
         if not root.is_dir():
             raise NotADirectoryError(f"--root is not a directory: {root}")
 
-        workspace_toml = root / "workspace.toml"
+        workspace_toml = root / ".agents/workspace.toml"
 
         # repair-apply owns its workspace checks (needs exit 2, not exit 1).
         # The shared lstat + symlink guards below are skipped for repair-apply.
@@ -536,7 +536,7 @@ def main(argv: list[str] | None = None) -> int:
                     "workspace_root": str(root.resolve()),
                 })
                 return 1
-            # Path-confinement: if workspace.toml is a symlink, verify the target
+            # Path-confinement: if .agents/workspace.toml is a symlink, verify the target
             # stays within the repo root so session-start cannot read another tree's
             # initiative data through an escape link.
             # Resolve once here; repair-plan uses _ws_toml_resolved for TOCTOU-safe reads.
@@ -546,7 +546,7 @@ def main(argv: list[str] | None = None) -> int:
                     _ws_toml_resolved.relative_to(root.resolve())
                 except (OSError, RuntimeError, ValueError):
                     print(
-                        "workspace-status error: workspace.toml symlink escapes repository root",
+                        "workspace-status error: .agents/workspace.toml symlink escapes repository root",
                         file=sys.stderr,
                     )
                     return 2
@@ -571,9 +571,9 @@ def main(argv: list[str] | None = None) -> int:
             if isinstance(_plan_confinement, int):
                 return _plan_confinement
             plan_path = _plan_confinement  # use resolved path for all I/O
-            # Guard: reject plan-file == workspace.toml (symlink or alias clobber).
+            # Guard: reject plan-file == .agents/workspace.toml (symlink or alias clobber).
             # Use samefile() for identity — resolve()-equality fails on case-insensitive
-            # filesystems where WORKSPACE.TOML and workspace.toml are the same inode.
+            # filesystems where WORKSPACE.TOML and .agents/workspace.toml are the same inode.
             with contextlib.suppress(OSError, RuntimeError):
                 if plan_path.samefile(workspace_toml):
                     _emit({
@@ -598,7 +598,7 @@ def main(argv: list[str] | None = None) -> int:
                 })
                 return 2
             # Capture fingerprint BEFORE analyze() to bind the plan to this snapshot.
-            # analyze() re-reads workspace.toml internally; by pre-capturing bytes here
+            # analyze() re-reads .agents/workspace.toml internally; by pre-capturing bytes here
             # we ensure the stored fingerprint reflects what we observed at plan-time,
             # not a later re-read that could race with a concurrent writer.
             # Read from the already-resolved path (set by the shared symlink guard above)
@@ -773,7 +773,7 @@ def main(argv: list[str] | None = None) -> int:
                     })
                     return 2
             # Acquire lock before ANY precondition validation — a concurrent non-empty
-            # apply can rewrite workspace.toml between an out-of-lock read and result
+            # apply can rewrite .agents/workspace.toml between an out-of-lock read and result
             # emission. The lock serialises the fingerprint check for both empty and
             # non-empty plans so that before_workspace_digest is always authoritative.
             lock_path = root / ".workspace-repair.lock"

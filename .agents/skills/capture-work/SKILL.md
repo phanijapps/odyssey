@@ -1,18 +1,18 @@
 ---
 name: capture-work
-description: Use this skill when a session has surfaced a list of future work — follow-ons, review recommendations, audit remediation items, deferred scope — and you want to capture it into workspace.toml so a later session can pick it up cold. Triggers on "capture this", "add these to the queue", "capture these as queue items", "queue these up", "add this to the backlog" + a bulleted or numbered list in context. Do NOT use to turn unstructured external input into a product brief (use author-brief), to decompose a brief into specs (use receive-brief), or to orient at session start (use workspace-status).
+description: Use this skill when a session has surfaced a list of future work — follow-ons, review recommendations, audit remediation items, deferred scope — and you want to capture it into .agents/workspace.toml so a later session can pick it up cold. Triggers on "capture this", "add these to the queue", "capture these as queue items", "queue these up", "add this to the backlog" + a bulleted or numbered list in context. Do NOT use to turn unstructured external input into a product brief (use author-brief), to decompose a brief into specs (use receive-brief), or to orient at session start (use workspace-status).
 ---
 
 # Skill: capture-work
 
-Classify-then-triage entry point for adding work to `workspace.toml`. Given a
+Classify-then-triage entry point for adding work to `.agents/workspace.toml`. Given a
 bulleted or numbered list, `capture-work` classifies each item as `[build]` or
 `[shape]`, derives spec paths, infers real dependencies, prioritizes and groups
 the items, and writes them to the right destination — each entry carrying a
 comment rich enough that a cold-start session can write the full spec without
 revisiting this one.
 
-`capture-work` writes `workspace.toml` only. It never creates spec files, and it
+`capture-work` writes `.agents/workspace.toml` only. It never creates spec files, and it
 never invents a dependency. The user reviews the complete proposed change before
 anything is written.
 
@@ -166,7 +166,7 @@ step 4: **if that condition is the completion of another *tracked* item — a
 `[backlog]` slug or a `[work]` spec — as a hard prerequisite, add the matching
 `needs` edge so the dependency is machine-readable, not prose only.** Do *not* add
 a `needs` when the condition is disjunctive (satisfied by A *or* B — `needs` is
-AND-only), names an entity not tracked in `workspace.toml`, or is an external event
+AND-only), names an entity not tracked in `.agents/workspace.toml`, or is an external event
 (credentials provisioned, hardware available, a real-adopter session, "someone
 takes the PR"). Those stay prose-only.
 
@@ -178,7 +178,7 @@ the user to approve before writing.
 
 ### 10. Write
 
-Edit `workspace.toml` with a **comment-preserving** write — targeted text
+Edit `.agents/workspace.toml` with a **comment-preserving** write — targeted text
 insertion, or `tomlkit`. Never a full `tomllib` + `tomli_w` round-trip: it strips
 every comment in the file, and the comments are the whole point.
 
@@ -191,7 +191,7 @@ every comment in the file, and the comments are the whole point.
   top-level `[backlog]` table with an `open` list and the standard header comment.
 - Stage the file.
 
-Degrade gracefully: if `workspace.toml` is absent, unparseable, or has no
+Degrade gracefully: if `.agents/workspace.toml` is absent, unparseable, or has no
 matching queue, do not throw. Emit a diagnostic naming the derived entries and
 how to add them by hand, and stop.
 
@@ -238,7 +238,7 @@ now, and at what scale?*
 
 ## Anti-patterns to refuse
 
-- **Creating spec files.** This skill writes `workspace.toml` only.
+- **Creating spec files.** This skill writes `.agents/workspace.toml` only.
 - **Inventing a dependency.** Add `needs` only from explicit sequencing language.
 - **Leaving a tracked hard-dependency as prose only.** If a `[backlog]` entry's
   unblock condition is the completion of another tracked item, it needs a `needs`
@@ -256,4 +256,4 @@ now, and at what scale?*
   initiative or brief — suggest instead.
 - **Hard-depending on an optional pack.** The hand-off is a conditional probe,
   never an import or a hard call.
-- **Blocking on a missing `workspace.toml`.** Degrade to the named diagnostic.
+- **Blocking on a missing `.agents/workspace.toml`.** Degrade to the named diagnostic.

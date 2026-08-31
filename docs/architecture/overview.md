@@ -34,7 +34,7 @@
 │   └── knowledge/        # curated engineering lessons
 ├── .agents/skills/       # project-owned agent workflows
 ├── .codex/               # reviewer definitions and hook configuration
-└── workspace.toml        # work coordination
+└── .agents/workspace.toml        # work coordination
 ```
 
 There is no `packages/` source boundary. The former curriculum package was

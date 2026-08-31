@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """check-base-freshness.py — verify HEAD is current against the merge target.
 
-Run before reading workspace.toml or any spec.
+Run before reading .agents/workspace.toml or any spec.
 
 Usage:
     python scripts/check-base-freshness.py [--target REMOTE/BRANCH]

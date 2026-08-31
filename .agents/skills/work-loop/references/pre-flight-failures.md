@@ -44,7 +44,7 @@ the diff), skip confirmation — the worktree-check is an extra step, not the ru
 ```
 
 **`slug`**: always starts with `pre-existing-` so this class of entry is
-greppable (`grep "pre-existing-" workspace.toml`). Use the failing test or lint
+greppable (`grep "pre-existing-" .agents/workspace.toml`). Use the failing test or lint
 rule name as the short-name, hyphenated and trimmed to ≤30 chars.
 
 **`source`**: `pre-flight/<iso-date>` — the ISO 8601 date (e.g. `2026-07-22`)
@@ -85,8 +85,8 @@ with your changes in than without, go to FIX.
 Before writing a new entry, grep for the test or file name:
 
 ```bash
-grep "pre-existing-" workspace.toml      # check for any pre-existing-* entry
-grep "<failing-test-name>" workspace.toml # check by name
+grep "pre-existing-" .agents/workspace.toml      # check for any pre-existing-* entry
+grep "<failing-test-name>" .agents/workspace.toml # check by name
 ```
 
 If an entry from a prior session already exists: update the comment only if new

@@ -137,7 +137,7 @@ Do **not** stamp `Status: Ready` on a brief that does not pass this gate.
    `docs/product/briefs/<slug>.md`; add the line if absent with value `Ready`).
    Stage the file.
 
-2. **Move the brief path in `workspace.toml`** (in the working directory) from
+2. **Move the brief path in `.agents/workspace.toml`** (in the working directory) from
    `["<slug>".brief_queue].draft` to `["<slug>".brief_queue].ready` using a
    **comment-preserving edit** — targeted text replacement or `tomlkit`; never
    a full `tomllib` + `tomli_w` round-trip that strips comments. Search all
@@ -151,11 +151,11 @@ Do **not** stamp `Status: Ready` on a brief that does not pass this gate.
      only; log that the path was not found in any `draft` list.
    Stage the file.
 
-**Degrade gracefully** when `workspace.toml` is absent, unparseable, or
+**Degrade gracefully** when `.agents/workspace.toml` is absent, unparseable, or
 parseable but has no `brief_queue` sub-table for an active initiative: skip
 the TOML edit; complete only the `Status: Ready` write in the brief file;
 emit a named diagnostic —
-`"workspace.toml not available — Status: Ready set in brief file only; add the path to [\"<initiative-slug>\".brief_queue].ready manually."`
+`".agents/workspace.toml not available — Status: Ready set in brief file only; add the path to [\"<initiative-slug>\".brief_queue].ready manually."`
 
 > **Entry point note:** `author-brief` is the upstream entry point for
 > unstructured external input (an email, a prose description, a Linear Issue).

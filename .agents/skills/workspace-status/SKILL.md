@@ -1,11 +1,11 @@
 ---
 name: workspace-status
-description: Use this skill to orient at session start, check initiative queue state, or see what's ready to work on next. Reads workspace.toml and surfaces ready-to-start items, blocked items with reason, parallel candidates, and active signals. Triggers on "workspace status", "where am I", "orient me", "session start", "what's ready", "show the queue", "what's next", "what should I work on", "check workspace", or any cold-start orientation request. Offers to initialise workspace.toml if absent. Also reconciles and repairs workspace.toml drift — generates and applies repair plans for stale queue entries. Triggers on "clean up stale specs", "run repair-plan", "apply the workspace repair plan", "fix queue drift", "reconcile workspace", or any workspace repair or cleanup request.
+description: Use this skill to orient at session start, check initiative queue state, or see what's ready to work on next. Reads .agents/workspace.toml and surfaces ready-to-start items, blocked items with reason, parallel candidates, and active signals. Triggers on "workspace status", "where am I", "orient me", "session start", "what's ready", "show the queue", "what's next", "what should I work on", "check workspace", or any cold-start orientation request. Offers to initialise .agents/workspace.toml if absent. Also reconciles and repairs .agents/workspace.toml drift — generates and applies repair plans for stale queue entries. Triggers on "clean up stale specs", "run repair-plan", "apply the workspace repair plan", "fix queue drift", "reconcile workspace", or any workspace repair or cleanup request.
 ---
 
 # Skill: workspace-status
 
-Read the local `workspace.toml` and surface the current queue state across all active initiatives. Run this at every session start — it replaces reading multiple product docs by hand.
+Read the local `.agents/workspace.toml` and surface the current queue state across all active initiatives. Run this at every session start — it replaces reading multiple product docs by hand.
 
 ## Output rendering
 
@@ -16,7 +16,7 @@ Progress — Report progress inline as done/total (e.g. 3/8). Only draw a bar if
 
 ## When to invoke
 
-Any time you need to orient: which initiative is active, what specs are ready to start, what is blocked and why, what signals the strategist has flagged. Also the right skill if workspace.toml does not yet exist and you want to initialise it.
+Any time you need to orient: which initiative is active, what specs are ready to start, what is blocked and why, what signals the strategist has flagged. Also the right skill if .agents/workspace.toml does not yet exist and you want to initialise it.
 
 ## Prerequisites
 
@@ -45,10 +45,10 @@ The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global 
 
 Any path with special characters requires the argv form.
 
-**Exit 1 — workspace.toml absent:** the JSON will contain `"workspace_present": false`. Offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
+**Exit 1 — .agents/workspace.toml absent:** the JSON will contain `"workspace_present": false`. Offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
 
 ```toml
-# workspace.toml
+# .agents/workspace.toml
 #
 # Declared-intent coordination artifact for this repo.
 # Each initiative gets its own named section. Run `workspace-status` to surface
@@ -98,7 +98,7 @@ open = []
 ```
 mode                             — active subcommand: "status" | "reconcile" | "explain"
 scan.global_spec_scan_performed  — true only in reconcile mode (Type 1 walk performed)
-scan.workspace_files_read        — always 1 (workspace.toml)
+scan.workspace_files_read        — always 1 (.agents/workspace.toml)
 scan.declared_spec_files_read    — spec.md files read for declared entries (Type 2+3 reads)
 scan.global_scan_spec_files_read — spec.md files read during global walk; 0 in status/explain
 reconciliation.performed         — always true in status/reconcile (Type 2+3 always run)
@@ -134,22 +134,22 @@ diagnostics.spec_files_read      — number of spec.md files examined (status + 
 | `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
 | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
 | `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes | `.workspace-repair-plan.json` |
-| `repair-apply` | Apply a previously generated repair plan atomically | No | `workspace.toml` |
+| `repair-apply` | Apply a previously generated repair plan atomically | No | `.agents/workspace.toml` |
 
-**`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
+**`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `.agents/workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
 
 **`explain`** — pass a slug or `spec/` path to get the item's current classification, dependencies, blocking needs, and which downstream items would become unblocked if this item shipped. Lookup is restricted to **active initiatives' work queues** (queue/active/shipped); shaping items and items in paused or closed initiatives return `selector_status: "not_found"`.
 
-**`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
+**`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `.agents/workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if .agents/workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
 
-**`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
+**`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `.agents/workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
 
 ### 1b. Repair workflow
 
-Use `repair-plan` + `repair-apply` to deterministically clean up stale queue entries without manual `workspace.toml` editing:
+Use `repair-plan` + `repair-apply` to deterministically clean up stale queue entries without manual `.agents/workspace.toml` editing:
 
 ```
-# Step 1 — inspect the plan (no writes to workspace.toml)
+# Step 1 — inspect the plan (no writes to .agents/workspace.toml)
 ["<python>", "<skill-dir>/scripts/workspace_status.py", "repair-plan", "--root", "<repo-root>"]
 
 # Step 2 — review the plan JSON; then apply (--yes is required to confirm the write)
@@ -176,7 +176,7 @@ reason             — error reason string when applied:false (top-level field, 
 **Interpreting `per_operation`:** each entry records `"applied": true` (written) or `"applied": false` with a `reason`:
 - `spec_status_changed` — spec Status changed between plan and apply; human review needed
 - `spec_status_unreadable` — spec.md not found or Status field missing
-- `initiative_not_found` — ini_slug absent from workspace.toml
+- `initiative_not_found` — ini_slug absent from .agents/workspace.toml
 - `entry_not_found_in_queue` — path no longer in the queue (already removed or never present)
 
 **`.workspace-repair-plan.json` and temp files** — both are written inside the repo root. Add them to `.gitignore` to avoid accidental commits (the temp files are cleaned up automatically on success).
@@ -217,7 +217,7 @@ Let N = total count across all three finding types. When N > 0, output before th
   Prematurely-shipped entries ([work].shipped, spec shows live status):
   - `spec/<slug>` in [ini-002 work].shipped — Status: Implementing
     Possible causes: (1) spec Status was not updated after shipping, or
-    (2) the workspace.toml entry was moved before the work was done.
+    (2) the .agents/workspace.toml entry was moved before the work was done.
 ```
 
 When Type 2 findings exist, build the cleanup offer using `reconciliation.type2_cleanup_ops`. For any Type 2 entry whose `list_name` is `active`, ask first: "Is `<path>` actively being worked on in this session?" — if the user says yes, **exclude all ops for that `(ini_slug, path)` pair** from the confirmed-operation set (both the active-list op and any queue-list op for the same path, to avoid partially applying a cleanup that leaves the path in both `active` and `shipped`). Build the _confirmed set_ (all ops except those excluded) before showing the offer. Then append:
@@ -226,7 +226,7 @@ When Type 2 findings exist, build the cleanup offer using `reconciliation.type2_
 Stale entries found — clean up now?
   Shipped entries move to [work].shipped (bare string, `needs` dropped).
   Archived entries are removed from [work].queue or [work].active.
-  Reply Y to apply, or edit workspace.toml manually.
+  Reply Y to apply, or edit .agents/workspace.toml manually.
 ```
 
 **Cleanup write — after Y confirmation (Type 2 only):**
@@ -295,7 +295,7 @@ Intentional asymmetry: `shape:` in backlog = satisfied in autonomous mode (prese
 - **When either file has data rows:** output a `**Findings:**` section with both tables printed inline — paste each file's full markdown table (column header row + separator + data rows) under a sub-label (`RFC candidates:` / `Roadmap intents:`). If one file is absent or has no data rows, output its sub-label followed by `_(empty)_`.
 - **When both are empty or absent:** emit a single line: `0 rfc candidates · 0 roadmap intents — both registers empty`
 
-**Backlog:** when `[backlog].open` in `workspace.toml` is non-empty, render:
+**Backlog:** when `[backlog].open` in `.agents/workspace.toml` is non-empty, render:
 
 ```
 **Backlog** — N open item(s):
@@ -304,7 +304,7 @@ Intentional asymmetry: `shape:` in backlog = satisfied in autonomous mode (prese
   ...
 ```
 
-Each entry is prefixed with its room: `[shape]` when the entry carries a `type` field (shaping work); `[build]` when it does not (build work). To extract the first comment line: read `workspace.toml` as text; for each entry in `[backlog].open`, find the nearest `# ` comment line immediately preceding `{slug = "<slug>"}`. Use the comment text (without the leading `# `) as the item's summary. If no comment line is present, omit the summary and render just the slug. Omit this section entirely when `[backlog].open` is empty or absent.
+Each entry is prefixed with its room: `[shape]` when the entry carries a `type` field (shaping work); `[build]` when it does not (build work). To extract the first comment line: read `.agents/workspace.toml` as text; for each entry in `[backlog].open`, find the nearest `# ` comment line immediately preceding `{slug = "<slug>"}`. Use the comment text (without the leading `# `) as the item's summary. If no comment line is present, omit the summary and render just the slug. Omit this section entirely when `[backlog].open` is empty or absent.
 
 ---
 
@@ -324,11 +324,11 @@ If the required pack is not installed, surface: "requires `<pack-name>` pack —
 
 ### 4. Missing fields
 
-`workspace.toml` evolves: older entries may lack a `type` field (treat as `shape`), a `milestone` field (omit from output), or a `parent` field (omit). Never fail on missing optional fields.
+`.agents/workspace.toml` evolves: older entries may lack a `type` field (treat as `shape`), a `milestone` field (omit from output), or a `parent` field (omit). Never fail on missing optional fields.
 
 ### 5. Next-actions
 
-Using the JSON data from Step 1 — do not re-read `workspace.toml` or recompute the DAG:
+Using the JSON data from Step 1 — do not re-read `.agents/workspace.toml` or recompute the DAG:
 
 **5a. Resolve choices**
 

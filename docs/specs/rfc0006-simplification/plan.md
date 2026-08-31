@@ -51,7 +51,7 @@ Strip Knowledge panel + nav + graph link from `dashboard/page.tsx`
 Engram vars from root `.env.example`; remove the Engram-disarm env lines from
 `app/playwright.config.ts` (`ODYSSEY_ENGRAM_ARTIFACT`, `ENGRAM_APPROVED_ROOT`)
 in T4 instead if the config imports break earlier. Dead CSS (`.semantic-btn`,
-`.graph3d-*`, `.kg-edge`) explicitly deferred → `workspace.toml` backlog
+`.graph3d-*`, `.kg-edge`) explicitly deferred → `.agents/workspace.toml` backlog
 entry (surface-cleanup pass). Manual QA console.
 
 ### T6 Phase 3a: reviewed JSON catalog + guarded idempotent seeder
@@ -111,7 +111,7 @@ surface wrappers, `@a2ui/*` deps. Manual QA practice + test flows.
 - One commit per phase; gates unfiltered before each commit.
 - No migration edits; catalog seeding additive-only; `catalog_seed_meta` is
   a new migration (append-only, v12).
-- Deferred finds → `workspace.toml` backlog entries, not scope creep.
+- Deferred finds → `.agents/workspace.toml` backlog entries, not scope creep.
 
 ## Risks
 
