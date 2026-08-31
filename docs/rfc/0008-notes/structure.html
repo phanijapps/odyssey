@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Odyssey — the new structure</title>
+    <style>
+      :root {
+        --bg: #0f1115;
+        --surface: #171a21;
+        --surface2: #1d212b;
+        --ink: #e8ecf3;
+        --muted: #8b93a3;
+        --line: #2a303c;
+        --brand: #5b7cfa;
+        --brand2: #8b5cf6;
+        --ok: #34c077;
+        --warn: #f59e0b;
+        --fut: #71767f;
+        --radius: 14px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        font:
+          15px/1.6 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        padding: 40px 5vw 80px;
+      }
+      header {
+        max-width: 1400px;
+        margin: 0 auto 28px;
+      }
+      h1 {
+        font-size: 34px;
+        letter-spacing: -0.6px;
+      }
+      h1 span {
+        background: linear-gradient(90deg, var(--brand), var(--brand2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .sub {
+        color: var(--muted);
+        max-width: 900px;
+        margin-top: 6px;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .dot {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        margin-right: 7px;
+        vertical-align: 0;
+      }
+      .d-now {
+        background: var(--ok);
+      }
+      .d-t2 {
+        background: var(--warn);
+      }
+      .d-t3 {
+        background: var(--brand);
+      }
+      .d-fut {
+        background: var(--fut);
+      }
+      .grid {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(620px, 1.25fr) minmax(340px, 0.9fr);
+        gap: 22px;
+        align-items: start;
+      }
+      @media (max-width: 1050px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .tree-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 26px 30px;
+        overflow-x: auto;
+      }
+      .tree {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13.6px;
+        line-height: 1.75;
+        white-space: pre;
+        color: var(--ink);
+      }
+      .dir {
+        color: #cdd6e4;
+        font-weight: 700;
+      }
+      .file {
+        color: var(--muted);
+      }
+      .cmt {
+        color: #6b7382;
+        font-style: italic;
+      }
+      .b {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 800;
+        border-radius: 999px;
+        padding: 1px 8px;
+        margin-left: 8px;
+        vertical-align: 1px;
+        letter-spacing: 0.04em;
+      }
+      .b-now {
+        background: rgba(52, 192, 119, 0.15);
+        color: var(--ok);
+      }
+      .b-t2 {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warn);
+      }
+      .b-t3 {
+        background: rgba(91, 124, 250, 0.18);
+        color: var(--brand);
+      }
+      .b-fut {
+        background: rgba(113, 118, 127, 0.18);
+        color: var(--fut);
+      }
+      .notes {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .note {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+      }
+      .note h3 {
+        font-size: 15px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .note p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .note .k {
+        font-size: 11px;
+        font-weight: 800;
+        border-radius: 6px;
+        padding: 1px 7px;
+      }
+      .k-now {
+        background: rgba(52, 192, 119, 0.15);
+        color: var(--ok);
+      }
+      .k-t2 {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warn);
+      }
+      .k-t3 {
+        background: rgba(91, 124, 250, 0.18);
+        color: var(--brand);
+      }
+      .k-fut {
+        background: rgba(113, 118, 127, 0.18);
+        color: var(--fut);
+      }
+      .ref {
+        margin-top: 34px;
+        max-width: 1400px;
+        margin-inline: auto;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px 22px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .ref b {
+        color: var(--ink);
+      }
+      code {
+        background: #232936;
+        border-radius: 6px;
+        padding: 1px 6px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Odyssey — <span>the new structure</span></h1>
+      <p class="sub">
+        The reference platform shape, adapted to what Odyssey actually is: every
+        folder maps to a real feature, every badge says when it arrives. Nothing
+        is scaffolding for scaffolding's sake.
+      </p>
+      <div class="legend">
+        <span
+          ><span class="dot d-now"></span><b style="color: var(--ink)">Now</b> —
+          Track 1, next session</span
+        >
+        <span
+          ><span class="dot d-t2"></span
+          ><b style="color: var(--ink)">Graduate</b> — Track 2, domain
+          packages</span
+        >
+        <span
+          ><span class="dot d-t3"></span
+          ><b style="color: var(--ink)">Product</b> — Track 3, when you pick the
+          feature</span
+        >
+        <span
+          ><span class="dot d-fut"></span
+          ><b style="color: var(--ink)">Earns itself</b> — only when a real need
+          lands</span
+        >
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="tree-card">
+        <div class="tree">
+          <span class="dir">odyssey/</span> ├── <span class="dir">.github/</span
+          ><span class="b b-now">NOW</span> │ ├──
+          <span class="dir">workflows/</span>
+          <span class="cmt"># ci: lint · typecheck · tests · build · e2e</span>
+          │ └── <span class="file">CODEOWNERS</span> │ ├──
+          <span class="dir">apps/</span><span class="b b-t2">GRADUATE</span>
+          <span class="cmt"># apps/ returns the day app #2 exists</span> │ └──
+          <span class="dir">web/</span> │ ├── <span class="dir">app/</span>
+          <span class="cmt"
+            ># thin routes: / · /parent · /dashboard · /performance</span
+          >
+          │ ├── <span class="dir">modules/</span>
+          <span class="cmt"># screens the cal.com way</span> │ │ ├──
+          <span class="dir">practice/</span>
+          <span class="cmt"
+            ># sign-in · grade pick · skill browse · question flow</span
+          >
+          │ │ ├── <span class="dir">assessment/</span>
+          <span class="cmt"># mixed-skill test mode · results</span> │ │ ├──
+          <span class="dir">parent/</span>
+          <span class="cmt"># child cards · suggestions · export</span> │ │ └──
+          <span class="dir">admin/</span>
+          <span class="cmt"># accounts · catalog · health · backup</span> │ ├──
+          <span class="dir">components/</span>
+          <span class="cmt"
+            ># cross-screen shared (interaction-answer, math-text)</span
+          >
+          │ ├── <span class="dir">playwright/</span>
+          <span class="cmt"># e2e journeys</span> │ └──
+          <span class="dir">tests/</span>
+          <span class="cmt"># vitest setup</span> │ ├──
+          <span class="dir">packages/</span> │ ├── <span class="dir">core/</span
+          ><span class="b b-t2">GRADUATE</span>
+          <span class="cmt"
+            ># pure learning domain — absorbs practice-engine</span
+          >
+          │ │ └── <span class="dir">src/</span> │ │ ├──
+          <span class="dir">algorithms/</span>
+          <span class="cmt"># adaptive pool · difficulty · grading</span> │ │ │
+          └── <span class="dir">bkt/</span><span class="b b-t3">PRODUCT</span>
+          <span class="cmt"># SmartScore: Bayesian knowledge tracing</span> │ │
+          ├── <span class="dir">curriculum/</span>
+          <span class="cmt"># catalog model · reviewed seed · browse tree</span>
+          │ │ └── <span class="dir">validators/</span>
+          <span class="cmt"># answer checkers · strict SVG validation</span> │ │
+          │ ├── <span class="dir">db/</span><span class="b b-t2">GRADUATE</span>
+          <span class="cmt"># node:sqlite stays — no ORM, ever</span> │ │ └──
+          <span class="dir">src/</span> │ │ ├──
+          <span class="file">client.ts</span>
+          <span class="cmt"
+            ># WAL · FK · busy-timeout · workspace-root resolver</span
+          >
+          │ │ ├── <span class="dir">migrations/</span>
+          <span class="cmt"># ordered, append-only (v1 → v12…)</span> │ │ ├──
+          <span class="dir">repositories/</span>
+          <span class="cmt"
+            ># identity · learning · curriculum reads/writes</span
+          >
+          │ │ └── <span class="dir">seeds/</span>
+          <span class="cmt"># the reviewed Ohio catalog (728 records)</span> │ │
+          │ ├── <span class="dir">ai/</span><span class="b b-t3">PRODUCT</span>
+          <span class="cmt"
+            ># the bounded seam — NOT an agent free-for-all</span
+          >
+          │ │ └── <span class="dir">src/</span> │ │ ├──
+          <span class="dir">providers/</span>
+          <span class="cmt"
+            ># pi-ai completion boundary (Ollama-compatible)</span
+          >
+          │ │ ├── <span class="dir">prompts/</span>
+          <span class="cmt"># versioned system templates</span> │ │ └──
+          <span class="dir">tutor/</span>
+          <span class="cmt"># TutorAgent: hint escalation, dialogue</span> │ │
+          <span class="cmt"
+            ># guardrails: validated output · no tools · server persists</span
+          >
+          │ │ │ ├── <span class="dir">config/</span
+          ><span class="b b-now">NOW</span>
+          <span class="cmt"># shared bases — kills today's duplication</span> │
+          │ ├── <span class="dir">typescript/</span>
+          <span class="cmt"># base tsconfig (web + core dedupe now)</span> │ │
+          ├── <span class="dir">eslint/</span> │ │ └──
+          <span class="dir">prettier/</span> │ │ │ ├──
+          <span class="dir">ui/</span><span class="b b-fut">EARNS ITSELF</span>
+          <span class="cmt"
+            ># design system — when tutor/teacher add real UI</span
+          >
+          │ └── <span class="dir">types/</span
+          ><span class="b b-fut">EARNS ITSELF</span>
+          <span class="cmt"># cross-package Zod schemas — at 3+ consumers</span>
+          │ ├── <span class="dir">tooling/</span
+          ><span class="b b-now">NOW</span>
+          <span class="cmt"
+            ># dev scripts · curriculum export · vitest preset</span
+          >
+          │ ├── <span class="dir">scripts/</span> │ └──
+          <span class="dir">vitest-config/</span> │ ├──
+          <span class="dir">data/</span><span class="b b-now">NOW</span>
+          <span class="cmt"># git-ignored runtime state, repo root</span> │ ├──
+          <span class="file">odyssey-learning.db</span>
+          <span class="cmt"
+            ># THE file — accounts + every learner's history</span
+          >
+          │ ├── <span class="file">odyssey-curriculum.db</span>
+          <span class="cmt"># reproducible from seed</span> │ └──
+          <span class="dir">backups/</span>
+          <span class="cmt"># one-tap admin snapshots</span> │ ├──
+          <span class="dir">docs/</span>
+          <span class="cmt"
+            ># adr · rfc · specs · architecture · knowledge</span
+          >
+          ├── <span class="dir">.agents/</span>
+          <span class="cmt"># skills · work queue · agent pack state</span> ├──
+          <span class="file">README.md AGENTS.md CLAUDE.md</span> ├──
+          <span class="file"
+            >package.json pnpm-workspace.yaml pnpm-lock.yaml</span
+          >
+          └── <span class="file">turbo.json</span
+          ><span class="b b-fut">EARNS ITSELF</span>
+          <span class="cmt"># at 3+ packages or when CI minutes matter</span>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note">
+          <h3><span class="k k-now">NOW</span> GitHub CI + CODEOWNERS</h3>
+          <p>
+            The single biggest "real project" signal the repo lacks: every push
+            proves itself — lint, typecheck, 210 tests, production build, e2e.
+          </p>
+        </div>
+        <div class="note">
+          <h3><span class="k k-now">NOW</span> tooling/ + packages/config</h3>
+          <p>
+            <code>tools/</code> grows up into <code>tooling/</code>; the
+            duplicated tsconfig/eslint settings between web and the engine
+            collapse into one shared base.
+          </p>
+        </div>
+        <div class="note">
+          <h3><span class="k k-t2">GRADUATE</span> packages/core</h3>
+          <p>
+            practice-engine grows into the full pure learning domain —
+            algorithms, curriculum, validators — testable with zero framework
+            deps, exactly where SmartScore lands later.
+          </p>
+        </div>
+        <div class="note">
+          <h3><span class="k k-t2">GRADUATE</span> packages/db</h3>
+          <p>
+            All persistence in one honest home: <b>node:sqlite stays</b> — WAL,
+            foreign keys, append-only migrations, zero ORM forever.
+          </p>
+        </div>
+        <div class="note">
+          <h3><span class="k k-t3">PRODUCT</span> SmartScore (BKT)</h3>
+          <p>
+            Bayesian knowledge tracing behind the existing selection seam —
+            every screen gets smarter without adding a screen. The highest-value
+            item in the reference.
+          </p>
+        </div>
+        <div class="note">
+          <h3><span class="k k-t3">PRODUCT</span> Tutor mode</h3>
+          <p>
+            A bounded TutorAgent at the <code>QuestionGenerator</code> seam:
+            hint escalation, dialogue on wrong answers. Guardrails carry over
+            verbatim.
+          </p>
+        </div>
+        <div class="note">
+          <h3>
+            <span class="k k-fut">EARNS ITSELF</span> ui · types · turbo ·
+            storybook
+          </h3>
+          <p>
+            Each waits for the feature that needs it. Structure follows product
+            — never the reverse.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ref">
+      <b>Refused, on the record:</b> Prisma/Drizzle (our DB layer is 500 tested
+      lines on a zero-dep native driver — dependencies are forever) · tRPC/Hono
+      transport rewrite (the HTTP surface <i>is</i> the security boundary,
+      proven by review + e2e) · empty scaffolding (no folder without a spec).
+      &nbsp;·&nbsp; <b>Detail:</b>
+      <code>docs/rfc/0008-platform-structure.md</code>
+    </div>
+  </body>
+</html>
