@@ -1,22 +1,17 @@
 import { defineConfig } from "@playwright/test";
 import { join } from "node:path";
 
-const databasePath = join(
-  process.cwd(),
-  "data",
-  "e2e",
-  ".playwright-parent.db",
-);
-const curriculumDatabasePath = join(
-  process.cwd(),
-  "data",
-  "e2e",
-  ".playwright-curriculum.db",
-);
+import {
+  e2eCurriculumDatabasePath,
+  e2eLearningDatabasePath,
+} from "./playwright/paths";
+
+const databasePath = e2eLearningDatabasePath;
+const curriculumDatabasePath = e2eCurriculumDatabasePath;
 
 export default defineConfig({
-  testDir: "./e2e",
-  globalSetup: "./e2e/global-setup.ts",
+  testDir: "./playwright",
+  globalSetup: "./playwright/global-setup.ts",
   fullyParallel: false,
   // A cold dev-server compile of the first route can consume most of the
   // default budget; journeys themselves are quick once warm.

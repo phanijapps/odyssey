@@ -1,5 +1,6 @@
 import { rmSync } from "node:fs";
-import { join } from "node:path";
+
+import { e2eCurriculumDatabasePath, e2eLearningDatabasePath } from "./paths";
 
 /**
  * Resets the isolated Playwright databases once per run, in the window
@@ -13,10 +14,7 @@ import { join } from "node:path";
  * unlinked inode. Do not add one without revisiting this reset.
  */
 export default function globalSetup(): void {
-  for (const base of [
-    join(process.cwd(), "data", "e2e", ".playwright-parent.db"),
-    join(process.cwd(), "data", "e2e", ".playwright-curriculum.db"),
-  ])
+  for (const base of [e2eLearningDatabasePath, e2eCurriculumDatabasePath])
     for (const suffix of ["", "-shm", "-wal"])
       rmSync(`${base}${suffix}`, { force: true });
 }

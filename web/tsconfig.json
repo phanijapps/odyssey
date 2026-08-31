@@ -29,9 +29,10 @@
     "app/**/*.tsx",
     "components/**/*.ts",
     "components/**/*.tsx",
+    "modules/**/*.ts",
+    "modules/**/*.tsx",
     "server/**/*.ts",
-    "lib/**/*.ts",
-    "test/**/*.ts",
+    "tests/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]

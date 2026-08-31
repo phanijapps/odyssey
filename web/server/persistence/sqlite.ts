@@ -1,7 +1,23 @@
 import "server-only";
-import { mkdirSync } from "node:fs";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+
+/**
+ * Resolves the monorepo root by walking up from the working directory to the
+ * pnpm-workspace.yaml marker — the same anchor Turborepo uses. Runtime state
+ * lives in <root>/data regardless of which workspace package is running.
+ */
+function workspaceRoot(): string {
+  let directory = process.cwd();
+  for (let hops = 0; hops < 8; hops += 1) {
+    if (existsSync(join(directory, "pnpm-workspace.yaml"))) return directory;
+    const parent = dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  return process.cwd();
+}
 
 const DEFAULT_LEARNING_DATABASE_PATH = "data/odyssey-learning.db";
 const DEFAULT_CURRICULUM_DATABASE_PATH = "data/odyssey-curriculum.db";
@@ -23,7 +39,7 @@ export function resolveDatabasePath(kind: DatabaseKind): string {
     return configured;
   }
   return resolve(
-    process.cwd(),
+    workspaceRoot(),
     kind === "learning"
       ? DEFAULT_LEARNING_DATABASE_PATH
       : DEFAULT_CURRICULUM_DATABASE_PATH,
