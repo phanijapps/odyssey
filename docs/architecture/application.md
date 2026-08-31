@@ -63,16 +63,16 @@ authorization authority is present in the application flow.
 
 ## Module map
 
-| Module                                          | Owns                                                               | Must not own                        |
-| ----------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------- |
-| `apps/web/app/`                                 | pages, browser state, same-origin route adapters                   | server policy or direct persistence |
-| `apps/web/components/`                          | application-owned presentation                                     | server calls or authorization       |
-| `apps/web/server/identity/`                     | session resolution, role checks, origin proof, session-owned state | feature persistence policy          |
-| `apps/web/server/learning/`                     | practice progression, assessment lifecycle, redacted history       | curriculum promotion                |
-| `apps/web/server/curriculum/`                   | catalog, promotion, Gold reads/writes, vectors and retrieval       | learner authorization               |
-| `apps/web/server/persistence/`                  | SQLite paths, connection policy, ordered migrations                | feature-specific business policy    |
-| `apps/web/server/agent/` and `pi-completion.ts` | question selection/generation and bounded completion               | direct data writes or authorization |
-| `apps/web/server/validation/`                   | boundary schemas and safe generated-payload validation             | orchestration or persistence        |
+| Module                                     | Owns                                                               | Must not own                        |
+| ------------------------------------------ | ------------------------------------------------------------------ | ----------------------------------- |
+| `web/app/`                                 | pages, browser state, same-origin route adapters                   | server policy or direct persistence |
+| `web/components/`                          | application-owned presentation                                     | server calls or authorization       |
+| `web/server/identity/`                     | session resolution, role checks, origin proof, session-owned state | feature persistence policy          |
+| `web/server/learning/`                     | practice progression, assessment lifecycle, redacted history       | curriculum promotion                |
+| `web/server/curriculum/`                   | catalog, promotion, Gold reads/writes, vectors and retrieval       | learner authorization               |
+| `web/server/persistence/`                  | SQLite paths, connection policy, ordered migrations                | feature-specific business policy    |
+| `web/server/agent/` and `pi-completion.ts` | question selection/generation and bounded completion               | direct data writes or authorization |
+| `web/server/validation/`                   | boundary schemas and safe generated-payload validation             | orchestration or persistence        |
 
 ## Public route contracts
 
@@ -100,7 +100,7 @@ of truth.
 ## Guidance hierarchy
 
 Use the root `AGENTS.md` as the repository policy, then
-[`apps/web/AGENTS.md`](../../apps/web/AGENTS.md) for package-specific rules
+[`web/AGENTS.md`](../../web/AGENTS.md) for package-specific rules
 (test isolation, e2e harness, server-only discipline, the generation
 boundary). The former per-subtree guides were consolidated into that single
 file when the `src/` layer was removed; `CLAUDE.md` at the root still points

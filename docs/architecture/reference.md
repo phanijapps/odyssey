@@ -78,6 +78,6 @@
 ## Contributor guidance hierarchy
 
 Read the root [`AGENTS.md`](../../AGENTS.md) first, then
-[`apps/web/AGENTS.md`](../../apps/web/AGENTS.md) for the deployable app's
+[`web/AGENTS.md`](../../web/AGENTS.md) for the deployable app's
 boundaries (routes, server modules, test isolation, e2e harness). The former
 per-subtree guides were consolidated into that single file.

@@ -27,6 +27,11 @@ Shipped specs remain as historical feature contracts with their QA records.
 | Spec | Status | Constrained by | Notes |
 | --- | --- | --- | --- |
 | [child-math-practice](child-math-practice/spec.md) | Shipped | ADR-0001, ADR-0002, ADR-0003, RFC-0001 | One-app child practice experience; reconciled 2026-08-17 |
+| [rfc0006-simplification](rfc0006-simplification/spec.md) | Shipped | RFC-0006 | Phases 1–3: dead code, memory, ingestion, semantic search; JSON catalog seeder |
+| [rfc0006-phase4-a2ui](rfc0006-phase4-a2ui/spec.md) | Shipped | RFC-0006 | A2UI → plain validated rendering (interaction renderer, performance report) |
+| [rfc0006-phase5-question-path](rfc0006-phase5-question-path/spec.md) | Shipped | RFC-0006 | Single question-selection path; agent as pure completion boundary |
+| [repo-professionalization](repo-professionalization/spec.md) | Shipped | RFC-0006 phase 8 groundwork | data/ consolidation, README, env template |
+| [practice-engine-package](practice-engine-package/spec.md) | Shipped | RFC-0006 + RFC-0007 | @odyssey/practice-engine extraction, production readiness (bootstrap/backup/export/health) |
 | [test-mode-assessment](test-mode-assessment/spec.md) | Shipped | ADR-0001, ADR-0002, ADR-0003 | Mixed-skill nine-question assessment with completion review |
 | [curriculum-ingestion](curriculum-ingestion/spec.md) | Archived | RFC-0002, RFC-0003 | Superseded by curriculum-deep-agent |
 | [a2ui-learning-delivery](a2ui-learning-delivery/spec.md) | Shipped | RFC-0004 | Fixed A2UI v0.9.1 catalog for practice, tests, and Performance |

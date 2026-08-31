@@ -11,13 +11,15 @@
 .
 ├── AGENTS.md             # canonical contributor instructions
 ├── CLAUDE.md             # points to AGENTS.md
-├── apps/
-│   └── web/              # the one deployable Next.js application
-│       ├── app/          # pages, browser UI, and App Router handlers
-│       ├── components/   # reusable browser components
-│       ├── server/       # server-only policy and runtime modules
-│       ├── data/         # git-ignored runtime SQLite state (see its README)
-│       └── e2e/          # Playwright end-to-end suite
+├── web/                  # the one deployable Next.js application
+│   ├── app/              # thin routes: pages + App Router handlers
+│   ├── modules/          # screens the cal.com way (practice, assessment,
+│   │                     # parent, admin) — the unit of organization
+│   ├── components/       # reusable browser components
+│   ├── server/           # server-only policy and runtime modules
+│   ├── playwright/       # Playwright end-to-end suite
+│   └── tests/            # Vitest setup
+├── data/                 # git-ignored runtime SQLite state (see its README)
 ├── packages/
 │   └── practice-engine/  # pure question domain (bank, interactions,
 │                         # adaptive pool with injected generation, grading)
@@ -57,17 +59,17 @@ See [`application.md`](application.md#runtime-and-data-flow) for the full flow.
 
 ## Data ownership
 
-- `apps/web/server/persistence/sqlite.ts` is the sole owner of SQLite connection
+- `web/server/persistence/sqlite.ts` is the sole owner of SQLite connection
   policy and ordered migrations. It opens the learning and curriculum stores
   under `app/data/` (git-ignored; see that directory's README).
-- `apps/web/server/learning/` owns formative practice state, attempts, and
+- `web/server/learning/` owns formative practice state, attempts, and
   assessment records. Assessment results are retained separately from practice
   progression; history returns a redacted timeline.
-- `apps/web/server/curriculum/` owns the reviewed catalog: the versioned JSON seed
+- `web/server/curriculum/` owns the reviewed catalog: the versioned JSON seed
   (`data/ohio-catalog.json`), its idempotent hash-guarded seeder, Gold reads,
   and browse/search. There is no runtime ingestion workflow; catalog changes
   are reviewed code changes.
-- `apps/web/server/agent/` owns question selection (the adaptive pool over the
+- `web/server/agent/` owns question selection (the adaptive pool over the
   reviewed bank) and the bounded Ollama completion/validation boundary used
   only as an optional internal fallback.
 

@@ -15,8 +15,9 @@ export default defineConfig({
       "app/**/*.test.ts",
       "app/**/*.test.tsx",
       "components/**/*.test.tsx",
+      "modules/**/*.test.ts",
+      "modules/**/*.test.tsx",
       "server/**/*.test.ts",
-      "lib/**/*.test.ts",
     ],
     setupFiles: ["./tests/sqlite-isolation.setup.ts"],
     env: {

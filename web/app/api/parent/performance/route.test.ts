@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { authenticateChild } from "../../../../server/identity/identity";
 import { learningDb } from "../../../../server/learning/sqlite-repository";
 import { GET } from "./route";
-import { formatPracticePhrases } from "../../../parent/performance-phrases";
+import { formatPracticePhrases } from "../../../../modules/parent/performance-phrases";
 
 function provisionAccount(
   accountId: string,

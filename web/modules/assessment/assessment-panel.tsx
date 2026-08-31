@@ -2,12 +2,8 @@ import { FormEvent } from "react";
 import { MathText } from "@/components/math-text";
 import { InteractionAnswer } from "@/components/interaction-answer";
 import { displayedQuestionOrdinal } from "./test-progress";
-import {
-  Assessment,
-  AssessmentQuestion,
-  AssessmentResult,
-  FlatStandard,
-} from "./types";
+import type { FlatStandard } from "../practice/types";
+import type { Assessment, AssessmentQuestion, AssessmentResult } from "./types";
 
 type AssessmentPanelProps = {
   allStandards: FlatStandard[];

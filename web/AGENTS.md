@@ -1,35 +1,43 @@
-# apps/web — contributor guide
+# web — contributor guide
 
-The one deployable Next.js application. Read the root `AGENTS.md` first;
-this file carries only what's specific to this package.
+The one deployable Next.js application, organized the cal.com way.
+Read the root `AGENTS.md` first; this file carries only what's specific
+to this package.
 
 ## Layout
 
 ```text
-app/            # routes: pages, browser UI, App Router handlers
-components/     # shared browser components (server-safe imports only via types)
-server/         # server-only modules — never imported from client components
-lib/            # shared utilities (cn)
-test/           # Vitest setup: per-file SQLite isolation + server-only stub
-e2e/            # Playwright journeys (run: pnpm --filter child-math-app test:e2e)
-data/           # git-ignored runtime state — see data/README.md
+app/            # thin Next routes — each page composes one module screen
+modules/        # the unit of organization (cal.com's word):
+  practice/       # student screen: sign-in, grade pick, skill browse,
+  │               # question+feedback flow, performance view
+  assessment/     # test mode: setup, runner, results
+  parent/         # parent portal screen + phrase helpers
+  admin/          # admin console screen (overview, catalog, parents, health)
+components/      # cross-screen shared components (interaction-answer, math-text)
+server/          # server-only domain modules
+tests/           # Vitest setup: per-file SQLite isolation + server-only stub
+playwright/      # e2e journeys + shared DB-path helper
 ```
 
 ## Rules that bite
 
+- `modules/<name>` owns a screen's parts. A module may import
+  `server/`, `components/`, and `packages/practice-engine` — **never
+  another module's internals**.
 - `server/**` is importable only from server contexts. Client components
-  may import **types only** from `@odyssey/practice-engine`; anything
-  reaching a server module at runtime belongs in a route handler.
+  may import **types only** from `@odyssey/practice-engine`.
+- Routes in `app/` stay thin (compose one screen); HTTP handlers in
+  `app/api/` stay thin adapters over `server/`.
 - Vitest gives every test file its own temporary SQLite pair
-  (`test/sqlite-isolation.setup.ts`). Tests own their fixture rows; never
-  rely on a local developer database. `ODYSSEY_SEED_CATALOG=0` keeps the
-  catalog seeder out of exact-fixture tests.
+  (`tests/sqlite-isolation.setup.ts`); tests own their fixture rows.
+  `ODYSSEY_SEED_CATALOG=0` keeps the catalog seeder out of exact-fixture
+  tests.
+- Runtime state lives in the **repo-root** `data/` directory (git-ignored),
+  resolved via the `pnpm-workspace.yaml` marker walk — see
+  `server/persistence/sqlite.ts` and `playwright/paths.ts`.
 - The e2e suite boots its own server with isolated databases under
-  `data/e2e/`. One run per server boot — global-setup resets those files,
-  so a second run against a live server splits inodes and fails with
-  missing tables.
-- Serve production only after `pnpm build`: `next start` serves the last
-  build output, never the working tree.
-- The generation boundary (`server/agent`) is the only code that talks to
-  a model. It is injected into the practice engine as a
-  `QuestionGenerator`; the engine itself never imports a client.
+  `data/e2e/`. One run per server boot; always `pnpm build` before
+  `pnpm start`-based verification.
+- The generation boundary (`server/agent`) is the only code that talks
+  to a model, injected into the practice engine as a `QuestionGenerator`.

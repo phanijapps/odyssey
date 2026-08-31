@@ -65,19 +65,21 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 
 ```text
 .
-├── apps/
-│   └── web/                  # the one deployable Next.js application
-│       ├── app/              #   routes: pages, browser UI, API handlers
-│       ├── components/       #   shared browser components
-│       ├── server/           #   server-only modules (identity, learning,
-│       │                     #   curriculum, agent, persistence, validation)
-│       ├── data/             #   git-ignored runtime SQLite state (+ backups/)
-│       ├── e2e/              #   Playwright end-to-end suite
-│       └── .env.example      #   configuration template
+├── web/                      # the one deployable Next.js application
+│   ├── app/                  #   thin routes (each page composes one module)
+│   ├── modules/              #   screens the cal.com way: practice,
+│   │                         #   assessment, parent, admin
+│   ├── components/           #   cross-screen shared components
+│   ├── server/               #   server-only modules (identity, learning,
+│   │                         #   curriculum, agent, persistence, validation)
+│   ├── playwright/           #   e2e journeys
+│   ├── tests/                #   Vitest setup
+│   └── .env.example          #   configuration template
 ├── packages/
 │   └── practice-engine/      # pure question domain: reviewed bank, learner
 │                             # interactions, adaptive pool (generation
 │                             # injected), grading — no app imports
+├── data/                     # git-ignored runtime SQLite state (+ backups/)
 ├── docs/                     # living documentation
 │   ├── architecture/     #   the map of what runs today (start here)
 │   ├── adr/              #   frozen architecture decision records
@@ -92,25 +94,25 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 
 ## Data and persistence
 
-All runtime state lives in **`apps/web/data/`** (git-ignored):
+All runtime state lives in the repo-root **`data/`** (git-ignored):
 
 - `odyssey-learning.db` — accounts, sessions, practice progress,
   attempts, assessments, parent↔child links. **This is the file that
   matters** — back it up to preserve a learner's history.
 - `odyssey-curriculum.db` — the reviewed topic catalog, seeded
   idempotently at first open from the versioned JSON in
-  `apps/web/server/curriculum/data/`.
+  `web/server/curriculum/data/`.
 
 Both databases open in WAL mode with foreign keys enforced and ordered,
 append-only migrations. Override their locations with `ODYSSEY_DB_PATH`
 and `ODYSSEY_CURRICULUM_DB_PATH` (absolute paths). The admin console's
 Health panel writes consistent snapshots of the learning database into
-`app/data/backups/` with one click; parents can export any linked
+`data/backups/` with one click; parents can export any linked
 child's progress as JSON from the parent portal.
 
 ## Configuration
 
-All configuration is environment-based; see [`apps/web/.env.example`](apps/web/.env.example)
+All configuration is environment-based; see [`web/.env.example`](web/.env.example)
 for the full annotated template. The essentials:
 
 | Variable                                                                                                                                   | Purpose                                                                                   |

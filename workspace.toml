@@ -25,16 +25,15 @@
 # RFC-0006 simplification: the phased cut-down to a three-persona app.
 # Phases land in order 1→7; each gates on typecheck+test+lint.
 open = [
-  {slug = "rfc0006-phase1-dead-code-cut", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 1: delete dead routes, 410 stubs, allowance machinery, vestigial panel props"},
-  {slug = "rfc0006-phase2-memory-cut", needs = "backlog:rfc0006-phase1-dead-code-cut", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 2: cut engram memory + knowledge graph + graph page + answer-route projections"},
-  {slug = "rfc0006-phase3-seeder-and-ingestion-cut", needs = "backlog:rfc0006-phase2-memory-cut", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 3: JSON catalog seeder, then cut ingestion + semantic search + gold deletes"},
-  {slug = "rfc0006-phase4-a2ui-replacement", needs = "backlog:rfc0006-phase3-seeder-and-ingestion-cut", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 4: replace A2UI with plain zod-validated interaction renderer"},
-  {slug = "rfc0006-phase5-question-path-consolidation", needs = "backlog:rfc0006-phase4-a2ui-replacement", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 5: consolidate question selection into the adaptive pool"},
-  {slug = "rfc0006-phase6-persona-surface-rebuild", needs = "backlog:rfc0006-phase5-question-path-consolidation", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 6: rebuild student/parent/admin screens per mockups"},
-  {slug = "rfc0006-phase8-production-readiness", needs = "backlog:rfc0006-phase6-persona-surface-rebuild", source = "rfc/0006-simplify-to-persona-app.md", summary = "RFC-0006 Phase 8: prod admin bootstrap, VACUUM INTO backup, export/reset, health probe, config hardening, smoke gate"},
   # Deferred from RFC-0006 phases 2-3 review: dead CSS for removed surfaces
   # (.semantic-btn styles.css ~1466, .kg-edge ~1691, .graph3d-* ~2129-2204).
   {slug = "rfc0006-surface-cleanup-css", source = "spec/rfc0006-simplification T5", summary = "Remove dead CSS for removed semantic-search, KG, and 3D-graph surfaces"},
+  # Structure v2 (RFC-0007): visual redesign of the student surface per
+  # the mockups — the modules/ split landed; the look-and-feel pass remains.
+  {slug = "student-surface-visual-redesign", source = "rfc/0007", summary = "Apply the mockup visual language to the student modules (layout pass, not structure)"},
+  # RFC-0006 phase 7, declined-for-now with rationale: two files in one
+  # git-ignored data/ dir already meet the bar; merge is migration risk.
+  {slug = "single-db-merge", type = "design", source = "rfc/0006", summary = "Merge learning + curriculum stores into one database (deferred; low value, real migration risk)"},
   # Deferred from phase 3a: e2e specs still seed Gold by raw SQL; migrate
   # them onto the reviewed-catalog seeder and drop ODYSSEY_SEED_CATALOG=0
   # from playwright.config.ts.

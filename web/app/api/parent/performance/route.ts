@@ -3,7 +3,7 @@ import {
   listParentChildren,
   requireParentRead,
 } from "../../../../server/identity/identity";
-import { PARENT_PERFORMANCE_CHILD_CAP } from "../../../parent/performance-phrases";
+import { PARENT_PERFORMANCE_CHILD_CAP } from "../../../../modules/parent/performance-phrases";
 import { getParentSafePerformance } from "../../../../server/learning/parent-performance";
 
 /** Returns aggregate Performance only for children with the parent's active links. */
