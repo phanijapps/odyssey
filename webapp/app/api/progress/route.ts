@@ -2,9 +2,9 @@ import {
   createQuestionPool,
   generateLazyQuestion,
   poolProgress,
-  prefetchNextQuestion,
   selectNextQuestion,
 } from "@odyssey/core";
+import type { AtlasNode } from "@odyssey/core";
 import { getStandardsForSelection } from "@odyssey/db";
 import {
   appendSessionPoolQuestion,
@@ -16,7 +16,57 @@ import {
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
 import { textResponseInteraction } from "@odyssey/core";
-import { ollamaQuestionGenerator } from "@odyssey/ai";
+import { generateSkillAtlas } from "@odyssey/ai";
+
+/** Converts an atlas node into a PoolQuestion-shaped session entry. */
+function atlasNodeToPoolQuestion(
+  node: AtlasNode,
+  topicId: string,
+): SessionPool["questions"][number] {
+  return {
+    id: node.id,
+    question: node.question,
+    interaction: node.interaction,
+    answer: node.answer,
+    acceptableAnswers: [...node.acceptableAnswers],
+    hint: node.hint,
+    solution: [...node.solution],
+    diagramSvg: node.diagramSvg,
+    difficulty: node.tier,
+  };
+  void topicId;
+}
+
+/**
+ * Fires ONE background atlas generation call for the skill.
+ * Bank questions serve immediately; atlas nodes append when they land.
+ */
+function launchAtlasBackgroundFetch(
+  request: Request,
+  topicId: string,
+  standards: Standards,
+): void {
+  const standard = standards[0];
+  if (!standard) return;
+  void (async () => {
+    try {
+      const atlas = await generateSkillAtlas({
+        topicId,
+        standardCode: standard.standardCode,
+        standardText: standard.standardText,
+      });
+      if (!atlas) return;
+      for (const node of atlas.nodes) {
+        appendSessionPoolQuestion(
+          request,
+          atlasNodeToPoolQuestion(node, topicId),
+        );
+      }
+    } catch {
+      // Atlas generation is best-effort — bank questions serve fine alone.
+    }
+  })();
+}
 
 type Standards = readonly { standardCode: string; standardText: string }[];
 
@@ -43,12 +93,9 @@ async function claimPracticeQuestion(
       current.topicId !== topicId ||
       (current.mode ?? "practice") !== "practice"
     ) {
-      const created = await createQuestionPool(
-        topicId,
-        standards,
-        "practice",
-        ollamaQuestionGenerator ?? undefined,
-      );
+      // RFC-0009: bank-only pool creation (instant), atlas fires in background
+      const created = await createQuestionPool(topicId, standards, "practice");
+      launchAtlasBackgroundFetch(request, topicId, standards);
       const pool: SessionPool = {
         topicId: created.topicId,
         questions: created.questions,
@@ -91,12 +138,12 @@ async function claimPracticeQuestion(
       // Do not report a temporary prefetch race as pool exhaustion. Fill one
       // remaining slot synchronously, then claim it through the same CAS path.
       if (current.questions.length < current.batchSize) {
+        // RFC-0009: no blocking AI call — the atlas (or bank) fills the pool
         const generated = await generateLazyQuestion(
           topicId,
           current.currentDifficulty as 1 | 2 | 3,
           standards,
           current.questions as never,
-          ollamaQuestionGenerator ?? undefined,
         );
         if (
           generated &&
@@ -192,14 +239,7 @@ export async function GET(request: Request): Promise<Response> {
       { headers: { "Cache-Control": "no-store" } },
     );
 
-  if (claimed.claimed)
-    prefetchNextQuestion(
-      topicId,
-      claimed.pool.currentDifficulty as 1 | 2 | 3,
-      standards,
-      (next) => appendSessionPoolQuestion(request, next),
-      ollamaQuestionGenerator ?? undefined,
-    );
+  // RFC-0009: no post-claim prefetch — the atlas already appended everything
 
   return Response.json(
     {

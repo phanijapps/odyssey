@@ -5,6 +5,13 @@ export {
 } from "./algorithms/question-bank";
 export { checkAnswer } from "./algorithms/grading";
 export {
+  initialAtlasWalk,
+  walkAtlas,
+  type AtlasNode,
+  type SkillAtlas,
+  type AtlasWalkState,
+} from "./algorithms/atlas-walk";
+export {
   reviewedSampleForStandard,
   createQuestionPool,
   generateLazyQuestion,

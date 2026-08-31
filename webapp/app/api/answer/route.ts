@@ -3,8 +3,6 @@ import {
   requireLearnerMutationProof,
 } from "../../../server/identity/identity";
 import { submitPracticeAssignment } from "../../../server/learning/learning";
-import { prefetchNextQuestion } from "@odyssey/core";
-import { ollamaQuestionGenerator } from "@odyssey/ai";
 import { getStandardsForSelection } from "@odyssey/db";
 
 type AnswerSubmission = {
@@ -57,21 +55,15 @@ export async function POST(request: Request): Promise<Response> {
       assignmentToken: body.assignmentToken,
     });
 
+    // RFC-0009: no AI call on answers — the atlas (generated once per skill
+    // selection) or the reviewed bank serves the next question. The answer
+    // route is pure grading + persistence now.
     const [subject = "", grade = "", domain = "", standardCode = ""] =
       body.topicId.split("::");
-    const standards = getStandardsForSelection({ subject, grade, domain });
-
-    // The durable transaction has already cleared the old assignment and
-    // persisted this difficulty before a best-effort next-question prefetch.
-    prefetchNextQuestion(
-      body.topicId,
-      result.nextPracticeDifficulty,
-      standardCode
-        ? standards.filter((standard) => standard.standardCode === standardCode)
-        : standards,
-      (next) => appendSessionPoolQuestion(request, next),
-      ollamaQuestionGenerator ?? undefined,
-    );
+    void standardCode;
+    void subject;
+    void grade;
+    void domain;
 
     const { nextPracticeDifficulty: _nextPracticeDifficulty, ...response } =
       result;

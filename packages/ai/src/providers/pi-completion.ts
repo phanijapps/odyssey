@@ -15,6 +15,54 @@ const MAX_TIMEOUT_MS = 120_000;
 const MAX_MAX_TOKENS = 8_192;
 const models = createModels();
 
+/** Initialized once per process — provider registration is not cheap. */
+let providerReady = false;
+function ensureProvider(): void {
+  if (providerReady) return;
+  models.setProvider(
+    createProvider({
+      id: LOCAL_OLLAMA_PROVIDER,
+      name: "Local Ollama",
+      baseUrl: getOllamaOpenAIUrl(),
+      auth: {
+        apiKey: {
+          name: "Local Ollama",
+          resolve: async () => ({
+            auth: { apiKey: process.env.PI_API_KEY || "ollama" },
+            source: process.env.PI_API_KEY ? "PI_API_KEY" : "local Ollama",
+          }),
+        },
+      },
+      models: [buildModel()],
+      api: openAICompletionsApi(),
+    }),
+  );
+  providerReady = true;
+}
+
+function buildModel(): Model<"openai-completions"> {
+  const baseUrl = getOllamaOpenAIUrl();
+  const modelId = process.env.PI_MODEL;
+  if (!modelId) throw new Error("Ollama model is not configured");
+  return {
+    id: modelId,
+    name: modelId,
+    provider: LOCAL_OLLAMA_PROVIDER,
+    api: "openai-completions",
+    baseUrl,
+    reasoning: false,
+    input: ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 32_768,
+    maxTokens: MAX_MAX_TOKENS,
+    compat: {
+      maxTokensField: "max_tokens",
+      supportsStore: false,
+      supportsUsageInStreaming: false,
+    },
+  };
+}
+
 export type LocalOllamaCompletionRequest = {
   readonly systemPrompt: string;
   readonly messages: readonly string[];
@@ -44,47 +92,8 @@ export async function completeWithLocalOllama(
   const maxTokens = request.maxTokens ?? DEFAULT_MAX_TOKENS;
   assertRequestBounds(timeoutMs, maxTokens);
 
-  const baseUrl = getOllamaOpenAIUrl();
-  const model: Model<"openai-completions"> = {
-    id: modelId,
-    name: modelId,
-    provider: LOCAL_OLLAMA_PROVIDER,
-    api: "openai-completions",
-    baseUrl,
-    reasoning: false,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 32_768,
-    maxTokens: MAX_MAX_TOKENS,
-    compat: {
-      maxTokensField: "max_tokens",
-      supportsStore: false,
-      supportsUsageInStreaming: false,
-    },
-  };
-  models.setProvider(
-    createProvider({
-      id: LOCAL_OLLAMA_PROVIDER,
-      name: "Local Ollama",
-      baseUrl,
-      auth: {
-        apiKey: {
-          name: "Optional local Ollama API key",
-          resolve: async ({ ctx, signal }) => {
-            signal.throwIfAborted();
-            const apiKey = await ctx.env("PI_API_KEY");
-            signal.throwIfAborted();
-            return {
-              auth: { apiKey: apiKey || "ollama" },
-              source: apiKey ? "PI_API_KEY" : "local Ollama",
-            };
-          },
-        },
-      },
-      models: [model],
-      api: openAICompletionsApi(),
-    }),
-  );
+  ensureProvider();
+  const model = buildModel();
 
   const completion = await models.complete(
     model,
@@ -99,9 +108,9 @@ export async function completeWithLocalOllama(
     {
       timeoutMs,
       maxTokens,
-      maxRetries: 0,
+      maxRetries: 1,
       temperature: 0,
-      cacheRetention: "none",
+      cacheRetention: "short",
       samplingParams: { response_format: { type: "json_object" } },
     },
   );
