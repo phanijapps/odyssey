@@ -254,6 +254,13 @@ async function makeQuestion(
   generator?: QuestionGenerator,
 ): Promise<PoolQuestion | null> {
   const standardText = standards?.[0]?.standardText;
+
+  // Bank first: instant when the reviewed bank covers this skill.
+  const bank = makeBankQuestion(topicId, difficulty, existingTexts, standardText);
+  if (bank) return bank;
+
+  // Bank doesn't cover this skill — generator as fallback (one question,
+  // atlas handles everything after this).
   if (generator) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -280,7 +287,7 @@ async function makeQuestion(
       }
     }
   }
-  return makeBankQuestion(topicId, difficulty, existingTexts, standardText);
+  return null;
 }
 
 /** Pre-generates the next question in the background at the given difficulty

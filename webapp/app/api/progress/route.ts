@@ -15,7 +15,7 @@ import {
 } from "../../../server/identity/identity";
 import { getLearningProgress } from "../../../server/learning/learning";
 import { textResponseInteraction } from "@odyssey/core";
-import { generateSkillAtlas } from "@odyssey/ai";
+import { generateSkillAtlas, ollamaQuestionGenerator } from "@odyssey/ai";
 
 /** Converts an atlas node into a PoolQuestion-shaped session entry. */
 function atlasNodeToPoolQuestion(
@@ -110,8 +110,14 @@ async function claimPracticeQuestion(
       current.topicId !== topicId ||
       (current.mode ?? "practice") !== "practice"
     ) {
-      // RFC-0009: bank-only pool creation (instant), atlas fires in background
-      const created = await createQuestionPool(topicId, standards, "practice");
+      // RFC-0009: bank-first pool creation; generator covers skills the bank
+      // doesn't have; atlas fires in background for everything after Q1.
+      const created = await createQuestionPool(
+        topicId,
+        standards,
+        "practice",
+        ollamaQuestionGenerator ?? undefined,
+      );
       launchAtlasBackgroundFetch(request, topicId, standards);
       const pool: SessionPool = {
         topicId: created.topicId,

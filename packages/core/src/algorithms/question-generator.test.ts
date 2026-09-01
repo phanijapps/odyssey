@@ -11,37 +11,54 @@ const generated: GeneratedQuestion = {
   diagramSvg: "",
 };
 
-describe("injected question generator", () => {
-  it("uses the generator's validated question when one is provided", async () => {
+/** A topic the reviewed bank does NOT cover (so the generator is the fallback). */
+const UNCOVERED_TOPIC = "Mathematics::Grade 8::Geometry::8.G.1";
+const UNCOVERED_STANDARD = [
+  {
+    standardCode: "8.G.1",
+    standardText:
+      "Verify experimentally the properties of rotations, reflections, and translations.",
+  },
+];
+
+describe("injected question generator (bank-first, generator-fallback)", () => {
+  it("serves a bank question instantly when the bank covers the skill (generator NOT called)", async () => {
     const generator = vi.fn().mockResolvedValue(generated);
     const pool = await createQuestionPool(
-      "Mathematics::Grade 8::Expressions and Equations::8.EE.6",
+      "ratio", // bank-covered topic
       undefined,
+      "practice",
+      generator,
+    );
+    // Bank question served, generator never fired
+    expect(generator).not.toHaveBeenCalled();
+    expect(pool.questions).toHaveLength(1);
+    expect(pool.questions[0].id).toMatch(/^bank-/);
+  });
+
+  it("uses the generator when the bank does not cover the skill", async () => {
+    const generator = vi.fn().mockResolvedValue(generated);
+    const pool = await createQuestionPool(
+      UNCOVERED_TOPIC,
+      UNCOVERED_STANDARD,
       "practice",
       generator,
     );
     expect(generator).toHaveBeenCalledOnce();
     expect(pool.questions).toHaveLength(1);
     expect(pool.questions[0].question).toBe(generated.question);
-    expect(pool.questions[0].answer).toBe("2");
     expect(pool.questions[0].id).toMatch(/^ai-/);
   });
 
-  it("retries once on transient generator failure, then falls back to the bank", async () => {
+  it("retries the generator once on transient failure for uncovered skills", async () => {
     const generator = vi
       .fn<() => Promise<GeneratedQuestion>>()
       .mockRejectedValueOnce(new Error("timeout"))
       .mockResolvedValue(generated);
     const question = await generateLazyQuestion(
-      "Mathematics::Grade 8::Expressions and Equations::8.EE.6",
+      UNCOVERED_TOPIC,
       2,
-      [
-        {
-          standardCode: "8.EE.6",
-          standardText:
-            "Use similar triangles to explain why the slope m is the same between any two distinct points on a non-vertical line.",
-        },
-      ],
+      UNCOVERED_STANDARD,
       undefined,
       generator,
     );
@@ -49,31 +66,23 @@ describe("injected question generator", () => {
     expect(question?.question).toBe(generated.question);
   });
 
-  it("falls back to a genuinely matching bank question when the generator keeps failing", async () => {
+  it("returns null for uncovered skills when the generator keeps failing", async () => {
     const generator = vi
       .fn<() => Promise<GeneratedQuestion>>()
       .mockRejectedValue(new Error("down"));
     const question = await generateLazyQuestion(
-      "Mathematics::Grade 8::Expressions and Equations::8.EE.6",
+      UNCOVERED_TOPIC,
       2,
-      [
-        {
-          standardCode: "8.EE.6",
-          standardText:
-            "Use similar triangles to explain why the slope m is the same between any two distinct points on a non-vertical line.",
-        },
-      ],
+      UNCOVERED_STANDARD,
       undefined,
       generator,
     );
     expect(generator).toHaveBeenCalledTimes(2);
-    expect(question).not.toBeNull();
-    expect(question?.question.toLowerCase()).toContain("slope");
+    expect(question).toBeNull();
   });
 
-  it("never calls a generator that is not provided", async () => {
-    const question = await generateLazyQuestion("ratio", 2);
-    expect(question).not.toBeNull();
-    expect(question?.id).toMatch(/^bank-/);
+  it("returns null for uncovered skills with no generator", async () => {
+    const question = await generateLazyQuestion(UNCOVERED_TOPIC, 2);
+    expect(question).toBeNull();
   });
 });
