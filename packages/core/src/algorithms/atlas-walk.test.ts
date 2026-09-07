@@ -42,6 +42,41 @@ const atlas: SkillAtlas = {
 };
 
 describe("atlas growth walk", () => {
+  it("starts with a foundational node even when the model orders challenges first", () => {
+    const shuffled = {
+      ...atlas,
+      nodes: [atlas.nodes[3], ...atlas.nodes.slice(0, 3)],
+    };
+    expect(
+      walkAtlas(shuffled, initialAtlasWalk(shuffled), true).node?.tier,
+    ).toBe(1);
+  });
+
+  it("does not select a node whose declared prerequisites have not been practiced", () => {
+    const prerequisiteAtlas: SkillAtlas = {
+      ...atlas,
+      nodes: [
+        node("a1", "rates", 1),
+        { ...node("a2", "rates", 2), unlocksAfter: ["b1"] },
+        node("b1", "fractions", 1),
+      ],
+    };
+    const first = walkAtlas(
+      prerequisiteAtlas,
+      initialAtlasWalk(prerequisiteAtlas),
+      true,
+    );
+    expect(walkAtlas(prerequisiteAtlas, first.state, true).node?.id).toBe("b1");
+  });
+
+  it("returns no node when remaining prerequisites are unavailable", () => {
+    const blocked = {
+      ...atlas,
+      nodes: [{ ...node("locked", "rates", 1), unlocksAfter: ["missing"] }],
+    };
+    expect(walkAtlas(blocked, initialAtlasWalk(blocked), true).node).toBeNull();
+  });
+
   it("starts at tier 1 and walks deeper on correct answers", () => {
     let state = initialAtlasWalk(atlas);
     expect(state.currentTier).toBe(1);

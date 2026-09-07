@@ -17,6 +17,7 @@ docs/specs/<feature>/
 
 | Spec | Status | Constrained by | Notes |
 | --- | --- | --- | --- |
+| [question-atlas-repair](question-atlas-repair/spec.md) | Shipped | Existing practice contracts | Bounded atlas generation, atomic session handoff, answer-driven walking and honest terminal states |
 | [curriculum-deep-agent](curriculum-deep-agent/spec.md) | Draft | ADR-0001, ADR-0003, ADR-0004, RFC-0002 | Bounded curriculum-document workflow; successor to curriculum-ingestion |
 | [test-catalog](test-catalog/spec.md) | Draft | RFC-0004 | Green-field governance domain; T1 policy approval is the entry gate |
 

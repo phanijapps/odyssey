@@ -11,6 +11,8 @@ const curriculumDatabasePath = e2eCurriculumDatabasePath;
 
 export default defineConfig({
   testDir: "./playwright",
+  // Atlas exercises the production bundle and its own deterministic provider.
+  testIgnore: "practice-atlas.spec.ts",
   globalSetup: "./playwright/global-setup.ts",
   fullyParallel: false,
   // A cold dev-server compile of the first route can consume most of the

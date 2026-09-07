@@ -1,9 +1,5 @@
-import {
-  appendSessionPoolQuestion,
-  requireLearnerMutationProof,
-} from "../../../server/identity/identity";
+import { requireLearnerMutationProof } from "../../../server/identity/identity";
 import { submitPracticeAssignment } from "../../../server/learning/learning";
-import { getStandardsForSelection } from "@odyssey/db";
 
 type AnswerSubmission = {
   topicId: string;
@@ -27,7 +23,7 @@ function parseAnswerSubmission(body: unknown): AnswerSubmission {
   if (
     typeof candidate.topicId !== "string" ||
     candidate.topicId.length === 0 ||
-    candidate.topicId.length > 100 ||
+    candidate.topicId.length > 300 ||
     typeof candidate.answer !== "string" ||
     candidate.answer.length === 0 ||
     candidate.answer.length > 100 ||
@@ -54,16 +50,6 @@ export async function POST(request: Request): Promise<Response> {
       answer: body.answer,
       assignmentToken: body.assignmentToken,
     });
-
-    // RFC-0009: no AI call on answers — the atlas (generated once per skill
-    // selection) or the reviewed bank serves the next question. The answer
-    // route is pure grading + persistence now.
-    const [subject = "", grade = "", domain = "", standardCode = ""] =
-      body.topicId.split("::");
-    void standardCode;
-    void subject;
-    void grade;
-    void domain;
 
     const { nextPracticeDifficulty: _nextPracticeDifficulty, ...response } =
       result;

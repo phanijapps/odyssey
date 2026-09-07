@@ -11,15 +11,13 @@
 .
 ├── AGENTS.md             # canonical contributor instructions
 ├── CLAUDE.md             # points to AGENTS.md
-├── apps/
-│   └── web/              # the one deployable Next.js application
-│       ├── app/          # thin routes: pages + App Router handlers
-│       ├── modules/      # screens the cal.com way (practice, assessment,
-│       │                 # parent, admin) — the unit of organization
-│       ├── components/   # reusable browser components
-│       ├── server/       # web-owned services (identity, learning)
-│       ├── playwright/   # Playwright end-to-end suite
-│       └── tests/        # Vitest setup
+├── webapp/               # the one deployable Next.js application
+│   ├── app/              # pages and App Router handlers
+│   ├── modules/          # practice, assessment, parent, admin screens
+│   ├── components/       # reusable browser components
+│   ├── server/           # identity and learning orchestration
+│   ├── playwright/       # end-to-end suite
+│   └── tests/            # Vitest setup
 ├── packages/
 │   ├── core/             # pure learning domain (algorithms, curriculum,
 │   │                     # validators) — absorbs the former practice-engine
@@ -44,18 +42,18 @@
 └── .agents/workspace.toml        # work coordination
 ```
 
-There is no `packages/` source boundary. The former curriculum package was
-collapsed into the web app's `server/curriculum/` because it has one deployable
-consumer.
+The workspace manifest includes `webapp` and `packages/*`. Shared core, database,
+and AI code have explicit package exports; web-owned orchestration remains in
+`webapp/server/`.
 
 ## Runtime shape
 
 One Next.js process serves browser pages and same-origin route handlers. Route
 handlers validate their transport input, establish the caller's server-side
-session scope where required, and call focused `src/server/` modules. Browser
+session scope where required, and call focused `webapp/server/` modules. Browser
 code does not import those modules.
 
-`@earendil-works/pi-ai` is used only by `src/server/pi-completion.ts` for
+`packages/ai/src/providers/pi-completion.ts` uses `@earendil-works/pi-ai` for
 bounded, stateless text completion against the configured local OpenAI-compatible
 Ollama endpoint. It has no tools, agent loop, filesystem access, database access,
 or authorization authority. `pi-agent-core` and A2UI are not runtime
@@ -68,23 +66,25 @@ See [`application.md`](application.md#runtime-and-data-flow) for the full flow.
 
 - `packages/db/src/client.ts` is the sole owner of SQLite connection
   policy and ordered migrations. It opens the learning and curriculum stores
-  under `app/data/` (git-ignored; see that directory's README).
-- `web/server/learning/` owns formative practice state, attempts, and
-  assessment records. Assessment results are retained separately from practice
-  progression; history returns a redacted timeline.
-- `web/server/curriculum/` owns the reviewed catalog: the versioned JSON seed
-  (`data/ohio-catalog.json`), its idempotent hash-guarded seeder, Gold reads,
-  and browse/search. There is no runtime ingestion workflow; catalog changes
-  are reviewed code changes.
-- `web/server/agent/` owns question selection (the adaptive pool over the
-  reviewed bank) and the bounded Ollama completion/validation boundary used
-  only as an optional internal fallback.
+  under repo-root `data/` (git-ignored; see that directory's README).
+- `webapp/server/learning/` owns practice orchestration, attempts and assessment
+  lifecycle. `packages/db/src/repositories/learning.ts` owns persistence;
+  assessment results remain separate from practice progression.
+- `packages/core/src/curriculum/data/ohio-catalog.json` is the reviewed catalog
+  source. `packages/db/src/catalog-seed.ts` seeds it idempotently;
+  `packages/db/src/repositories/` owns Gold reads and browse/search.
+- `packages/core/src/algorithms/` owns reviewed-bank selection, atlas walking and
+  grading. `packages/ai/src/` owns optional bounded generation and validation.
+- `webapp/server/identity/identity.ts` owns the session pool, generation identity,
+  walk state and active assignment. The progress route conditionally claims and
+  updates that state; the learning service consumes answers transactionally.
 
 ## Retention and erasure
 
 - **Learner history — retained.** SQLite practice progression, redacted practice
   attempts, and terminal assessment records are retained locally. There is no
-  automatic history purge, and no reset/export feature exists yet.
+  automatic history purge or reset feature. Parents can export linked-child
+  progress through the parent portal.
 - **Active assessments — retained.** An active assessment is never selected for
   automatic deletion; it remains resumable until the learner explicitly reaches
   a terminal lifecycle state.
@@ -102,11 +102,20 @@ See [`application.md`](application.md#runtime-and-data-flow) for the full flow.
 
 Browse and text search read the seeded curriculum tree.
 
-Practice and assessment obtain a server-owned question from the reviewed bank.
-When local generation is enabled, the adaptive pool supplies scoped standard
-data to the Pi AI completion boundary, validates the structured result and
-SVG, and otherwise falls back to a matching reviewed question or reports
-unavailability. Generated content never touches curriculum records.
+Practice begins with a matching reviewed-bank question when available. For one
+reviewed standard with generation enabled, the winning pool creation launches
+one bounded background atlas request. Its prompt contains standard code and text,
+never learner state. Accepted nodes cover at least two concepts and all tiers;
+the walker starts at tier 1, deepens/widens after correct answers, and prefers
+fresh siblings after incorrect answers. Generated prerequisite edges are absent.
+
+Conditional session writes preserve the active question and accepted answers
+when a batch arrives. Generation identity rejects late results after a skill
+switch, restart or session end. Pending work expires after 240 seconds; ordinary
+reads do not restart failed or completed batches. Explicit restart creates a new
+round only once the current round is terminal and has no active assignment.
+Answers never call a model. Assessments retain their separate preparation path.
+Generated content never touches curriculum records.
 
 ## Access and routes
 
@@ -115,7 +124,7 @@ checks. Learner practice and assessment reads are learner-scoped; their
 mutations require the shared learner mutation proof. Curriculum administration
 requires the admin role. Browse and search reads are currently open.
 Parent-named routes require the parent role and are scoped to that parent's
-active child links. The complete public route inventory is in
+active child links. The core learning route contracts are in
 [`application.md`](application.md#public-route-contracts).
 
 ## Where to start

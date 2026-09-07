@@ -1003,6 +1003,17 @@ export async function runProtectedMutation<T>(
    ============================================================ */
 
 export type SessionPool = {
+  /** Identifies one generation attempt, including a restart of the same skill. */
+  generation?: {
+    id: string;
+    status: "pending" | "ready" | "failed";
+    startedAt: number;
+  };
+  atlas?: import("@odyssey/core").SkillAtlas;
+  atlasWalk?: import("@odyssey/core").AtlasWalkState;
+  lastAtlasCorrect?: boolean;
+  /** No further bank questions can be served in this round. */
+  exhausted?: boolean;
   topicId: string;
   questions: readonly {
     id: string;

@@ -25,6 +25,24 @@
 # RFC-0006 simplification: the phased cut-down to a three-persona app.
 # Phases land in order 1→7; each gates on typecheck+test+lint.
 open = [
+  # Question-atlas audit: unchanged lockfile reports four high fast-uri and
+  # two moderate qs advisories. Remediate transitives in a separately verified
+  # dependency change; see docs/product/technical-debt.md for advisory links.
+  {slug = "pre-existing-dependency-audit", source = "pre-flight/2026-09-07", summary = "Remediate six existing transitive dependency advisories and verify compatibility"},
+  # The bank uses broad keyword matching and repeats exhausted entries. A
+  # reviewed standard-to-question mapping needs curriculum coverage/content
+  # assessment before changing the fallback selection policy.
+  {slug = "reviewed-bank-coverage", type = "research", source = "spec/question-atlas-repair", summary = "Audit reviewed bank coverage and define precise standard-to-question mappings"},
+  # RFC-0009 is still Draft despite older implementation commits; agent policy
+  # files retain removed package/module paths. Resolve through governance,
+  # preserving frozen history rather than asserting historical approval.
+  {slug = "atlas-governance-reconciliation", source = "spec/question-atlas-repair", summary = "Reconcile atlas proposal status and obsolete agent-context architecture references"},
+  # The environment template claims package-relative DB defaults although the
+  # actual client anchors repo-root data/. This is separate from runtime fixes.
+  {slug = "environment-template-data-root", source = "spec/question-atlas-repair", summary = "Correct database-root descriptions in the environment template"},
+  # No answer route calls the old prefetch export. Verify all consumers before
+  # removing its public core export and obsolete compatibility helpers.
+  {slug = "retire-question-prefetch-api", source = "spec/question-atlas-repair", summary = "Review callers and retire the obsolete question-prefetch API"},
   # Deferred from RFC-0006 phases 2-3 review: dead CSS for removed surfaces
   # (.semantic-btn styles.css ~1466, .kg-edge ~1691, .graph3d-* ~2129-2204).
   {slug = "rfc0006-surface-cleanup-css", source = "spec/rfc0006-simplification T5", summary = "Remove dead CSS for removed semantic-search, KG, and 3D-graph surfaces"},

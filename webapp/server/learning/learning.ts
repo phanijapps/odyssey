@@ -145,6 +145,7 @@ type StoredPracticePool = {
   questions: readonly PracticePoolQuestion[];
   currentDifficulty: number;
   activeAssignment?: { questionId: string; token: string };
+  atlasWalk?: import("@odyssey/core").AtlasWalkState;
   [key: string]: unknown;
 };
 
@@ -279,13 +280,16 @@ export function submitPracticeAssignment(input: {
       .run(input.childId, input.topicId, nextLevel, correctStreak, createdAt);
 
     const nextPracticeDifficulty = (
-      correct
-        ? Math.min(3, pool.currentDifficulty + 1)
-        : Math.max(1, pool.currentDifficulty - 1)
+      pool.atlasWalk
+        ? pool.currentDifficulty
+        : correct
+          ? Math.min(3, pool.currentDifficulty + 1)
+          : Math.max(1, pool.currentDifficulty - 1)
     ) as 1 | 2 | 3;
     const updatedPool = {
       ...pool,
       currentDifficulty: nextPracticeDifficulty,
+      ...(pool.atlasWalk ? { lastAtlasCorrect: correct } : {}),
       activeAssignment: undefined,
     };
     const consumed = learningDb

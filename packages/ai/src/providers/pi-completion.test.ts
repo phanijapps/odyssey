@@ -12,16 +12,71 @@ const environment = {
 };
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   restoreEnvironment("PI_MODEL", environment.model);
   restoreEnvironment("PI_API_KEY", environment.apiKey);
   restoreEnvironment("OLLAMA_OPENAI_URL", environment.url);
 });
 
+test("aborts a streaming completion at the overall deadline", async () => {
+  vi.useFakeTimers();
+  process.env.PI_MODEL = "local-test-model";
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: string, options: RequestInit) => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(
+              'data: {"choices":[{"delta":{"content":"{"},"finish_reason":null}]}\n\n',
+            ),
+          );
+          options.signal?.addEventListener("abort", () => {
+            controller.error(new DOMException("Aborted", "AbortError"));
+          });
+        },
+      });
+      return new Response(stream, {
+        headers: { "content-type": "text/event-stream" },
+      });
+    }),
+  );
+  const result = expect(
+    completeWithLocalOllama({
+      systemPrompt: "Return JSON only.",
+      messages: ["Complete the batch."],
+      timeoutMs: 20,
+    }),
+  ).rejects.toBeInstanceOf(LocalOllamaCompletionError);
+  await vi.advanceTimersByTimeAsync(25);
+  await result;
+});
+
 function restoreEnvironment(name: string, value: string | undefined): void {
   if (value === undefined) delete process.env[name];
   else process.env[name] = value;
 }
+
+test("retries a transport failure at most once within the overall deadline", async () => {
+  vi.useFakeTimers();
+  process.env.PI_MODEL = "local-test-model";
+  const fetch = vi.fn(async () =>
+    Response.json({ error: { message: "Temporary failure" } }, { status: 503 }),
+  );
+  vi.stubGlobal("fetch", fetch);
+  const result = expect(
+    completeWithLocalOllama({
+      systemPrompt: "Return JSON only.",
+      messages: ["Complete the batch."],
+      timeoutMs: 2_000,
+    }),
+  ).rejects.toBeInstanceOf(LocalOllamaCompletionError);
+  await vi.advanceTimersByTimeAsync(2_001);
+  await result;
+  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(vi.getTimerCount()).toBe(0);
+});
 
 function completionResponse(text: string): Response {
   const body = [
@@ -74,6 +129,7 @@ test("uses Pi's OpenAI-completions contract with loopback-only bounded requests"
     max_tokens: 4_096,
     temperature: 0,
     response_format: { type: "json_object" },
+    reasoning_effort: "low",
     messages: [
       { role: "system", content: "Return JSON only." },
       { role: "user", content: "First input" },

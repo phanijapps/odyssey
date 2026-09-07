@@ -256,7 +256,12 @@ async function makeQuestion(
   const standardText = standards?.[0]?.standardText;
 
   // Bank first: instant when the reviewed bank covers this skill.
-  const bank = makeBankQuestion(topicId, difficulty, existingTexts, standardText);
+  const bank = makeBankQuestion(
+    topicId,
+    difficulty,
+    existingTexts,
+    standardText,
+  );
   if (bank) return bank;
 
   // Bank doesn't cover this skill — generator as fallback (one question,

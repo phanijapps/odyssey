@@ -20,4 +20,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm --filter child-math-app exec playwright install --with-deps chromium
+      - run: pnpm --filter child-math-app exec playwright test --config playwright/atlas.config.ts
       - run: pnpm --filter child-math-app test:e2e

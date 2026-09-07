@@ -65,6 +65,7 @@ export function StudentScreen() {
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
   const [questionFailed, setQuestionFailed] = useState(false);
+  const [poolExhausted, setPoolExhausted] = useState(false);
   const [question, setQuestion] = useState("");
   /** Opaque server-issued binding for the displayed Practice question. */
   const [assignmentToken, setAssignmentToken] = useState<string | null>(null);
@@ -88,6 +89,13 @@ export function StudentScreen() {
 
   const progressVersion = useRef(0);
   const allStandardsRef = useRef<FlatStandard[]>([]);
+
+  useEffect(
+    () => () => {
+      progressVersion.current += 1;
+    },
+    [],
+  );
 
   /* ---- Data loading ---- */
 
@@ -249,7 +257,11 @@ export function StudentScreen() {
 
   /* ---- Skill selection → practice ---- */
 
-  async function selectSkill(skill: FlatStandard, requestedMode: Mode = mode) {
+  async function selectSkill(
+    skill: FlatStandard,
+    requestedMode: Mode = mode,
+    restart = false,
+  ) {
     if (requestedMode === "test") {
       if (assessment?.status === "active") return;
       setTestSelectedIds((selected) =>
@@ -262,6 +274,7 @@ export function StudentScreen() {
       return;
     }
     const version = ++progressVersion.current;
+    setIsSubmittingAnswer(false);
     setActiveSkill(skill);
     setFeedback(null);
     setResult(null);
@@ -277,6 +290,19 @@ export function StudentScreen() {
     } catch {
       /* ignore */
     }
+    setPoolPos(0);
+    setPoolTotal(0);
+    await loadPracticeQuestion(skill, requestedMode, version, restart);
+  }
+
+  /** Loads or polls one assignment for either a skill selection or Next action. */
+  async function loadPracticeQuestion(
+    skill: FlatStandard,
+    requestedMode: Mode,
+    version: number,
+    restart = false,
+  ): Promise<void> {
+    setPoolExhausted(false);
     try {
       const params = new URLSearchParams({
         subject: skill.subject,
@@ -285,32 +311,46 @@ export function StudentScreen() {
         standard: skill.standardCode,
         topicId: composeTopicId(skill),
         mode: requestedMode,
+        ...(restart ? { restart: "1" } : {}),
       });
-      const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
-      if (progressVersion.current !== version) return;
-      if (!res.ok) {
-        setQuestion("");
-        setQuestionFailed(true);
+      const startedAt = Date.now();
+      while (progressVersion.current === version) {
+        const res = await fetch(`/api/progress?${params}`, {
+          cache: "no-store",
+        });
+        if (progressVersion.current !== version) return;
+        if (!res.ok) throw new Error("Question unavailable");
+        const d = await res.json();
+        if (progressVersion.current !== version) return;
+        if (d.questionPending) {
+          setQuestion("Preparing your questions…");
+          if (Date.now() - startedAt >= 240_000)
+            throw new Error("Question unavailable");
+          // Restart is a single explicit action, never repeated by polling.
+          params.delete("restart");
+          await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+          continue;
+        }
+        setCorrectStreak(d.correctStreak ?? 0);
+        setPoolPos(d.poolProgress?.position ?? 0);
+        setPoolTotal(d.poolProgress?.total ?? 0);
+        setPoolDifficulty(d.poolProgress?.difficulty ?? 2);
+        if (d.nextQuestion?.question) {
+          setQuestion(d.nextQuestion.question);
+          setAssignmentToken(
+            typeof d.nextQuestion.assignmentToken === "string"
+              ? d.nextQuestion.assignmentToken
+              : null,
+          );
+          setInteraction(d.nextQuestion.interaction ?? null);
+          setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
+        } else if (d.poolExhausted) {
+          setQuestion("");
+          setPoolExhausted(true);
+        } else {
+          throw new Error("Question unavailable");
+        }
         return;
-      }
-      const d = await res.json();
-      if (progressVersion.current !== version) return;
-      setCorrectStreak(d.correctStreak ?? 0);
-      setPoolPos(d.poolProgress?.position ?? 0);
-      setPoolTotal(d.poolProgress?.total ?? 0);
-      setPoolDifficulty(d.poolProgress?.difficulty ?? 2);
-      if (d.nextQuestion?.question) {
-        setQuestion(d.nextQuestion.question);
-        setAssignmentToken(
-          typeof d.nextQuestion.assignmentToken === "string"
-            ? d.nextQuestion.assignmentToken
-            : null,
-        );
-        setInteraction(d.nextQuestion.interaction ?? null);
-        setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
-      } else {
-        setQuestion("");
-        setQuestionFailed(true);
       }
     } catch {
       if (progressVersion.current === version) {
@@ -402,45 +442,8 @@ export function StudentScreen() {
     setAssignmentToken(null);
     setInteraction(null);
     setDiagramSvg(null);
-    try {
-      const params = new URLSearchParams({
-        subject: skill.subject,
-        grade: skill.grade,
-        domain: skill.domain,
-        standard: skill.standardCode,
-        topicId: composeTopicId(skill),
-        mode: requestedMode,
-      });
-      const res = await fetch(`/api/progress?${params}`, { cache: "no-store" });
-      if (progressVersion.current !== version) return;
-      if (!res.ok) {
-        setQuestion("");
-        setQuestionFailed(true);
-        return;
-      }
-      const d = await res.json();
-      if (progressVersion.current !== version) return;
-      if (d.nextQuestion?.question) {
-        setQuestion(d.nextQuestion.question);
-        setAssignmentToken(
-          typeof d.nextQuestion.assignmentToken === "string"
-            ? d.nextQuestion.assignmentToken
-            : null,
-        );
-        setInteraction(d.nextQuestion.interaction ?? null);
-        setDiagramSvg(d.nextQuestion.diagramSvg ?? null);
-      } else {
-        setQuestion("");
-        setQuestionFailed(true);
-      }
-    } catch {
-      if (progressVersion.current === version) {
-        setQuestion("");
-        setQuestionFailed(true);
-      }
-    } finally {
-      if (progressVersion.current === version) setIsLoadingQuestion(false);
-    }
+    setAnswer("");
+    await loadPracticeQuestion(skill, requestedMode, version);
   }
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
@@ -518,6 +521,8 @@ export function StudentScreen() {
   }
 
   function switchMode(next: Mode) {
+    progressVersion.current += 1;
+    setIsSubmittingAnswer(false);
     setMode(next);
     try {
       window.localStorage.setItem(MODE_KEY, next);
@@ -878,10 +883,11 @@ export function StudentScreen() {
             poolTotal={poolTotal}
             question={question}
             questionFailed={questionFailed}
+            poolExhausted={poolExhausted}
             result={result}
             onAnswerChange={setAnswer}
             onNextQuestion={() => void nextQuestion()}
-            onRetry={() => void selectSkill(activeSkill)}
+            onRetry={() => void selectSkill(activeSkill, "practice", true)}
             onSubmitAnswer={submitAnswer}
           />
         ) : (
