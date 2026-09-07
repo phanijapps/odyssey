@@ -93,6 +93,10 @@ All findings above were applied and the affected gates rerun.
 
 ## Known limitations and follow-up
 
+The first remote checks stopped during package-manager setup because the
+workflows declared pnpm `10` while `package.json` pins `10.0.0`. Both workflows
+now use the manifest's existing pin; no dependency version was changed.
+
 The dependency audit exits 1 with four high and two moderate pre-existing
 transitive advisories; the lockfile is unchanged. It is not a clean security scan.
 The [technical-debt register](../../product/technical-debt.md) records those
