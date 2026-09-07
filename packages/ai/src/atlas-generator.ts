@@ -1,6 +1,7 @@
 import { completeWithLocalOllama } from "./providers/pi-completion";
 import { getAtlasInstruction } from "./prompts/atlas-instruction";
-import { validateGeneratedQuestionText } from "./agent";
+import { isOllamaConfigured, validateGeneratedQuestionText } from "./agent";
+import { ATLAS_PROMPT_VERSION } from "./prompts/atlas-instruction";
 import { sanitizeGeneratedDiagramSvg } from "@odyssey/core";
 import {
   textResponseInteraction,
@@ -8,28 +9,17 @@ import {
 } from "@odyssey/core";
 import type { AtlasNode, SkillAtlas } from "@odyssey/core";
 
-/** Raw node as the model returns it (pre-validation, pre-id assignment). */
-type RawAtlasNode = {
-  concept: string;
-  tier: number;
-  question: string;
-  answer: string;
-  acceptableAnswers: string[];
-  hint: string;
-  solution: string[];
-  diagramSvg: string;
-};
-
 /**
  * Generates a complete skill atlas in ONE completion call.
  * Validates every node; prunes invalid nodes rather than discarding the set.
- * Returns null if fewer than 4 nodes survive validation.
+ * Returns null unless the surviving batch covers two concepts and all tiers.
  */
 export async function generateSkillAtlas(input: {
   topicId: string;
   standardCode: string;
   standardText: string;
 }): Promise<SkillAtlas | null> {
+  if (!isOllamaConfigured()) return null;
   const content = await completeWithLocalOllama({
     systemPrompt: getAtlasInstruction(input.standardCode, input.standardText),
     messages: [`Generate the practice atlas for ${input.standardCode} now.`],
@@ -37,7 +27,8 @@ export async function generateSkillAtlas(input: {
     maxTokens: 16_384,
   });
 
-  let parsed: { nodes?: RawAtlasNode[] };
+  if (content.length > 320_000) return null;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(
       content
@@ -48,81 +39,117 @@ export async function generateSkillAtlas(input: {
   } catch {
     return null;
   }
-  if (!Array.isArray(parsed.nodes) || parsed.nodes.length < 4) return null;
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed) ||
+    Object.keys(parsed).length !== 1 ||
+    !("nodes" in parsed) ||
+    !Array.isArray(parsed.nodes) ||
+    parsed.nodes.length < 4 ||
+    parsed.nodes.length > 15
+  )
+    return null;
 
   const seen = new Set<string>();
   const nodes: AtlasNode[] = [];
   for (const raw of parsed.nodes) {
-    const validated = validateAtlasNode(raw, seen);
+    const validated = validateAtlasNode(raw, seen, nodes.length);
     if (validated) {
       seen.add(validated.question);
       nodes.push(validated);
     }
   }
 
-  if (nodes.length < 4) return null;
-  return { topicId: input.topicId, revision: "atlas-v1", nodes };
+  if (
+    nodes.length < 4 ||
+    new Set(nodes.map((node) => node.concept)).size < 2 ||
+    new Set(nodes.map((node) => node.tier)).size !== 3
+  )
+    return null;
+  return { topicId: input.topicId, revision: ATLAS_PROMPT_VERSION, nodes };
 }
 
 /** Validates and normalizes one raw node; returns null if it fails any check. */
 function validateAtlasNode(
-  raw: RawAtlasNode,
+  raw: unknown,
   seenQuestions: Set<string>,
+  index: number,
 ): AtlasNode | null {
-  if (!raw || typeof raw !== "object") return null;
-  if (typeof raw.concept !== "string" || raw.concept.length < 3) return null;
-  if (![1, 2, 3].includes(raw.tier)) return null;
-  if (typeof raw.question !== "string") return null;
-  if (typeof raw.answer !== "string" || !raw.answer.trim()) return null;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const fields = [
+    "concept",
+    "tier",
+    "question",
+    "answer",
+    "acceptableAnswers",
+    "hint",
+    "solution",
+    "diagramSvg",
+  ];
+  if (
+    Object.keys(raw).length !== fields.length ||
+    Object.keys(raw).some((key) => !fields.includes(key))
+  )
+    return null;
+  const node = raw as Record<string, unknown>;
+  if (
+    !boundedText(node.concept, 3, 60) ||
+    (node.tier !== 1 && node.tier !== 2 && node.tier !== 3) ||
+    !boundedText(node.question, 20, 400) ||
+    !boundedText(node.answer, 1, 100) ||
+    !boundedText(node.hint, 10, 200) ||
+    !Array.isArray(node.acceptableAnswers) ||
+    node.acceptableAnswers.length > 5 ||
+    !node.acceptableAnswers.every((answer): answer is string =>
+      boundedText(answer, 1, 100),
+    ) ||
+    !Array.isArray(node.solution) ||
+    node.solution.length < 2 ||
+    node.solution.length > 5 ||
+    !node.solution.every((step): step is string => boundedText(step, 1, 120)) ||
+    typeof node.diagramSvg !== "string" ||
+    node.diagramSvg.length > 20_000
+  )
+    return null;
 
   try {
-    validateGeneratedQuestionText(raw.question);
+    validateGeneratedQuestionText(node.question);
   } catch {
     return null;
   }
-  if (seenQuestions.has(raw.question)) return null;
-
-  const solution = Array.isArray(raw.solution)
-    ? raw.solution
-        .filter((s: unknown): s is string => typeof s === "string")
-        .map((s: string) => s.slice(0, 200))
-    : [];
-  if (solution.length < 1 || solution.length > 5) return null;
-
-  const acceptableAnswers = Array.isArray(raw.acceptableAnswers)
-    ? raw.acceptableAnswers.filter(
-        (a: unknown): a is string => typeof a === "string",
-      )
-    : [];
-
-  const safeDiagram =
-    typeof raw.diagramSvg === "string" && raw.diagramSvg.length > 10
-      ? sanitizeGeneratedDiagramSvg(raw.diagramSvg)
-      : "";
-
+  if (seenQuestions.has(node.question)) return null;
+  const safeDiagram = node.diagramSvg
+    ? sanitizeGeneratedDiagramSvg(node.diagramSvg)
+    : "";
+  if (node.diagramSvg && !safeDiagram) return null;
   const interaction: LearnerQuestionInteraction = textResponseInteraction(
-    raw.question,
+    node.question,
   );
-
   return {
-    id: `atlas-${raw.concept.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${raw.tier}-${nodes_safeId()}`,
-    concept: raw.concept.slice(0, 60),
-    tier: raw.tier as 1 | 2 | 3,
-    question: raw.question,
+    id: `atlas-${index + 1}`,
+    concept: node.concept,
+    tier: node.tier,
+    question: node.question,
     interaction,
-    answer: raw.answer.slice(0, 120),
-    acceptableAnswers,
-    hint:
-      typeof raw.hint === "string" && raw.hint.length >= 10
-        ? raw.hint.slice(0, 200)
-        : "Think about what the question is really asking.",
-    solution,
+    answer: node.answer,
+    acceptableAnswers: node.acceptableAnswers,
+    hint: node.hint,
+    solution: node.solution,
     diagramSvg: safeDiagram,
   };
 }
 
-let idCounter = 0;
-function nodes_safeId(): string {
-  idCounter += 1;
-  return `${Date.now().toString(36)}-${idCounter}`;
+/** Checks field bounds without changing the model's answer or question text. */
+function boundedText(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): value is string {
+  return (
+    typeof value === "string" &&
+    value.length >= minimum &&
+    value.length <= maximum &&
+    value.trim().length > 0
+  );
 }

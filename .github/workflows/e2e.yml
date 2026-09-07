@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -20,4 +18,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm --filter child-math-app exec playwright install --with-deps chromium
+      - run: pnpm --filter child-math-app exec playwright test --config playwright/atlas.config.ts
       - run: pnpm --filter child-math-app test:e2e

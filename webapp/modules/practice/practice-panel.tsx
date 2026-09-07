@@ -18,6 +18,7 @@ type PracticePanelProps = {
   poolTotal: number;
   question: string;
   questionFailed: boolean;
+  poolExhausted: boolean;
   result: AnswerResult | null;
   onAnswerChange: (answer: string) => void;
   onNextQuestion: () => void;
@@ -40,6 +41,7 @@ export function PracticePanel({
   poolTotal,
   question,
   questionFailed,
+  poolExhausted,
   result,
   onAnswerChange,
   onNextQuestion,
@@ -56,13 +58,20 @@ export function PracticePanel({
         </div>
         <div className="practice-meta">
           {poolTotal > 0 && (
-            <div className="pool-bar">
-              {Array.from({ length: poolTotal }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`pool-dot ${i < poolPos ? "done" : i === poolPos ? "current" : ""}`}
-                />
-              ))}
+            <div>
+              <span>
+                {poolExhausted
+                  ? "Round complete"
+                  : `Question ${poolPos} of ${poolTotal}`}
+              </span>
+              <div className="pool-bar" aria-hidden="true">
+                {Array.from({ length: poolTotal }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`pool-dot ${i < poolPos - (result || poolExhausted ? 0 : 1) ? "done" : i === poolPos - 1 ? "current" : ""}`}
+                  />
+                ))}
+              </div>
             </div>
           )}
           <span className={`diff-badge diff-${poolDifficulty}`}>
@@ -78,11 +87,19 @@ export function PracticePanel({
 
       <div className="question-card">
         <div className="question-copy">
-          {questionFailed ? (
+          {poolExhausted ? (
+            <div className="retry-panel">
+              <h2>Practice round complete</h2>
+              <p>You practiced {poolPos} questions. Ready for another round?</p>
+              <button className="primary-button" onClick={onRetry}>
+                Start another round
+              </button>
+            </div>
+          ) : questionFailed ? (
             <div className="retry-panel">
               <p className="retry-message">
-                We couldn&rsquo;t generate a question for this skill just now.
-                The local model may be busy — try again.
+                We couldn&rsquo;t load a question for this skill. Try again in a
+                moment.
               </p>
               <button className="primary-button" onClick={onRetry}>
                 Try again
@@ -94,7 +111,10 @@ export function PracticePanel({
                 <MathText>{question}</MathText>
               </h2>
               {isLoadingQuestion ? (
-                <p className="loading-text">Loading your question…</p>
+                <p className="loading-text" role="status">
+                  Getting your practice ready. You can choose another skill
+                  while you wait.
+                </p>
               ) : result ? (
                 <>
                   <div

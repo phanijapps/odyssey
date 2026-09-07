@@ -17,7 +17,7 @@ export type AtlasNode = {
   readonly diagramSvg: string;
 };
 
-/** A generated tree of 10-15 practice questions for one standard. */
+/** A generated tree of 4–15 practice questions for one standard. */
 export type SkillAtlas = {
   readonly topicId: string;
   readonly revision: string;
@@ -55,10 +55,28 @@ export function walkAtlas(
   state: AtlasWalkState,
   lastCorrect: boolean,
 ): { node: AtlasNode | null; state: AtlasWalkState } {
-  const unasked = atlas.nodes.filter((n) => !state.askedNodeIds.includes(n.id));
+  const unasked = atlas.nodes.filter(
+    (n) =>
+      !state.askedNodeIds.includes(n.id) &&
+      (n.unlocksAfter ?? []).every((id) => state.askedNodeIds.includes(id)),
+  );
   if (unasked.length === 0) return { node: null, state };
 
   const next: AtlasWalkState = { ...state };
+  if (state.askedNodeIds.length === 0) {
+    const foundational = unasked.find((node) => node.tier === 1);
+    if (!foundational) return { node: null, state };
+    return {
+      node: foundational,
+      state: {
+        ...next,
+        askedNodeIds: [foundational.id],
+        currentTier: 1,
+        lastConcept: foundational.concept,
+        widenNext: false,
+      },
+    };
+  }
 
   if (lastCorrect) {
     // Alternate between deepen and widen

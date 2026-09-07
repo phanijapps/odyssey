@@ -23,32 +23,46 @@
 
 ## Solution strategy
 
-- **Application shape.** `app/` owns browser UI, App Router handlers, and
-  focused server modules. There is no second service and no reusable package
-  boundary until a real second consumer exists.
+- **Application shape.** `webapp/` owns browser UI, App Router handlers and
+  focused server orchestration. `packages/core`, `packages/db` and `packages/ai`
+  own pure domain policy, SQLite access and generation respectively;
+  `packages/config` shares TypeScript configuration. There is one runtime service.
 - **Transport boundary.** Routes are same-origin adapters: validate transport
   input, derive server-side session scope, invoke a focused service, and return
   a safe projection. Authorization and persistence policy stay out of browser
   components.
-- **Completion boundary.** `src/server/pi-completion.ts` is the only Pi AI
+- **Completion boundary.** `packages/ai/src/providers/pi-completion.ts` is the only Pi AI
   provider boundary. It makes bounded, stateless, text-only local completions.
   It does not expose tools, an agent loop, filesystem access, database writes,
   or authorization decisions. Do not introduce A2UI or Pi-agent-core concepts
   into new designs without an approved architectural change.
-- **Persistence boundary.** `src/server/persistence/sqlite.ts` opens and
+- **Persistence boundary.** `packages/db/src/client.ts` opens and
   migrates application databases. Feature modules use its connections and
   transactions rather than creating schemas or competing migration paths.
-- **Learning boundary.** `src/server/learning/` owns practice progression,
+- **Learning boundary.** `webapp/server/learning/` owns practice progression,
   assessment lifecycle, and redacted learner history. Assessment state and
   formative mastery are deliberately separate.
-- **Curriculum boundary.** `src/server/curriculum/` owns catalog reading,
-  promotion, Gold persistence, vectors, and retrieval. Its Pi-named workflow
-  adapter obtains structured completion data but application code validates and
-  promotes records.
-- **Native-memory boundary.** `src/server/memory/` contains optional,
-  server-only Engram adapters. They project allowlisted derived signals and are
-  recoverable when unavailable; they never become the authority for learning
-  progress or curriculum.
+- **Curriculum boundary.** `packages/core/src/curriculum/` owns reviewed source
+  data; `packages/db/src/catalog-seed.ts` and `packages/db/src/repositories/`
+  own seeding, Gold persistence and text retrieval. Runtime ingestion, vector
+  search and native-memory adapters are absent.
+
+## Existing boundary helpers
+
+- `requireLearnerRead` in `webapp/server/identity/identity.ts` establishes the
+  learner scope for reads; `requireLearnerMutationProof` adds the shared
+  same-origin proof for learner mutations. Use these rather than trusting a
+  browser-supplied learner identifier.
+- `compareAndSetSessionPool` in that module writes only when the stored pool
+  still matches the observed serialized state. Pool creation, assignment claims
+  and atlas completion use it; completion also checks the generation identity.
+- `sanitizeGeneratedDiagramSvg` in `packages/core/src/validators/payloads.ts`
+  applies the existing element/attribute allowlist. The atlas generator rejects
+  a node if its nonempty diagram fails sanitization.
+- `completeWithLocalOllama` in `packages/ai/src/providers/pi-completion.ts` bounds
+  stateless provider work. Atlas calls use a 90-second timeout, 16,384 output
+  tokens and at most one transport retry. `generateSkillAtlas` validates unknown
+  JSON and independently prunes invalid nodes before the session accepts a batch.
 
 ## Crosscutting standards
 
@@ -59,10 +73,8 @@
   a route's documented session lifecycle is intentionally narrower.
 - Keep answer keys, raw submitted answers, provider internals, and internal
   error detail out of client projections and durable attempt history.
-- Treat local semantic retrieval as an optional vector projection over Gold:
-  bounded nearest-neighbor results may fall back to text search. Do not describe
-  it as graph retrieval, hybrid retrieval, or reranking unless implementation
-  adds those stages.
+- Read retrieval results from the reviewed seeded Gold store. Text search is the
+  implemented search surface; vector or graph retrieval requires new work.
 - Keep modules cohesive and named for their policy. Do not create catch-all
   services, browser-side persistence, or a second database migration owner.
 - Preserve route paths and response shapes as compatibility surfaces. Update
@@ -78,6 +90,6 @@
 ## Contributor guidance hierarchy
 
 Read the root [`AGENTS.md`](../../AGENTS.md) first, then
-[`web/AGENTS.md`](../../web/AGENTS.md) for the deployable app's
-boundaries (routes, server modules, test isolation, e2e harness). The former
-per-subtree guides were consolidated into that single file.
+[`webapp/AGENTS.md`](../../webapp/AGENTS.md) for the deployable app's
+boundaries (routes, server modules, test isolation, e2e harness). The package
+boundaries are described above; there are no package-specific agent guides today.

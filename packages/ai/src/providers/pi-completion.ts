@@ -95,26 +95,38 @@ export async function completeWithLocalOllama(
   ensureProvider();
   const model = buildModel();
 
-  const completion = await models.complete(
-    model,
-    {
-      ...(request.systemPrompt ? { systemPrompt: request.systemPrompt } : {}),
-      messages: request.messages.map((content) => ({
-        role: "user" as const,
-        content,
-        timestamp: Date.now(),
-      })),
-    },
-    {
-      timeoutMs,
-      maxTokens,
-      maxRetries: 1,
-      temperature: 0,
-      cacheRetention: "short",
-      samplingParams: { response_format: { type: "json_object" } },
-    },
-  );
-  return extractLocalOllamaCompletionText(completion);
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const completion = await models.complete(
+      model,
+      {
+        ...(request.systemPrompt ? { systemPrompt: request.systemPrompt } : {}),
+        messages: request.messages.map((content) => ({
+          role: "user" as const,
+          content,
+          timestamp: Date.now(),
+        })),
+      },
+      {
+        timeoutMs,
+        signal: controller.signal,
+        maxTokens,
+        maxRetries: 1,
+        temperature: 0,
+        cacheRetention: "short",
+        // An explicit small reasoning budget leaves room for the final JSON;
+        // endpoint defaults can consume the whole token limit before answering.
+        samplingParams: {
+          response_format: { type: "json_object" },
+          reasoning_effort: "low",
+        },
+      },
+    );
+    return extractLocalOllamaCompletionText(completion);
+  } finally {
+    clearTimeout(deadline);
+  }
 }
 
 /** Extracts the final text only after Pi reports a successful completion. */

@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 > identifiers and sign-in values have been redacted; use the current application
 > configuration for local access.
 
+## [unreleased-4] — 2026-09-07
+
+### Fixed
+
+- **Generated practice rounds** — questions now follow the Skill Atlas tree,
+  preserving the active question and choosing fresh siblings after mistakes.
+  Concurrent requests and late generation results cannot replace a newer round.
+- **Practice lifecycle** — loading, retry, and completed-round states are explicit;
+  switching skills during answer submission keeps the new question usable.
+  Invalid generated batches are rejected before they reach learners.
+
+### Changed
+
+- **Practice API** — progress reads expose `questionPending` or `poolExhausted`
+  when there is no active question; `restart=1` starts a new terminal round.
+  Practice and answer topic identities now share the 300-character transport bound.
+
 ## [unreleased-3] — 2026-08-17
 
 ### Added

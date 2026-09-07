@@ -21,8 +21,8 @@ pnpm dev              # develop at http://localhost:3000
 ```
 
 For local development you can enable fixture accounts (`devadmin/admin`,
-`devparent/parent`, `devstu/stu`) by copying `app/.env.example` to
-`app/.env.local` and setting `ODYSSEY_ENABLE_DEVELOPMENT_FIXTURE_ACCOUNTS=1`.
+`devparent/parent`, `devstu/stu`) by copying `webapp/.env.example` to
+`webapp/.env.local` and setting `ODYSSEY_ENABLE_DEVELOPMENT_FIXTURE_ACCOUNTS=1`.
 
 For a production build:
 
@@ -36,9 +36,16 @@ pnpm start            # serve it (set ODYSSEY_APP_ORIGIN, see below)
 The app runs entirely on its reviewed question bank. To also generate
 fresh questions with a local [Ollama](https://ollama.com)-compatible
 endpoint, set `PI_PROVIDER=ollama`, `PI_MODEL=<model>`, and
-`OLLAMA_INTEGRATION=1` in `app/.env.local`. Every generated question,
-answer, and diagram is validated against a strict schema before a child
-ever sees it; on any failure the app falls back to the reviewed bank.
+`OLLAMA_INTEGRATION=1` in `webapp/.env.local`. Every generated question,
+answer, and diagram is bounded and validated before a child sees it.
+
+Selecting one reviewed standard starts one background question atlas. A matching
+bank question is available immediately where coverage exists; otherwise practice
+shows a loading state. Accepted batches cover multiple concepts and all three
+difficulty tiers. Correct answers deepen and widen practice; incorrect answers
+prefer a fresh sibling question. Answering never calls the model. Generation
+failure leaves matching bank questions available; when none are available,
+practice offers retry. Completed rounds offer an explicit new round.
 
 ## Scripts
 
@@ -53,6 +60,11 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 | `pnpm typecheck`                        | TypeScript checks                 |
 | `pnpm lint`                             | Formatting check (Prettier)       |
 
+After `pnpm build`, run `pnpm --filter child-math-app exec playwright test --config playwright/atlas.config.ts`
+to exercise generated practice against the production app, isolated stores, and a
+deterministic model endpoint. This covers loading, adaptive selection, completion,
+retry, and switching skills during an answer submission.
+
 ## The three personas
 
 | Persona     | Route        | What they do                                                                                                                                                                                   |
@@ -65,15 +77,14 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 
 ```text
 .
-├── apps/
-│   └── web/                  # the Next.js application
-│       ├── app/              #   thin routes (each page composes one module)
-│       ├── modules/          #   screens: practice, assessment, parent, admin
-│       ├── components/       #   cross-screen shared components
-│       ├── server/           #   web-owned services (identity, learning)
-│       ├── playwright/       #   e2e journeys
-│       ├── tests/            #   Vitest setup
-│       └── .env.example      #   configuration template
+├── webapp/                   # the Next.js application
+│   ├── app/                  # thin pages and route handlers
+│   ├── modules/              # practice, assessment, parent, admin screens
+│   ├── components/           # shared presentation
+│   ├── server/               # identity and learning orchestration
+│   ├── playwright/           # end-to-end journeys
+│   ├── tests/                # Vitest setup
+│   └── .env.example          # configuration template
 ├── packages/
 │   ├── core/                 # pure learning domain: adaptive algorithms,
 │   │                         # reviewed bank, interactions, grading,
@@ -92,7 +103,6 @@ ever sees it; on any failure the app falls back to the reviewed bank.
 │   ├── specs/            #   feature contracts and build plans
 │   ├── product/          #   briefs, roadmap, changelog
 │   └── knowledge/        #   curated engineering lessons
-├── tools/hooks/          # repository hooks
 ├── .agents/                  # project skills, work queue, agent pack state
 └── AGENTS.md             # canonical contributor instructions
 ```
@@ -106,7 +116,7 @@ All runtime state lives in the repo-root **`data/`** (git-ignored):
   matters** — back it up to preserve a learner's history.
 - `odyssey-curriculum.db` — the reviewed topic catalog, seeded
   idempotently at first open from the versioned JSON in
-  `web/server/curriculum/data/`.
+  `packages/core/src/curriculum/data/`.
 
 Both databases open in WAL mode with foreign keys enforced and ordered,
 append-only migrations. Override their locations with `ODYSSEY_DB_PATH`
@@ -117,13 +127,13 @@ child's progress as JSON from the parent portal.
 
 ## Configuration
 
-All configuration is environment-based; see [`webapp/.env.example`](web/.env.example)
+All configuration is environment-based; see [`webapp/.env.example`](webapp/.env.example)
 for the full annotated template. The essentials:
 
 | Variable                                                                                                                                   | Purpose                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | `ODYSSEY_APP_ORIGIN`                                                                                                                       | **Required in production** — the exact public origin used for same-origin mutation checks |
-| `ODYSSEY_DB_PATH` / `ODYSSEY_CURRICULUM_DB_PATH`                                                                                           | Absolute database locations (default: `app/data/`)                                        |
+| `ODYSSEY_DB_PATH` / `ODYSSEY_CURRICULUM_DB_PATH`                                                                                           | Absolute database locations (default: repo-root `data/`)                                  |
 | `ODYSSEY_SEED_CATALOG`                                                                                                                     | Set `0` to skip seeding the reviewed catalog (tests with exact fixtures)                  |
 | `ODYSSEY_ENABLE_DEVELOPMENT_FIXTURE_ACCOUNTS`                                                                                              | Dev-only fixture sign-ins                                                                 |
 | `ODYSSEY_ENABLE_LOCAL_PARENT_BOOTSTRAP` / `ODYSSEY_ENABLE_PRODUCTION_PARENT_BOOTSTRAP` + `ODYSSEY_PARENT_BOOTSTRAP_USERNAME` / `_PASSWORD` | One-time first-parent creation while no parent exists                                     |
@@ -133,7 +143,7 @@ for the full annotated template. The essentials:
 ## Architecture
 
 The runtime is one Next.js process: browser pages and same-origin route
-handlers, validated at the boundary, calling focused `src/server/`
+handlers, validated at the boundary, calling focused `webapp/server/`
 modules over SQLite. The agent boundary is deliberately narrow — it can
 propose a question, never persist, authorize, or execute anything.
 
@@ -141,11 +151,13 @@ Start with [`docs/architecture/overview.md`](docs/architecture/overview.md),
 then [`docs/architecture/application.md`](docs/architecture/application.md)
 for route contracts. Historical reasoning lives in
 [`docs/adr/`](docs/adr/) and [`docs/rfc/`](docs/rfc/).
+Current findings and scoped follow-ups are in the
+[technical-debt register](docs/product/technical-debt.md).
 
 ## Testing
 
 ```bash
-pnpm test                                  # 190+ deterministic tests
+pnpm test                                  # deterministic tests
 pnpm --filter child-math-app test:e2e      # browser end-to-end suite
 ```
 
